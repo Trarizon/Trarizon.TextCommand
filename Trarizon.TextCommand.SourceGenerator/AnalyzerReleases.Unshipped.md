@@ -17,3 +17,6 @@ TCMD0009 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0010 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0011 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0012 | Trarizon.TextCommand | Error | DiagnosticDescriptors
+TCMD0013 | Trarizon.TextCommand | Error | DiagnosticDescriptors
+TCMD0014 | Trarizon.TextCommand | Error | DiagnosticDescriptors
+TCMD0015 | Trarizon.TextCommand | Error | DiagnosticDescriptors

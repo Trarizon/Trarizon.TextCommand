@@ -121,4 +121,35 @@ internal static class ValidationHelper
         isFlag = default;
         return false;
     }
+
+    public static bool IsValidMethodParser(IMethodSymbol method, ITypeSymbol argType, CLParameterKind parameterKind)
+    {
+        switch (parameterKind) {
+            case CLParameterKind.Flag:
+                if (method is { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] }
+                    && SymbolEqualityComparer.Default.Equals(method.ReturnType, argType))
+                    return true;
+                return false;
+            case CLParameterKind.Option:
+            case CLParameterKind.Value:
+            case CLParameterKind.MultiValue:
+                if (method is {
+                    ReturnType.SpecialType: SpecialType.System_Boolean,
+                    Parameters:
+                    [
+                        { Type: var spanParameterType },
+                        {
+                            RefKind: RefKind.Out,
+                            Type: var resultParameterType,
+                        }
+                    ]
+                }) {
+                    return spanParameterType.ToDisplayString() == Constants.ReadOnlySpan_Char_TypeName
+                        && SymbolEqualityComparer.Default.Equals(argType, resultParameterType);
+                }
+                return false;
+            default:
+                throw new InvalidOperationException();
+        }
+    }
 }

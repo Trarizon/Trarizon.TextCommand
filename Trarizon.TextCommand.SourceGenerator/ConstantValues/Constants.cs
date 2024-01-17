@@ -9,6 +9,8 @@ internal static class Constants
     public const string IEnumerable_TypeName = "System.Collections.Generic.IEnumerable";
     public const string ISpanParsable_TypeName = "System.ISpanParsable";
 
+    public const string ReadOnlySpan_Char_TypeName = $"{ReadOnlySpan_TypeName}<char>";
+
     public const string MemoryExtensions_TypeName = "System.MemoryExtensions";
     public const string CollectionsMarshal_TypeName = "System.Runtime.InteropServices.CollectionsMarshal";
 

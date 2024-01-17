@@ -23,7 +23,7 @@ internal sealed class ExecutionProvider
     public ExecutionProvider(ExecutionModel model)
     {
         _model = model;
-        Command = new CommandProvider(model.Command);
+        Command = new CommandProvider(this, model.Command);
         Executors = new ExecutorProvider[model.Executors.Count];
         for (int i = 0; i < Executors.Length; i++) {
             Executors[i] = new ExecutorProvider(this, model.Executors[i]);

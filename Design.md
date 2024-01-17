@@ -5,6 +5,9 @@ TODO:
 - [ ] Better parsing-exception design
 - [ ] `Multi-Value` supports more types
 - [ ] `Value.Order` (maybe?)
+- [x] `Parser` supports method
+- [x] (BUG): `Get<,>`的第一个参数应该为完全限定名
+- [x] (BUG): No implicit parser的option不会正常报错
 
 Diagnostic TODO:
 - [ ] `Execution.CommandName` cannot contains white space
@@ -12,6 +15,8 @@ Diagnostic TODO:
 - [ ] (warning) `Value` or `MultiValue` shouldn't appears after RestValue
 - [ ] (warning) Parameters Not `Required` may be `default`
 - [ ] (warning) `MultiValue.MaxCount` cannot <= 0, use non-param ctor for RestValue
+- [ ] OptionKey cannot repeat
+- [x] static Execution with non-static Executors
 
 需要c#12以上版本
 
@@ -38,10 +43,10 @@ Diagnostic TODO:
 - 若参数没有默认Parser，则必需显式指定Parser
     - 默认Flag的类型有`bool`
 	- 默认Option的类型有`ISpanParsable<T>`, enum类型
-- Parser需为当前类型的字段或属性
-- Parser必须实现对应的接口
-	- FlagParser实现`IArgFlagParser`
-	- 其他Parser实现`IArgParser`
+- Parser需为当前类型的字段、属性或方法
+	- 字段/属性Parser必须实现对应的接口
+		- 其他Parser实现对应的`IArgParser`或`IArgFlagParser`
+	- 方法Parser使用`DelegateParser<>`和`DelegateFlagParser<>`包装使用
 - 参数名不允许重复
 - [warning] RestValues之后不应出现Value或Values参数
 - [warning] 未标记Required的参数可能为`default`
@@ -61,5 +66,6 @@ Diagnostic TODO:
 - 使用列表模式匹配命令前缀，并获取剩余值
 - 将剩余值作为参数解析，调用指定Executor
 	- 通过`ParameterSet`获取解析后参数
+		- 多余参数无视
 	- 通过`ArgsProvider`获取传入实参
 - 未匹配则返回`default`

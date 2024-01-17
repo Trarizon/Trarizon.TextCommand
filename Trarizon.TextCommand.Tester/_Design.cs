@@ -18,6 +18,19 @@ internal partial class _Design
         return false;
     }
 
+    public static bool Par(ReadOnlySpan<char> input, out string output)
+    {
+        output = input.ToString();
+        return default;
+    }
+
+    [Executor("def")]
+    public bool Method([Option(Parser = nameof(Par))] string opt)
+    {
+        return false;
+    }
+
+
     // Default setting
     [Executor("default", "settings")]
     public bool DefaultSetting(bool flag, string? str, Option option, int number, int? nullNumber)

@@ -52,6 +52,8 @@ internal static class Literals
     public const string EnumParser_TypeName = $"{Namespace}.Parsers.EnumParser";
     public const string ParsableParser_TypeName = $"{Namespace}.Parsers.ParsableParser";
     public const string NullableParser_TypeName = $"{Namespace}.Parsers.NullableParser";
+    public const string DelegateParser_TypeName = $"{Namespace}.Parsers.DelegateParser";
+    public const string DelegateFlagParser_TypeName = $"{Namespace}.Parsers.DelegateFlagParser";
 
     // Vars
 

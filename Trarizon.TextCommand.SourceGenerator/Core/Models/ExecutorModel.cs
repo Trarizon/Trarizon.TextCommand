@@ -38,6 +38,17 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
     private string[]? _commandPrefixes;
     public string[] CommandPrefixes => _commandPrefixes ??= (_attribute.GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? []);
 
+
+    public Filter ValidateStaticKeyword()
+    {
+        if (Execution.Symbol.IsStatic && !Symbol.IsStatic) {
+            return Filter.Create(DiagnosticFactory.Create(
+                DiagnosticDescriptors.ExecutorShouldBeStaticIfExecutionIs,
+                Syntax.Identifier));
+        }
+        return Filter.Success;
+    }
+
     public Filter ValidateReturnType()
     {
         if (Execution.Context.SemanticModel.Compilation.ClassifyCommonConversion(

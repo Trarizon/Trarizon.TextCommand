@@ -96,4 +96,6 @@ Attribute参数中提供了部分设置用于自定义，
 - `EnumParser<T>` : 解析enum类型
 - `BooleanFlagParser` : 解析bool类型为`Flag`参数
 - `BinaryFlagParser<T>` : 将bool类型解析为指定的两个值
+- `DelegateParser<T>` : 包装一个方法进行解析
+- `DelegateFlagParser<T>` : 包装一个方法进行解析
 - `NullableParser<TParser, T>` : 提供了`Nullable<T>`解析的包装

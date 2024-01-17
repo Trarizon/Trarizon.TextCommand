@@ -45,10 +45,14 @@ public class ExecutionGenerator : IIncrementalGenerator
                     }
                 })
                 .ThrowIfCancelled(token)
+                .Predicate(e => e.ValidatePartialKeyWord())
                 .Predicate(e => e.ValidateParameter())
                 .Predicate(e => e.ValidateReturnType())
                 .Predicate(e => e.ValidateExecutorsCommandPrefixes())
-                .PredicateMany(e => e.Executors, e => e.ValidateReturnType())
+                .PredicateMany(e => e.Executors,
+                    e => Filter.Create(e)
+                    .Predicate(e => e.ValidateStaticKeyword())
+                    .Predicate(e => e.ValidateReturnType()))
                 .ThrowIfCancelled(token)
                 .PredicateMany(e => e.Executors.SelectMany(e => e.Parameters),
                     p => Filter.Create(p)
@@ -66,16 +70,12 @@ public class ExecutionGenerator : IIncrementalGenerator
                 default,
                 default,
                 SyntaxFactory.List(new[] {
-                    CodeFactory.CloneContainingTypeAndNamespaceDeclarations(
-                        provider.Command.Syntax,
-                        provider.Command.Symbol,
-                        SyntaxFactory.SingletonList<MemberDeclarationSyntax>(
-                            provider.MethodDeclaration()))
-                    .WithLeadingTrivia(
-                        SyntaxFactory.TriviaList(
-                            SyntaxFactory.Trivia(
-                                SyntaxFactory.NullableDirectiveTrivia(
-                                    SyntaxFactory.Token(SyntaxKind.EnableKeyword), true)))),
+                    provider.Command.ClonePartialTypeDeclaration()
+                        .WithLeadingTrivia(
+                            SyntaxFactory.TriviaList(
+                                SyntaxFactory.Trivia(
+                                    SyntaxFactory.NullableDirectiveTrivia(
+                                        SyntaxFactory.Token(SyntaxKind.EnableKeyword), true)))),
                     provider.ParameterSets_ClassDeclaration(),
                 }));
 

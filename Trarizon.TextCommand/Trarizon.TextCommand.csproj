@@ -1,9 +1,32 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Title>$(AssemblyName)</Title>
+		<Authors>Trarizon</Authors>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>command line; CLI</PackageTags>
+		<PackageProjectUrl>https://github.com/Trarizon/Trarizon.TextCommand</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Trarizon/Trarizon.TextCommand</RepositoryUrl>
+		<Description>A tool for CLI-like input parsing, written with source generator</Description>
+		<AssemblyVersion>1.0.0.1</AssemblyVersion>
+		<FileVersion>$(AssemblyVersion)</FileVersion>
+		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+		<Version>1.0.1</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\LICENSE.txt">
+		  <Pack>True</Pack>
+		  <PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Include="..\Trarizon.TextCommand.SourceGenerator\bin\$(Configuration)\netstandard2.0\Trarizon.TextCommand.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+	</ItemGroup>
 
 </Project>

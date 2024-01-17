@@ -62,7 +62,7 @@ internal static class DiagnosticDescriptors
     public readonly static DiagnosticDescriptor CannotFindExplicitParser = new(
         "TCMD0008",
         nameof(CannotFindExplicitParser),
-        "Cannot find explicit parser field or property in command type",
+        "Cannot find explicit parser field, property, or method in command type",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);
@@ -95,6 +95,38 @@ internal static class DiagnosticDescriptors
         "TCMD0012",
         nameof(InvalidMultiValueCollectionType),
         "Custom parser of multi-value cannot be flag parser, items are treat as options or values",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor ExecutionMethodShouldBePartial = new(
+        "TCMD0012",
+        nameof(ExecutionMethodShouldBePartial),
+        "Execution method should be partial",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor CustomFlagParsingMethodMatchArgFlagParsingDelegate = new(
+        "TCMD0013",
+        nameof(CustomFlagParsingMethodMatchArgFlagParsingDelegate),
+        $"Custom flag parsing method shoule match ArgFlagParsingDelegate",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor CustomParsingMethodMatchArgParsingDelegate = new(
+        "TCMD0014",
+        nameof(CustomParsingMethodMatchArgParsingDelegate),
+        $"Custom flag parsing method shoule match ArgParsingDelegate",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor ExecutorShouldBeStaticIfExecutionIs = new(
+        "TCMD0015",
+        nameof(ExecutorShouldBeStaticIfExecutionIs),
+        $"Static execution cannot call non-static executor",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);

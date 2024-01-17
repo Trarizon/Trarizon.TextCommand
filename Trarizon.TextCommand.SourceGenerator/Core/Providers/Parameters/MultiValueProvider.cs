@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Diagnostics;
@@ -26,7 +27,7 @@ internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValuePa
                 case MultiValueCollectionType.ReadOnlySpan:
                 case MultiValueCollectionType.Span:
                     var array = SyntaxFactory.ArrayType(
-                        Model.ParsedTypeSyntax,
+                        SyntaxFactory.IdentifierName(Model.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
                         SyntaxFactory.SingletonList(
                             SyntaxFactory.ArrayRankSpecifier(
                                 SyntaxFactory.SingletonSeparatedList<ExpressionSyntax>(

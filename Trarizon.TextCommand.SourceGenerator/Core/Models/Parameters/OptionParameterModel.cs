@@ -18,9 +18,7 @@ internal sealed class OptionParameterModel(ParameterModel parameter) : ICLParame
 
     public bool Required { get; init; }
 
-    public required Either<ImplicitCLParameterKind, (ITypeSymbol Type, ISymbol Member)> ParserInfo { get; init; }
-
-    public TypeSyntax ParsedTypeSyntax => Parameter.Syntax.Type!;
+    public required Either<ImplicitCLParameterKind, Either<(ITypeSymbol Type, ISymbol Member), IMethodSymbol>> ParserInfo { get; init; }
 
     public ITypeSymbol ParsedTypeSymbol => Parameter.Symbol.Type;
 }

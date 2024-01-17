@@ -22,30 +22,21 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
     private readonly AttributeData _attribute = attribute;
 
     private List<ExecutorModel>? _executors;
-    public List<ExecutorModel> Executors
-    {
-        get {
-            if (_executors is null) {
-                _executors = [];
-                foreach (var member in Command.Syntax.Members) {
-                    if (member is MethodDeclarationSyntax method) {
-                        var symbol = Context.SemanticModel.GetDeclaredSymbol(method)!;
-                        if (symbol.GetAttributes() is [var attr, ..] &&
-                            attr.AttributeClass?.ToDisplayString() == Literals.ExecutorAttribute_TypeName &&
-                            !SymbolEqualityComparer.Default.Equals(symbol, Symbol)
-                        ) {
-                            _executors.Add(new ExecutorModel(this, method, symbol, attr));
-                        }
-                    }
-                }
-            }
-            return _executors;
-        }
-    }
+    public List<ExecutorModel> Executors => _executors ??= Command.GetExecutors(this);
 
     // Values
 
     public InputParameterType InputParameterType { get; private set; }
+
+    public Filter ValidatePartialKeyWord()
+    {
+        if (Syntax.Modifiers.Any(SyntaxKind.PartialKeyword)) {
+            return Filter.Success;
+        }
+        return Filter.Create(DiagnosticFactory.Create(
+            DiagnosticDescriptors.ExecutionMethodShouldBePartial,
+            Syntax.Identifier));
+    }
 
     public Filter ValidateParameter()
     {

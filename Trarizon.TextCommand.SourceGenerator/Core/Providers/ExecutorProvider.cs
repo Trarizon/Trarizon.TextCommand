@@ -109,12 +109,7 @@ internal sealed class ExecutorProvider
         // return Exec(__prm_exec, ..);
         yield return SyntaxFactory.ReturnStatement(
             SyntaxFactory.InvocationExpression(
-                SyntaxFactory.MemberAccessExpression(
-                    SyntaxKind.SimpleMemberAccessExpression,
-                    Model.Symbol.IsStatic
-                        ? SyntaxFactory.IdentifierName(Execution.Command.Symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-                        : SyntaxFactory.ThisExpression(),
-                    SyntaxFactory.IdentifierName(Model.Symbol.Name)),
+                SyntaxProvider.SiblingMemberAccessExpression(Model.Symbol),
                 SyntaxFactory.ArgumentList(
                     SyntaxFactory.SeparatedList(
                         Parameters.Select(p

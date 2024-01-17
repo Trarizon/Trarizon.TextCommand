@@ -1,11 +1,12 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 
 namespace Trarizon.TextCommand.SourceGenerator.Utilities;
 internal static class SyntaxProvider
 {
-    public static readonly AttributeListSyntax GeneratedCodeAttributeSyntax = 
+    public static readonly AttributeListSyntax GeneratedCodeAttributeSyntax =
         SyntaxFactory.AttributeList(
             SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Attribute(
@@ -20,6 +21,16 @@ internal static class SyntaxProvider
                         })))));
 
     #region SyntaxFactory Sugar
+
+    public static MemberAccessExpressionSyntax SiblingMemberAccessExpression(ISymbol member)
+    {
+        return SyntaxFactory.MemberAccessExpression(
+            SyntaxKind.SimpleMemberAccessExpression,
+            member.IsStatic
+                ? SyntaxFactory.IdentifierName(member.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+                : SyntaxFactory.ThisExpression(),
+            SyntaxFactory.IdentifierName(member.Name));
+    }
 
     public static ArgumentSyntax DefaultArgument(TypeSyntax type)
         => SyntaxFactory.Argument(

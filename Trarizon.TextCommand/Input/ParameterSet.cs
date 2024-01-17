@@ -11,9 +11,6 @@ public sealed class ParameterSet(
     private readonly FrozenDictionary<string, bool> _optionOrFlagParameters = optionOrFlagParameters?.ToFrozenDictionary() ?? FrozenDictionary<string, bool>.Empty;
     private readonly FrozenDictionary<string, string> _aliasDict = aliasDict?.ToFrozenDictionary() ?? FrozenDictionary<string, string>.Empty;
 
-    // TODO: where to place this
-    private readonly bool ThrowIfOnRedundantArgument;
-
     [EditorBrowsable(EditorBrowsableState.Never)]
     public StringArgsProvider Parse(in StringInputRest rest)
     {
@@ -44,9 +41,6 @@ public sealed class ParameterSet(
                             // else option key is the last arg of input
                             break; // continue;
                         }
-                        if (ThrowIfOnRedundantArgument) {
-                            throw new Exception();
-                        }
                         break;
                     case ['-', ..]:
                         if (_aliasDict.TryGetValue(new string(arg), out strArg) &&
@@ -57,9 +51,6 @@ public sealed class ParameterSet(
                                 dict.Add(strArg, rest.Indexes[i]);
                             // else option key is the last arg of input
                             break;
-                        }
-                        if (ThrowIfOnRedundantArgument) {
-                            throw new Exception();
                         }
                         break;
                     default:
@@ -96,9 +87,6 @@ public sealed class ParameterSet(
                         // else option key is the last arg of input
                         break;
                     }
-                    if (ThrowIfOnRedundantArgument) {
-                        throw new Exception();
-                    }
                     break;
                 case ['-', ..]:
                     if (_aliasDict.TryGetValue(arg, out arg) && _optionOrFlagParameters.TryGetValue(arg, out isOption)) {
@@ -108,9 +96,6 @@ public sealed class ParameterSet(
                             dict.Add(arg, args[i]);
                         // else option key is the last arg of input
                         break;
-                    }
-                    if (ThrowIfOnRedundantArgument) {
-                        throw new Exception();
                     }
                     break;
                 case ['"', .., '"']:

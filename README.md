@@ -88,13 +88,16 @@ Attribute params|Comments
 
 ### Parser Rules
 
-Custom parsers should be *field* or *Property* in current type.
+Custom parsers should be *field*, *Property* or *Method* in current type.
 
 For `flag`, parser implements `IArgFlagParser<T>`; for others, implements `IArgParser<T>`.
+Method parser should assignable to `ArgParsingDelegate` or `ArgFlagParsingDelegate`
 
 Buid-in parser:
 - `ParsableParser<T>` : Parse `ISpanParsable<T>` 
 - `EnumParser<T>` : Parse enum type
 - `BooleanFlagParser` : Parse `Flag` to `bool`
 - `BinaryFlagParser<T>` : Parse `Flag` to one of specified values.
+- `DelegateParser<T>` : Wrap a parser delegate
+- `DelegateFlagParser<T>` : Wrap a parser delegate
 - `NullableParser<TParser, T>` : Wrap parser for `Nullable<T>`
