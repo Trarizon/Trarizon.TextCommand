@@ -113,7 +113,7 @@ internal struct Filter<TContext> where TContext : notnull
 
         var result = selector(Context);
         if (result.HasDiagnostic)
-            (_diagnostics ??= []).AddRange(Diagnostics);
+            (_diagnostics ??= []).AddRange(result.Diagnostics);
         else
             return new(result.Context, _diagnostics);
         return new(default, _diagnostics);
