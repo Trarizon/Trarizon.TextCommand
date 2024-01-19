@@ -24,6 +24,9 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
     private List<ExecutorModel>? _executors;
     public List<ExecutorModel> Executors => _executors ??= Command.GetExecutors(this);
 
+    private string? _commandName;
+    public string? CommandName => _commandName ??= _attribute.GetConstructorArgument<string>(Literals.ExecutionAttribute_CommandName_CtorParameterIndex);
+
     // Values
 
     public InputParameterType InputParameterType { get; private set; }
@@ -33,7 +36,7 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
         if (Syntax.Modifiers.Any(SyntaxKind.PartialKeyword)) {
             return Filter.Success;
         }
-        return Filter.Create(DiagnosticFactory.Create(
+        return Filter.CreateDiagnostic(DiagnosticFactory.Create(
             DiagnosticDescriptors.ExecutionMethodShouldBePartial,
             Syntax.Identifier));
     }
@@ -41,14 +44,22 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
     public Filter ValidateParameter()
     {
         if (Symbol.Parameters is not [{ Type: var parameterType }]) {
-            return Filter.Create(DiagnosticFactory.Create(
+            return Filter.CreateDiagnostic(DiagnosticFactory.Create(
                 DiagnosticDescriptors.ExecutionMethodOnlyHasOneParameter,
                 Syntax.Identifier));
         }
 
+        // string | ReadOnlySpan<char> -> String
+        // string[] -> Array
+        // List<string> -> List
+        // ReadOnlySpan<string> | Span<string> -> Span
         InputParameterType = parameterType switch {
             ITypeSymbol { SpecialType: SpecialType.System_String }
                 => InputParameterType.String,
+            INamedTypeSymbol { TypeArguments: [{ SpecialType: SpecialType.System_Char }] } rosCharType
+                => rosCharType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric) is Constants.ReadOnlySpan_TypeName
+                    ? InputParameterType.String
+                    : InputParameterType.Unknown,
             IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_String }
                 => InputParameterType.Array,
             INamedTypeSymbol { TypeArguments: [{ SpecialType: SpecialType.System_String }] } namedType
@@ -67,16 +78,25 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
 
     public Filter ValidateReturnType()
     {
-        if (Symbol.ReturnType is {
-            IsValueType: false,
-            NullableAnnotation: NullableAnnotation.NotAnnotated,
-        }) {
-            return Filter.Create(DiagnosticFactory.Create(
-                DiagnosticDescriptors.ExecutionMethodReturnTypeShouldBeNullable,
-                Syntax.ReturnType));
+        if (Symbol.ReturnType.IsCanBeDefault()) {
+            return Filter.Success;
         }
 
-        return Filter.Success;
+        return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+                DiagnosticDescriptors.ExecutionMethodReturnTypeShouldBeNullable,
+                Syntax.ReturnType));
+    }
+
+    public Filter ValidateCommandName()
+    {
+        var name = CommandName;
+
+        if (name is null || ValidationHelper.IsValidCommandPrefix(name))
+            return Filter.Success;
+        else
+            return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+                DiagnosticDescriptors.CommandPrefixCannotContainsSpaceOrLeadingWithMinus,
+                Syntax.Identifier));
     }
 
     public Filter ValidateExecutorsCommandPrefixes()
@@ -96,7 +116,7 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
         }
 
         if (result != null)
-            return Filter.Create(result.AsEnumerable());
+            return Filter.CreateDiagnostics(result);
         else
             return Filter.Success;
 
@@ -108,7 +128,4 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
             return former.AsSpan().SequenceEqual(latter.AsSpan(0, former.Length));
         }
     }
-
-    public string? AttributeData_CommandPrefix()
-        => _attribute.GetConstructorArgument<string>(Literals.ExecutionAttribute_CommandName_CtorParameterIndex);
 }

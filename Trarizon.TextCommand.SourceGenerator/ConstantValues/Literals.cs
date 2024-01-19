@@ -61,13 +61,6 @@ internal static class Literals
     public const string ParameterSets_TypeIdentifier = "__ParameterSets";
     public const int StackAllocThreshold = 1024;
 
-    public static string Alias(string parameterAliasWithoutPrefix)
-    {
-        return $"-{parameterAliasWithoutPrefix}";
-    }
-
-    public static string FullName(string parameterNameWithoutPrefix)
-    {
-        return $"--{parameterNameWithoutPrefix}";
-    }
+    public const string Prefix_Alias = "-";
+    public const string Prefix = "--";
 }

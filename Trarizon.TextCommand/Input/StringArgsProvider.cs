@@ -7,7 +7,7 @@ namespace Trarizon.TextCommand.Input;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public readonly ref struct StringArgsProvider
 {
-    private readonly string _sourceInput;
+    private readonly ReadOnlySpan<char> _sourceInput;
     private readonly ReadOnlySpan<string> _unescapeds;
 
     // slice
@@ -16,7 +16,7 @@ public readonly ref struct StringArgsProvider
     private readonly Dictionary<string, ArgIndex> _dict;
     private readonly ReadOnlySpan<ArgIndex> _list;
 
-    internal StringArgsProvider(string sourceInput, ReadOnlySpan<string> unescapeds, Dictionary<string, ArgIndex> dict, ReadOnlySpan<ArgIndex> list)
+    internal StringArgsProvider(ReadOnlySpan<char> sourceInput, ReadOnlySpan<string> unescapeds, Dictionary<string, ArgIndex> dict, ReadOnlySpan<ArgIndex> list)
     {
         _sourceInput = sourceInput;
         _unescapeds = unescapeds;
@@ -29,7 +29,7 @@ public readonly ref struct StringArgsProvider
         // Slice
         if (index.Kind == ArgIndexKind.Slice) {
             var (start, length) = index.SliceRange;
-            var rawSpan = _sourceInput.AsSpan(start, length);
+            var rawSpan = _sourceInput.Slice(start, length);
             if (parser.TryParse(rawSpan, out var result))
                 return result;
             else

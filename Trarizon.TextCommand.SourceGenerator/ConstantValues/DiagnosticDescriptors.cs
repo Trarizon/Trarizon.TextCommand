@@ -130,4 +130,28 @@ internal static class DiagnosticDescriptors
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);
+
+    public readonly static DiagnosticDescriptor CommandPrefixCannotContainsSpaceOrLeadingWithMinus = new(
+        "TCMD0016",
+        nameof(CommandPrefixCannotContainsSpaceOrLeadingWithMinus),
+        "Command prefix cannot contain space or leading with '-'",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor ValueOrMultiValueAfterRestValueWillAlwaysDefault = new(
+        "TCMD0017",
+        nameof(ValueOrMultiValueAfterRestValueWillAlwaysDefault),
+        "'Value' or 'MultiValue' after a 'RestValue'(MultiValue with MaxCount <= 0) will alway default",
+        Literals.Namespace,
+        DiagnosticSeverity.Warning,
+        true);
+
+    public readonly static DiagnosticDescriptor NotRequiredParameterMayBeDefault = new(
+        "TCMD0018",
+        nameof(NotRequiredParameterMayBeDefault),
+        "Not required parameter may be default",
+        Literals.Namespace,
+        DiagnosticSeverity.Warning,
+        true);
 }

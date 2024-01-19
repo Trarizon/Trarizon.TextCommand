@@ -94,7 +94,7 @@ internal sealed class ExecutorProvider
             yield return SyntaxProvider.LocalVarSingleVariableDeclaration(
                 ArgsProvider_VarIdentifer,
                 SyntaxFactory.InvocationExpression(
-                    SyntaxFactory.IdentifierName(Constants.Global($"{Literals.ParameterSets_TypeIdentifier}.{ParameterSet_FieldIdentifier}.{Literals.ParameterSet_Parse_MethodIdentifier}")),
+                    SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParameterSets_TypeIdentifier}.{ParameterSet_FieldIdentifier}.{Literals.ParameterSet_Parse_MethodIdentifier}"),
                     SyntaxFactory.ArgumentList(
                         SyntaxFactory.SingletonSeparatedList(
                             SyntaxFactory.Argument(
@@ -140,7 +140,7 @@ internal sealed class ExecutorProvider
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword),
                 SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)),
             SyntaxFactory.VariableDeclaration(
-                SyntaxFactory.IdentifierName(Constants.Global(Literals.ParameterSet_TypeName)),
+                SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParameterSet_TypeName}"),
                 SyntaxFactory.SingletonSeparatedList(
                     SyntaxFactory.VariableDeclarator(
                         SyntaxFactory.Identifier(ParameterSet_FieldIdentifier),
@@ -152,19 +152,19 @@ internal sealed class ExecutorProvider
                                         DictParameterArgument(
                                             namedParameters,
                                             [
-                                                SyntaxFactory.IdentifierName(Constants.Global(Constants.String_TypeName)),
-                                                SyntaxFactory.IdentifierName(Constants.Global(Constants.Boolean_TypeName)),
+                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.String_TypeName}"),
+                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.Boolean_TypeName}"),
                                             ],
-                                            p => (SyntaxProvider.LiteralStringExpression(Literals.FullName(p.Name)),
+                                            p => (SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{p.Name}"),
                                                 SyntaxProvider.LiteralBooleanExpression(p is OptionProvider))),
                                         DictParameterArgument(
                                             aliasParameters,
                                             [
-                                                SyntaxFactory.IdentifierName(Constants.Global(Constants.String_TypeName)),
-                                                SyntaxFactory.IdentifierName(Constants.Global(Constants.String_TypeName)),
+                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.String_TypeName}"),
+                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.String_TypeName}"),
                                             ],
-                                            p => (SyntaxProvider.LiteralStringExpression(Literals.Alias(p.Alias!)),
-                                                SyntaxProvider.LiteralStringExpression(Literals.FullName(p.Name)))),
+                                            p => (SyntaxProvider.LiteralStringExpression($"{Literals.Prefix_Alias}{p.Alias!}"),
+                                                SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{p.Name}"))),
                                     })),
                                 default))))));
 
@@ -172,7 +172,7 @@ internal sealed class ExecutorProvider
         static ArgumentSyntax DictParameterArgument(List<INamedParameterProvider> parameters, TypeSyntax[] dictTypeArguments, Func<INamedParameterProvider, (ExpressionSyntax Key, ExpressionSyntax Value)> initializerExpressionKeyValueSelector)
         {
             var dictType = SyntaxFactory.GenericName(
-                SyntaxFactory.Identifier(Constants.Global(Constants.Dictionary_TypeName)),
+                SyntaxFactory.Identifier($"{Constants.Global}::{Constants.Dictionary_TypeName}"),
                 SyntaxFactory.TypeArgumentList(
                     SyntaxFactory.SeparatedList(dictTypeArguments)));
 

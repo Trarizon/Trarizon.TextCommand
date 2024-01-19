@@ -17,7 +17,7 @@ internal sealed class FlagProvider(ExecutorProvider executor, FlagParameterModel
     {
         return (Literals.ArgsProvider_GetFlag_MethodIdentifier, [
             SyntaxFactory.Argument(
-                SyntaxProvider.LiteralStringExpression(Literals.FullName(model.Name))),
+                SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{model.Name}")),
             ParserArgumentSyntax,
         ]);
     }

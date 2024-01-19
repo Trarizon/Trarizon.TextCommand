@@ -8,13 +8,14 @@ TODO:
 - [x] `Parser` supports method
 - [x] (BUG): `Get<,>`的第一个参数应该为完全限定名
 - [x] (BUG): No implicit parser的option不会正常报错
+- [x] Input supports `ReadOnlySpan<char>`, as `string`
+- [ ] 非可匹配类型报错？
 
 Diagnostic TODO:
-- [ ] `Execution.CommandName` cannot contains white space
-- [ ] `Executor.CommandPrefixes` cannot contains white space
-- [ ] (warning) `Value` or `MultiValue` shouldn't appears after RestValue
-- [ ] (warning) Parameters Not `Required` may be `default`
-- [ ] (warning) `MultiValue.MaxCount` cannot <= 0, use non-param ctor for RestValue
+- [x] `Execution.CommandName` cannot contains white space, cannot with `-` prefix
+- [x] `Executor.CommandPrefixes` cannot contains white space, cannot with `-` prefix
+- [x] (warning) `Value` or `MultiValue` shouldn't appears after RestValue
+- [x] (warning) Parameters Not `Required` may be `default`
 - [ ] OptionKey cannot repeat
 - [x] static Execution with non-static Executors
 
@@ -25,7 +26,7 @@ Diagnostic TODO:
 ### Execution
 
 - 必须有唯一参数
-	- 参数类型为`string`、`Span<string>`、`ReadOnlySpan<string>`、`string[]`、`List<string>`或其他可匹配类型
+	- 参数类型为`string`、`ReadOnlySpan<char>` 、`Span<string>`、`ReadOnlySpan<string>`、`string[]`、`List<string>`或其他可匹配类型
 		- 可匹配类型指：可使用`string`进行匹配，可切片获得`IEnumerable<string>`类型，分析器不做保证
 - [warning] 返回类型可`default`，因为未匹配时返回`default`
 - Execution上标记`[Executor]`会被忽略

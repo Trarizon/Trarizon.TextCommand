@@ -27,7 +27,7 @@ public sealed class ParameterSet(
 
             if (index.Kind == ArgIndexKind.Slice) {
                 var (start, length) = index.SliceRange;
-                var arg = rest.Source.AsSpan(start, length);
+                var arg = rest.Source.Slice(start, length);
 
                 switch (arg) {
                     case ['-', '-', ..]:
@@ -60,7 +60,7 @@ public sealed class ParameterSet(
             }
             else { // escaped
                 var (start, length) = index.EscapedRange;
-                var unescaped = StringUtil.UnescapeToString(rest.Source.AsSpan(start, length));
+                var unescaped = StringUtil.UnescapeToString(rest.Source.Slice(start, length));
 
                 list.Add(ArgIndex.FromCached(unescapeCount));
                 unescapeds[unescapeCount++] = unescaped;

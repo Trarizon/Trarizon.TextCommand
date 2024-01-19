@@ -2,11 +2,13 @@
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
-internal sealed class MultiValueParameterModel(ParameterModel parameter) : ICLParameterModel
+internal sealed class MultiValueParameterModel(ParameterModel parameter) : ICLParameterModel, IRequiredParameterModel
 {
     public ParameterModel Parameter => parameter;
 
     public int MaxCount { get; init; }
+
+    public bool IsRest => MaxCount <= 0;
 
     public bool Required { get; init; }
 

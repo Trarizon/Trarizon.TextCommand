@@ -21,7 +21,7 @@ public class ExecutionGenerator : IIncrementalGenerator
             if (options is CSharpParseOptions csOption && csOption.LanguageVersion >= LanguageVersion.CSharp12) {
                 return Filter.Success;
             }
-            return Filter.Create(Diagnostic.Create(
+            return Filter.CreateDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.RequiresLangVersionCSharp12,
                 null));
         });
@@ -48,16 +48,19 @@ public class ExecutionGenerator : IIncrementalGenerator
                 .Predicate(e => e.ValidatePartialKeyWord())
                 .Predicate(e => e.ValidateParameter())
                 .Predicate(e => e.ValidateReturnType())
+                .Predicate(e => e.ValidateCommandName())
                 .Predicate(e => e.ValidateExecutorsCommandPrefixes())
                 .PredicateMany(e => e.Executors,
                     e => Filter.Create(e)
                     .Predicate(e => e.ValidateStaticKeyword())
-                    .Predicate(e => e.ValidateReturnType()))
-                .ThrowIfCancelled(token)
-                .PredicateMany(e => e.Executors.SelectMany(e => e.Parameters),
-                    p => Filter.Create(p)
-                    .Predicate(p => p.ValidateSingleAttribute())
-                    .Predicate(p => p.ValidateCLParameter()))
+                    .Predicate(e => e.ValidateReturnType())
+                    .PredicateMany(e => e.Parameters,
+                        p => Filter.Create(p)
+                        .Predicate(p => p.ValidateSingleAttribute())
+                        .Predicate(p => p.ValidateAndCreateCLParameter())
+                        .CloseIfHasDiagnostic()
+                        .Predicate(p => p.ValidateRequiredParameterNullableAnnotation()))
+                    .Predicate(e => e.ValidateValueParametersAfterRestValues()))
                 .CloseIfHasDiagnostic();
             });
 

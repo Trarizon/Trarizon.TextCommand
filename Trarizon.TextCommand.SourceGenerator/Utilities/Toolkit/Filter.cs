@@ -10,11 +10,11 @@ namespace Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 partial struct Filter
 {
     public static Filter Success => default;
-    public static Filter Create(Diagnostic diagnostic) => Unsafe.As<Diagnostic, Filter>(ref diagnostic);
-    public static Filter Create(IEnumerable<Diagnostic> diagnostics) => Unsafe.As<IEnumerable<Diagnostic>, Filter>(ref diagnostics);
+    public static Filter CreateDiagnostic(Diagnostic diagnostic) => Unsafe.As<Diagnostic, Filter>(ref diagnostic);
+    public static Filter CreateDiagnostics(IEnumerable<Diagnostic> diagnostics) => Unsafe.As<IEnumerable<Diagnostic>, Filter>(ref diagnostics);
 
-    public static Filter<T> Create<T>(Diagnostic diagnostic) where T : notnull => new(default, diagnostic);
-    public static Filter<T> Create<T>(IEnumerable<Diagnostic> diagnostics) where T : notnull => new(default, diagnostics.ToList());
+    public static Filter<T> CreateDiagnostic<T>(Diagnostic diagnostic) where T : notnull => new(default, diagnostic);
+    public static Filter<T> CreateDiagnostics<T>(IEnumerable<Diagnostic> diagnostics) where T : notnull => new(default, diagnostics);
     public static Filter<T> Create<T>(in T context) where T : notnull => new(context, default(List<Diagnostic>));
 
     public static Filter<TResult> Select<T, TResult>(in T context, Func<T, Filter<TResult>> selector) where TResult : notnull
@@ -59,7 +59,7 @@ internal struct Filter<TContext> where TContext : notnull
     }
 
     public static implicit operator Filter(Filter<TContext> filter) => filter._diagnostics switch {
-        [var diag] => Filter.Create(diag),
+        [var diag] => Filter.CreateDiagnostic(diag),
         [..] => Filter.Create(filter._diagnostics),
         null => default,
     };

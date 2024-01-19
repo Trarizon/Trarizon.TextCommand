@@ -17,7 +17,7 @@ internal sealed class OptionProvider(ExecutorProvider executor, OptionParameterM
     {
         return (Literals.ArgsProvider_GetOption_MethodIdentifier, [
             SyntaxFactory.Argument(
-                SyntaxProvider.LiteralStringExpression(Literals.FullName(model.Name))),
+                SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{model.Name}")),
             ParserArgumentSyntax,
             SyntaxFactory.Argument(
                 SyntaxProvider.LiteralBooleanExpression(model.Required)),

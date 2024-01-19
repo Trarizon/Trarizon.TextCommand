@@ -4,7 +4,7 @@ namespace Trarizon.TextCommand.Input;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public ref struct StringInputRest
 {
-    internal readonly string Source;
+    internal readonly ReadOnlySpan<char> Source;
     /// <summary>
     /// slice or
     /// escaped
@@ -12,7 +12,7 @@ public ref struct StringInputRest
     internal readonly Span<ArgIndex> Indexes;
     internal int CountOfEscapes;
 
-    internal StringInputRest(string source, Span<ArgIndex> indexes, int countOfEscapes)
+    internal StringInputRest(ReadOnlySpan<char> source, Span<ArgIndex> indexes, int countOfEscapes)
     {
         Source = source;
         Indexes = indexes;

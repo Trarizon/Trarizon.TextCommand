@@ -11,7 +11,7 @@ internal static class SyntaxProvider
             SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Attribute(
                     SyntaxFactory.ParseName(
-                        Constants.Global(Constants.GeneratedCodeAttribute_TypeName)),
+                        $"{Constants.Global}::{Constants.GeneratedCodeAttribute_TypeName}"),
                     SyntaxFactory.AttributeArgumentList(
                         SyntaxFactory.SeparatedList(new[] {
                             SyntaxFactory.AttributeArgument(

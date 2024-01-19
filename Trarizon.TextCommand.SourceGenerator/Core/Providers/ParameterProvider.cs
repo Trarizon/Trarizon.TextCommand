@@ -65,16 +65,16 @@ internal abstract class ParameterProvider
         // parsing method
         else {
             var identifier = Model.Parameter.ParameterKind == CLParameterKind.Flag
-                ? Constants.Global(Literals.DelegateFlagParser_TypeName)
-                : Constants.Global(Literals.DelegateParser_TypeName);
-            _parserTypeSyntax = 
+                ? $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}"
+                : $"{Constants.Global}::{Literals.DelegateParser_TypeName}";
+            _parserTypeSyntax =
                 SyntaxFactory.GenericName(
                     SyntaxFactory.Identifier(identifier),
                     SyntaxFactory.TypeArgumentList(
                         SyntaxFactory.SingletonSeparatedList<TypeSyntax>(
                             SyntaxFactory.IdentifierName(
                                 Model.Parameter.Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))));
-            _parserArgSyntax = 
+            _parserArgSyntax =
                 SyntaxFactory.Argument(
                     SyntaxFactory.ObjectCreationExpression(
                         _parserTypeSyntax,

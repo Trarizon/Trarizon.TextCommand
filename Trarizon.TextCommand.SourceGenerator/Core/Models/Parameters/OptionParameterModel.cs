@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
-internal sealed class OptionParameterModel(ParameterModel parameter) : ICLParameterModel
+internal sealed class OptionParameterModel(ParameterModel parameter) : ICLParameterModel, IRequiredParameterModel
 {
     public ParameterModel Parameter => parameter;
 

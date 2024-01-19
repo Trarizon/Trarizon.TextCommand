@@ -152,4 +152,25 @@ internal static class ValidationHelper
                 throw new InvalidOperationException();
         }
     }
+
+    public static bool IsValidCommandPrefix(string commandPrefix)
+    {
+        if (commandPrefix[0] == '-')
+            return false;
+
+        foreach (var c in commandPrefix) {
+            if (char.IsWhiteSpace(c))
+                return false;
+        }
+
+        return true;
+    }
+
+    public static bool IsCanBeDefault(this ITypeSymbol type)
+    {
+        return type is not {
+            IsValueType: false,
+            NullableAnnotation: NullableAnnotation.NotAnnotated,
+        };
+    }
 }

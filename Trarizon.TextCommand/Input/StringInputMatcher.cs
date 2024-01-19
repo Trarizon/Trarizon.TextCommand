@@ -9,7 +9,7 @@ namespace Trarizon.TextCommand.Input;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public ref struct StringInputMatcher
 {
-    private readonly string _input;
+    private readonly ReadOnlySpan<char> _input;
     // slice
     // Escaped
     private readonly Span<ArgIndex> _indexes;
@@ -36,7 +36,7 @@ public ref struct StringInputMatcher
             var argIndex = _indexes[index];
             if (argIndex.Kind == ArgIndexKind.Escaped) { // Requires escape
                 var (start, length) = argIndex.EscapedRange;
-                var unescaped = StringUtil.UnescapeToString(_input.AsSpan(start, length));
+                var unescaped = StringUtil.UnescapeToString(_input.Slice(start, length));
                 _countOfEscaped--;
 #if DEBUG
                 _calledCache.Add(unescaped);
@@ -48,7 +48,7 @@ public ref struct StringInputMatcher
 #if DEBUG
                 _calledCache.Add(_input.AsSpan(start, length).ToString());
 #endif
-                return new(_input.AsSpan(start, length));
+                return new(_input.Slice(start, length));
             }
         }
     }
@@ -58,7 +58,7 @@ public ref struct StringInputMatcher
 
     public readonly int Length => _indexes.Length;
 
-    public StringInputMatcher(string input)
+    public StringInputMatcher(ReadOnlySpan<char> input)
     {
         _input = input;
 
@@ -85,7 +85,7 @@ public ref struct StringInputMatcher
 
         _indexes = CollectionsMarshal.AsSpan(ranges);
 
-        static int FindSingleQuote(string input, int start)
+        static int FindSingleQuote(ReadOnlySpan<char> input, int start)
         {
             for (; start < input.Length; start++) {
                 if (input[start] == '"') {
@@ -104,7 +104,7 @@ public ref struct StringInputMatcher
             return start;
         }
 
-        static int FindWhiteSpace(string input, int start)
+        static int FindWhiteSpace(ReadOnlySpan<char> input, int start)
         {
             while (start < input.Length && !char.IsWhiteSpace(input[start]))
                 start++;

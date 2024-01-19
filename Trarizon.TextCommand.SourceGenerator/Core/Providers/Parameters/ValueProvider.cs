@@ -17,7 +17,7 @@ internal sealed class ValueProvider(ExecutorProvider executor, ValueParameterMod
             ParserArgumentSyntax,
             SyntaxFactory.Argument(
                 model.Required
-                ? SyntaxProvider.LiteralStringExpression(Literals.FullName(model.Parameter.Symbol.Name))
+                ? SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{model.Parameter.Symbol.Name}")
                 : SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)),
         ]);
     }

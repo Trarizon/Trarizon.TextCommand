@@ -2,7 +2,7 @@
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
-internal sealed class ValueParameterModel(ParameterModel parameter) : ICLParameterModel
+internal sealed class ValueParameterModel(ParameterModel parameter) : ICLParameterModel, IRequiredParameterModel
 {
     public ParameterModel Parameter => parameter;
 

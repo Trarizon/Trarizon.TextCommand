@@ -62,9 +62,9 @@ You can set custom parser by set properties on attribute.
 
 ### Rule
 
-- `Execution` is a single-parameter method, the parameter type can be `string`,  `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`.
+- `Execution` is a single-parameter method, the parameter type can be `string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`.
     - You can use other types supports list pattern for `string`, but generator doesn't guarantee correctness.
-    - When input is `string`, the input will be split with white spaces.
+    - When input is `string` or `ReadOnlySpan<char>`, the input will be split with white spaces.
 - Use `""` to escape `"` in raw string.
 
 ## API

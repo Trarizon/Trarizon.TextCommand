@@ -28,7 +28,7 @@ internal sealed class ExecutionProvider
         for (int i = 0; i < Executors.Length; i++) {
             Executors[i] = new ExecutorProvider(this, model.Executors[i]);
         }
-        CommandPrefix = model.AttributeData_CommandPrefix();
+        CommandPrefix = model.CommandName;
     }
 
     // Syntax
@@ -64,7 +64,7 @@ internal sealed class ExecutionProvider
                 yield return SyntaxProvider.LocalVarSingleVariableDeclaration(
                     Literals.StringInputMatcher_VarIdentifier,
                     SyntaxFactory.ObjectCreationExpression(
-                        SyntaxFactory.IdentifierName(Constants.Global(Literals.StringInputMatcher_TypeName)),
+                        SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.StringInputMatcher_TypeName}"),
                         SyntaxFactory.ArgumentList(
                             SyntaxFactory.SingletonSeparatedList(
                                 SyntaxFactory.Argument(
@@ -79,7 +79,7 @@ internal sealed class ExecutionProvider
                 break;
             case InputParameterType.Array:
                 governing = SyntaxFactory.InvocationExpression(
-                    SyntaxFactory.IdentifierName(Constants.Global($"{Constants.MemoryExtensions_TypeName}.{Constants.AsSpan_Identifier}")),
+                    SyntaxFactory.IdentifierName(($"{Constants.Global}::{Constants.MemoryExtensions_TypeName}.{Constants.AsSpan_Identifier}")),
                     SyntaxFactory.ArgumentList(
                         SyntaxFactory.SingletonSeparatedList(
                             SyntaxFactory.Argument(
@@ -87,7 +87,7 @@ internal sealed class ExecutionProvider
                 break;
             case InputParameterType.List:
                 governing = SyntaxFactory.InvocationExpression(
-                    SyntaxFactory.IdentifierName(Constants.Global($"{Constants.CollectionsMarshal_TypeName}.{Constants.AsSpan_Identifier}")),
+                    SyntaxFactory.IdentifierName(($"{Constants.Global}::{Constants.CollectionsMarshal_TypeName}.{Constants.AsSpan_Identifier}")),
                     SyntaxFactory.ArgumentList(
                         SyntaxFactory.SingletonSeparatedList(
                             SyntaxFactory.Argument(

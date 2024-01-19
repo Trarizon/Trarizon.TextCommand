@@ -1,7 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
+using Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
@@ -42,7 +45,7 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
     public Filter ValidateStaticKeyword()
     {
         if (Execution.Symbol.IsStatic && !Symbol.IsStatic) {
-            return Filter.Create(DiagnosticFactory.Create(
+            return Filter.CreateDiagnostic(DiagnosticFactory.Create(
                 DiagnosticDescriptors.ExecutorShouldBeStaticIfExecutionIs,
                 Syntax.Identifier));
         }
@@ -58,8 +61,44 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
             return Filter.Success;
         }
 
-        return Filter.Create(DiagnosticFactory.Create(
+        return Filter.CreateDiagnostic(DiagnosticFactory.Create(
             DiagnosticDescriptors.ExecutorsReturnTypeShouldAssignableToExecutionsReturnType,
             Syntax.ReturnType));
+    }
+
+    public Filter ValidateCommandPrefixes()
+    {
+        foreach (var prefix in CommandPrefixes) {
+            if (!ValidationHelper.IsValidCommandPrefix(prefix))
+                return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+                    DiagnosticDescriptors.CommandPrefixCannotContainsSpaceOrLeadingWithMinus,
+                    Syntax.Identifier));
+        }
+
+        return Filter.Success;
+    }
+
+    public Filter ValidateValueParametersAfterRestValues()
+    {
+        var parameters = Parameters;
+        bool hasRestValues = false;
+
+        List<Diagnostic> errors = [];
+        for (int i = 0; i < parameters.Length; i++) {
+            var p = parameters[i];
+            if (hasRestValues) {
+                if (p.ParameterKind is CLParameterKind.Value or CLParameterKind.MultiValue)
+                    errors.Add(DiagnosticFactory.Create(
+                        DiagnosticDescriptors.ValueOrMultiValueAfterRestValueWillAlwaysDefault,
+                        p.Syntax));
+            }
+            else if (p.ParameterKind == CLParameterKind.MultiValue && ((MultiValueParameterModel)p.CLParameter).IsRest)
+                hasRestValues = true;
+        }
+
+        if (errors.Count > 0)
+            return Filter.CreateDiagnostics(errors);
+        else
+            return Filter.Success;
     }
 }

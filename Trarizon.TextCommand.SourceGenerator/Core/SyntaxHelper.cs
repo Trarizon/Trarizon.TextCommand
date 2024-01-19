@@ -11,7 +11,7 @@ internal static class SyntaxHelper
     {
         switch (parameterKind) {
             case ImplicitCLParameterKind.Boolean:
-                return SyntaxFactory.IdentifierName(Constants.Global(Literals.BooleanFlagParser_TypeName));
+                return SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.BooleanFlagParser_TypeName}");
             case ImplicitCLParameterKind.SpanParsable:
                 return ParsableParserTypeSyntax(
                     SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
@@ -34,19 +34,19 @@ internal static class SyntaxHelper
 
         static TypeSyntax EnumParserTypeSyntax(TypeSyntax parsedType)
             => SyntaxFactory.GenericName(
-                SyntaxFactory.Identifier(Constants.Global(Literals.EnumParser_TypeName)),
+                SyntaxFactory.Identifier($"{Constants.Global}::{Literals.EnumParser_TypeName}"),
                 SyntaxFactory.TypeArgumentList(
                     SyntaxFactory.SingletonSeparatedList(parsedType)));
 
         static TypeSyntax NullableParserTypeSyntax(TypeSyntax parserType, TypeSyntax parsedType)
             => SyntaxFactory.GenericName(
-                SyntaxFactory.Identifier(Constants.Global(Literals.NullableParser_TypeName)),
+                SyntaxFactory.Identifier($"{Constants.Global}::{Literals.NullableParser_TypeName}"),
                 SyntaxFactory.TypeArgumentList(
                     SyntaxFactory.SeparatedList([parserType, parsedType])));
 
         static TypeSyntax ParsableParserTypeSyntax(TypeSyntax parsedType)
             => SyntaxFactory.GenericName(
-                SyntaxFactory.Identifier(Constants.Global(Literals.ParsableParser_TypeName)),
+                SyntaxFactory.Identifier($"{Constants.Global}::{Literals.ParsableParser_TypeName}"),
                 SyntaxFactory.TypeArgumentList(
                     SyntaxFactory.SingletonSeparatedList(parsedType)));
     }

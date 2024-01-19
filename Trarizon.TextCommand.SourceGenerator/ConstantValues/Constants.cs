@@ -22,8 +22,5 @@ internal static class Constants
 
     public const string GeneratedCodeAttribute_TypeName = "System.CodeDom.Compiler.GeneratedCodeAttribute";
 
-    public static string Global(string fullNameWithoutGlobalPrefix)
-    {
-        return $"global::{fullNameWithoutGlobalPrefix}";
-    }
+    public const string Global = "global";
 }

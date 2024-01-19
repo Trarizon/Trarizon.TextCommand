@@ -61,8 +61,9 @@ file static class ParameterSets
 
 ### 规范
 
-- `Execution`参数为单个参数，可以为`string`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
-    - 当参数为`string`时会以空白字符进行分割后解析
+- `Execution`参数为单个参数，可以为`string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
+    - 当参数为`string`或`ReadOnlySpan<char>`时会以空白字符进行分割后解析
+- 使用`""`转义`"`
 
 ## API
 

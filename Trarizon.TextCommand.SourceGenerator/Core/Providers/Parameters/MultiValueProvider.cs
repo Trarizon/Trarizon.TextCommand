@@ -18,11 +18,31 @@ internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValuePa
         ExpressionSyntax expression;
         var throwFlagExpression = SyntaxFactory.Argument(
             model.Required
-            ? SyntaxProvider.LiteralStringExpression(Literals.FullName(model.Parameter.Symbol.Name))
+            ? SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{model.Parameter.Symbol.Name}")
             : SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression));
 
 
-        if (model.MaxCount > 0) {
+        if (model.IsRest) {
+            switch (model.CollectionType) {
+                case MultiValueCollectionType.ReadOnlySpan:
+                case MultiValueCollectionType.Span:
+                case MultiValueCollectionType.Array:
+                case MultiValueCollectionType.Enumerable:
+                    literal = Literals.ArgsProvider_GetRestValues_MethodIdentifier;
+                    break;
+                case MultiValueCollectionType.List:
+                    literal = Literals.ArgsProvider_GetRestValuesList_MethodIdentifier;
+                    break;
+                default:
+                    throw new InvalidOperationException();
+            }
+            return (literal, [
+                SyntaxFactory.Argument(SyntaxProvider.LiteralInt32Expression(index)),
+                ParserArgumentSyntax,
+                throwFlagExpression,
+            ]);
+        }
+        else {
             switch (model.CollectionType) {
                 case MultiValueCollectionType.ReadOnlySpan:
                 case MultiValueCollectionType.Span:
@@ -52,26 +72,6 @@ internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValuePa
             return (literal, [
                 SyntaxFactory.Argument(SyntaxProvider.LiteralInt32Expression(index)),
                 SyntaxFactory.Argument(expression),
-                ParserArgumentSyntax,
-                throwFlagExpression,
-            ]);
-        }
-        else {
-            switch (model.CollectionType) {
-                case MultiValueCollectionType.ReadOnlySpan:
-                case MultiValueCollectionType.Span:
-                case MultiValueCollectionType.Array:
-                case MultiValueCollectionType.Enumerable:
-                    literal = Literals.ArgsProvider_GetRestValues_MethodIdentifier;
-                    break;
-                case MultiValueCollectionType.List:
-                    literal = Literals.ArgsProvider_GetRestValuesList_MethodIdentifier;
-                    break;
-                default:
-                    throw new InvalidOperationException();
-            }
-            return (literal, [
-                SyntaxFactory.Argument(SyntaxProvider.LiteralInt32Expression(index)),
                 ParserArgumentSyntax,
                 throwFlagExpression,
             ]);

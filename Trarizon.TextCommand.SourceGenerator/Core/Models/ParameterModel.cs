@@ -13,6 +13,8 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
 {
     public ExecutorModel Executor => executor;
 
+    public ParameterSyntax Syntax => syntax;
+
     public IParameterSymbol Symbol => symbol;
 
     private AttributeData? _attribute;
@@ -29,9 +31,9 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
 
         foreach (var attr in Symbol.GetAttributes()) {
             if (result != null) { // multi
-                return Filter.Create(DiagnosticFactory.Create(
+                return Filter.CreateDiagnostic(DiagnosticFactory.Create(
                     DiagnosticDescriptors.MarkSingleParameterAttributes,
-                    syntax));
+                    Syntax));
             }
 
             var display = attr.AttributeClass?.ToDisplayString();
@@ -58,7 +60,7 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
         return Filter.Success;
     }
 
-    public Filter ValidateCLParameter()
+    public Filter ValidateAndCreateCLParameter()
     {
         if (_attribute is null) { // ParameterKind == Invalid(Implicit)
             var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
@@ -77,9 +79,9 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
                     };
                     break;
                 default:
-                    return Filter.Create(DiagnosticFactory.Create(
+                    return Filter.CreateDiagnostic(DiagnosticFactory.Create(
                         DiagnosticDescriptors.ParameterNoImplicitParser,
-                        syntax));
+                        Syntax));
             }
             return Filter.Success;
         }
@@ -89,7 +91,7 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
                 CLParameter = value;
                 return Filter.Success;
             }
-            return Filter.Create(DiagnosticFactory.Create(err, syntax));
+            return Filter.CreateDiagnostic(DiagnosticFactory.Create(err, Syntax));
         }
 
         Result<ICLParameterModel, DiagnosticDescriptor> GetCLParameterModel()
@@ -267,5 +269,19 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
                 }
             }
         }
+    }
+
+    public Filter ValidateRequiredParameterNullableAnnotation()
+    {
+        if (CLParameter is IRequiredParameterModel requiredParameter &&
+            !requiredParameter.Required &&
+            !ValidationHelper.IsCanBeDefault(Symbol.Type)
+        ) {
+            return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+                DiagnosticDescriptors.NotRequiredParameterMayBeDefault,
+                Syntax.Type!));
+        }
+
+        return Filter.Success;
     }
 }
