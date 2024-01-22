@@ -19,6 +19,7 @@ Diagnostic TODO:
 - [x] (warning) Parameters Not `Required` may be `default`
 - [x] OptionKey cannot repeat
 - [x] static Execution with non-static Executors
+- [ ] 优化一下diagnostic的位置
 
 需要c#12以上版本
 

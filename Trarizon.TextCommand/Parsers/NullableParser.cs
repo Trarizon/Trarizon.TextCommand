@@ -7,7 +7,7 @@ public readonly struct NullableParser<TParser, T>(TParser parser) : IArgParser<T
 {
     public bool TryParse(ReadOnlySpan<char> rawArg, [MaybeNullWhen(false)] out T? result)
     {
-        if(parser.TryParse(rawArg,out var tmp)) {
+        if (parser.TryParse(rawArg, out var tmp)) {
             result = tmp;
             return true;
         }
