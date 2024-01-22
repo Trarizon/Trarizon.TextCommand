@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Attributes;
 using Trarizon.TextCommand.Attributes.Parameters;
+using Trarizon.TextCommand.Input;
 using Trarizon.TextCommand.Parsers;
 
 namespace Trarizon.TextCommand.Tester;
@@ -10,6 +11,49 @@ internal partial class _Design
 {
     [Execution("/ghoti")]
     public partial bool Run(string input);
+
+    private bool MaunallyRun(string input)
+    {
+        var matcher = new StringInputMatcher(input);
+        switch (matcher) {
+            case ["/ghoti", "no-param", ..]:
+                return NoParam();
+            case ["ghoti", "def", .. var rest]:
+                var provider = default(StringArgsProvider)!;
+                return Method(
+                    provider.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
+            case ["multi-flag"]:
+                var provider2 = default(StringArgsProvider)!;
+                var arg = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default) 
+                    | provider2.GetFlag<Option, BinaryFlagParser<Option>>("b", default);
+                break;
+            default:
+                break;
+        }
+
+        return default;
+
+        bool MultiFlagMethod(
+            [MultiValue]
+            [Flag]
+            [Flag] 
+                Option option)
+        {
+
+        }
+    }
+
+    private Option MultiFlagParser(ReadOnlySpan<char> keyName)
+    {
+        switch (keyName) {
+            case "1":
+            default:
+                break;
+        }
+        return default!;
+    }
+
+    private Option CombineOptions() { }
 
     [Executor("no-param")]
     public bool NoParam()
