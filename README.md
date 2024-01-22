@@ -7,6 +7,7 @@ Core is done, patching diagnostic analyzer...
 ## Use
 
 (An example [here](./Trarizon.TextCommand.Tester/_Design.cs))
+or [here in another repo](https://github.com/Trarizon/DeemoToolkit/blob/master/Trarizon.Toolkit.Deemo.Commands/Functions/ChartHandler.Execution.cs)
 
 For Type:
 ``` csharp

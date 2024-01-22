@@ -14,7 +14,7 @@
 		<AssemblyVersion>0.0.1</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<Version>0.0.1-alpha</Version>
+		<Version>0.0.1</Version>
 	</PropertyGroup>
 
 	<ItemGroup>

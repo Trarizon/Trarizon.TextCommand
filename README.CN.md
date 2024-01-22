@@ -7,6 +7,8 @@
 本库原设计用于聊天Bot的命令格式解析
 
 ## 基本使用
+使用例可见[Design.cs]((./Trarizon.TextCommand.Tester/_Design.cs))
+或我在[另一个仓库](https://github.com/Trarizon/DeemoToolkit/blob/master/Trarizon.Toolkit.Deemo.Commands/Functions/ChartHandler.Execution.cs)用到的
 
 对于类型
 ``` csharp
