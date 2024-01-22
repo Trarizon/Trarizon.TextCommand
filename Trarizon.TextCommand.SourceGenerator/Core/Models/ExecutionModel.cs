@@ -116,7 +116,7 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
         }
 
         if (result != null)
-            return Filter.CreateDiagnostics(result);
+            return Filter.CreateDiagnostic(result);
         else
             return Filter.Success;
 

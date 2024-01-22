@@ -2,7 +2,6 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
@@ -97,8 +96,58 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
         }
 
         if (errors.Count > 0)
-            return Filter.CreateDiagnostics(errors);
+            return Filter.CreateDiagnostic(errors);
         else
             return Filter.Success;
+    }
+
+    public Filter ValidateOptionKeys()
+    {
+        Dictionary<string, ParameterModel> aliases = [];
+        Dictionary<string, ParameterModel> names = [];
+
+        HashSet<ParameterModel>? aliasRepeats = null;
+        HashSet<ParameterModel>? nameRepeats = null;
+
+        foreach (var parameter in Parameters) {
+            if (parameter.CLParameter is INamedParameterModel namedParameter) {
+                if (namedParameter.Alias is { } alias) {
+                    if (aliases.ContainsKey(alias)) {
+                        (aliasRepeats ??= []).Add(aliases[alias]); // No error when repeat add
+                        aliasRepeats.Add(parameter);
+                    }
+                    else {
+                        aliases.Add(alias, parameter);
+                    }
+                }
+
+                var name = namedParameter.Name;
+                if (names.ContainsKey(name)) {
+                    (nameRepeats ??= []).Add(names[name]);
+                    nameRepeats.Add(parameter);
+                }
+                else {
+                    names.Add(name, parameter);
+                }
+            }
+        }
+
+        if (aliasRepeats is null && nameRepeats is null)
+            return Filter.Success;
+
+        Diagnostic[] diagnostics = new Diagnostic[aliasRepeats?.Count ?? 0 + nameRepeats?.Count ?? 0];
+        int index = 0;
+        foreach (var parameter in aliasRepeats.EmptyIfNull()) {
+            diagnostics[index++] = DiagnosticFactory.Create(
+                DiagnosticDescriptors.NamedParameterAliasRepeat,
+                parameter.Syntax);
+        }
+        foreach (var parameter in nameRepeats.EmptyIfNull()) {
+            diagnostics[index++] = DiagnosticFactory.Create(
+                DiagnosticDescriptors.NamedParameterNameRepeat,
+                parameter.Syntax);
+        }
+
+        return Filter.CreateDiagnostic(diagnostics);
     }
 }

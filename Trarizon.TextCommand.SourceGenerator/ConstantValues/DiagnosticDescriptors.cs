@@ -154,4 +154,20 @@ internal static class DiagnosticDescriptors
         Literals.Namespace,
         DiagnosticSeverity.Warning,
         true);
+
+    public readonly static DiagnosticDescriptor NamedParameterAliasRepeat = new(
+        "TCMD0019",
+        nameof(NamedParameterAliasRepeat),
+        "Parameter alias repeat",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor NamedParameterNameRepeat = new(
+        "TCMD0020",
+        nameof(NamedParameterNameRepeat),
+        "Parameter name repeat",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
 }

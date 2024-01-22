@@ -9,14 +9,15 @@ TODO:
 - [x] (BUG): `Get<,>`的第一个参数应该为完全限定名
 - [x] (BUG): No implicit parser的option不会正常报错
 - [x] Input supports `ReadOnlySpan<char>`, as `string`
-- [ ] 非可匹配类型报错？
+- [ ] 非可匹配类型时要报错吗？
+- [ ] Error or support multiple execution
 
 Diagnostic TODO:
 - [x] `Execution.CommandName` cannot contains white space, cannot with `-` prefix
 - [x] `Executor.CommandPrefixes` cannot contains white space, cannot with `-` prefix
 - [x] (warning) `Value` or `MultiValue` shouldn't appears after RestValue
 - [x] (warning) Parameters Not `Required` may be `default`
-- [ ] OptionKey cannot repeat
+- [x] OptionKey cannot repeat
 - [x] static Execution with non-static Executors
 
 需要c#12以上版本

@@ -23,3 +23,5 @@ TCMD0015 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0016 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0017 | Trarizon.TextCommand | Warning | DiagnosticDescriptors
 TCMD0018 | Trarizon.TextCommand | Warning | DiagnosticDescriptors
+TCMD0019 | Trarizon.TextCommand | Error | DiagnosticDescriptors
+TCMD0020 | Trarizon.TextCommand | Error | DiagnosticDescriptors

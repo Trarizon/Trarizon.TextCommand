@@ -11,10 +11,10 @@ partial struct Filter
 {
     public static Filter Success => default;
     public static Filter CreateDiagnostic(Diagnostic diagnostic) => Unsafe.As<Diagnostic, Filter>(ref diagnostic);
-    public static Filter CreateDiagnostics(IEnumerable<Diagnostic> diagnostics) => Unsafe.As<IEnumerable<Diagnostic>, Filter>(ref diagnostics);
+    public static Filter CreateDiagnostic(IEnumerable<Diagnostic> diagnostics) => Unsafe.As<IEnumerable<Diagnostic>, Filter>(ref diagnostics);
 
     public static Filter<T> CreateDiagnostic<T>(Diagnostic diagnostic) where T : notnull => new(default, diagnostic);
-    public static Filter<T> CreateDiagnostics<T>(IEnumerable<Diagnostic> diagnostics) where T : notnull => new(default, diagnostics);
+    public static Filter<T> CreateDiagnostic<T>(IEnumerable<Diagnostic> diagnostics) where T : notnull => new(default, diagnostics);
     public static Filter<T> Create<T>(in T context) where T : notnull => new(context, default(List<Diagnostic>));
 
     public static Filter<TResult> Select<T, TResult>(in T context, Func<T, Filter<TResult>> selector) where TResult : notnull
@@ -43,7 +43,7 @@ internal struct Filter<TContext> where TContext : notnull
     public readonly IEnumerable<Diagnostic> Diagnostics => _diagnostics ?? [];
 
     [MemberNotNullWhen(false, nameof(Context))]
-    public readonly bool HasDiagnostic => _diagnostics != null;
+    public readonly bool HasError => _diagnostics?.Any(diag => diag.Severity is DiagnosticSeverity.Error) ?? false;
 
     internal Filter(Optional<TContext> context, IEnumerable<Diagnostic>? diagnostics)
     {
@@ -58,15 +58,36 @@ internal struct Filter<TContext> where TContext : notnull
         _diagnostics = [diagnostic];
     }
 
+    private void AddDiagnostic(Diagnostic diagnostic)
+    {
+        if (_diagnostics is null)
+            _diagnostics = new List<Diagnostic>(1) { diagnostic };
+        else
+            _diagnostics.Add(diagnostic);
+    }
+
+    private void AddDiagnostics(IEnumerable<Diagnostic> diagnostics)
+    {
+        if (_diagnostics is null) {
+            if (diagnostics is List<Diagnostic> list)
+                _diagnostics = list;
+            else
+                _diagnostics = diagnostics.ToList();
+        }
+        else {
+            _diagnostics.AddRange(diagnostics);
+        }
+    }
+
     public static implicit operator Filter(Filter<TContext> filter) => filter._diagnostics switch {
         [var diag] => Filter.CreateDiagnostic(diag),
-        [..] => Filter.Create(filter._diagnostics),
+        [..] => Filter.CreateDiagnostic(filter._diagnostics),
         null => default,
     };
 
-    public Filter<TContext> CloseIfHasDiagnostic()
+    public Filter<TContext> CloseIfHasError()
     {
-        if (HasDiagnostic)
+        if (HasError)
             _context = default;
         return this;
     }
@@ -84,9 +105,9 @@ internal struct Filter<TContext> where TContext : notnull
 
         var result = predicate(Context!);
         if (result.Diagnostic != null)
-            (_diagnostics ??= []).Add(result.Diagnostic);
+            AddDiagnostic(result.Diagnostic);
         else if (result.Diagnostics != null)
-            (_diagnostics ??= []).AddRange(result.Diagnostics);
+            AddDiagnostics(result.Diagnostics);
         return this;
     }
 
@@ -98,9 +119,9 @@ internal struct Filter<TContext> where TContext : notnull
         foreach (var item in selector(Context)) {
             var result = predicate(item);
             if (result.Diagnostic is { } diag)
-                (_diagnostics ??= []).Add(diag);
+                AddDiagnostic(diag);
             else if (result.Diagnostics is { } diags)
-                (_diagnostics ??= []).AddRange(diags);
+                AddDiagnostics(diags);
         }
 
         return this;
@@ -112,8 +133,8 @@ internal struct Filter<TContext> where TContext : notnull
             return new(default, _diagnostics);
 
         var result = selector(Context);
-        if (result.HasDiagnostic)
-            (_diagnostics ??= []).AddRange(result.Diagnostics);
+        if (result.HasError)
+            AddDiagnostics(result.Diagnostics);
         else
             return new(result.Context, _diagnostics);
         return new(default, _diagnostics);

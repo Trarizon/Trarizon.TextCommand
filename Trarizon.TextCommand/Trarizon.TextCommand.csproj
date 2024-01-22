@@ -11,10 +11,10 @@
 		<PackageProjectUrl>https://github.com/Trarizon/Trarizon.TextCommand</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Trarizon/Trarizon.TextCommand</RepositoryUrl>
 		<Description>A tool for CLI-like input parsing, written with source generator</Description>
-		<AssemblyVersion>1.0.0.1</AssemblyVersion>
+		<AssemblyVersion>0.0.1</AssemblyVersion>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-		<Version>1.0.1</Version>
+		<Version>0.0.1-alpha</Version>
 	</PropertyGroup>
 
 	<ItemGroup>

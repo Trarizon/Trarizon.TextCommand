@@ -58,10 +58,11 @@ public class ExecutionGenerator : IIncrementalGenerator
                         p => Filter.Create(p)
                         .Predicate(p => p.ValidateSingleAttribute_SetParameterKind())
                         .Predicate(p => p.ValidateCLParameter_SetCLParameter())
-                        .CloseIfHasDiagnostic()
+                        .CloseIfHasError()
                         .Predicate(p => p.ValidateRequiredParameterNullableAnnotation()))
-                    .Predicate(e => e.ValidateValueParametersAfterRestValues()))
-                .CloseIfHasDiagnostic();
+                    .Predicate(e => e.ValidateValueParametersAfterRestValues())
+                    .Predicate(e => e.ValidateOptionKeys()))
+                .CloseIfHasError();
             });
 
         context.RegisterFilteredSourceOutput(filter, (context, model) =>

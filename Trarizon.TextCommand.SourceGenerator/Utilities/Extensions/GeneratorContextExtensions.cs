@@ -10,7 +10,7 @@ internal static class GeneratorContextExtensions
     {
         context.RegisterSourceOutput(filterSource, (context, source) =>
         {
-            if (source.HasDiagnostic) {
+            if (source.HasError) {
                 foreach (var item in source.Diagnostics) {
                     context.ReportDiagnostic(item);
                 }

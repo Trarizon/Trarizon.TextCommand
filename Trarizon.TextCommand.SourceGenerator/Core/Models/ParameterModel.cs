@@ -273,7 +273,7 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
 
     public Filter ValidateRequiredParameterNullableAnnotation()
     {
-        if (CLParameter is IRequiredParameterModel requiredParameter &&
+        if (CLParameter is IRequiredParameterModel requiredParameter and not MultiValueParameterModel &&
             !requiredParameter.Required &&
             !ValidationHelper.IsCanBeDefault(Symbol.Type)
         ) {

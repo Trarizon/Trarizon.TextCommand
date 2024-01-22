@@ -25,7 +25,7 @@ internal partial class _Design
     }
 
     [Executor("def")]
-    public bool Method([Option(Parser = nameof(Par))] string opt)
+    public bool Method([Option(Parser = nameof(Par))] string? opt)
     {
         return false;
     }
