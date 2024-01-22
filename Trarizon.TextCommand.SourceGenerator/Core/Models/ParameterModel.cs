@@ -25,7 +25,7 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
 
     public ICLParameterModel CLParameter { get; private set; } = default!;
 
-    public Filter ValidateSingleAttribute()
+    public Filter ValidateSingleAttribute_SetParameterKind()
     {
         AttributeData? result = null;
 
@@ -60,7 +60,7 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
         return Filter.Success;
     }
 
-    public Filter ValidateAndCreateCLParameter()
+    public Filter ValidateCLParameter_SetCLParameter()
     {
         if (_attribute is null) { // ParameterKind == Invalid(Implicit)
             var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);

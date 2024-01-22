@@ -41,7 +41,7 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
             Syntax.Identifier));
     }
 
-    public Filter ValidateParameter()
+    public Filter ValidateParameter_SetInputParameterType()
     {
         if (Symbol.Parameters is not [{ Type: var parameterType }]) {
             return Filter.CreateDiagnostic(DiagnosticFactory.Create(
