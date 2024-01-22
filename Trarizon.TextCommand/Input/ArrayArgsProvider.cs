@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Trarizon.TextCommand.Parsers;
 
@@ -13,6 +14,18 @@ public readonly ref struct ArrayArgsProvider
     {
         _dict = dict;
         _list = list;
+    }
+
+    private T GetArg<T, TParser>(string rawArg, TParser parser) where TParser : IArgParser<T>
+    {
+        // Specialized for string,
+        if (typeof(TParser) == typeof(ParsableParser<string>)) {
+            return Unsafe.As<string, T>(ref rawArg);
+        }
+        else if (parser.TryParse(rawArg, out var result))
+            return result;
+        else
+            throw new FormatException($"Cannot parse `{rawArg}` to {typeof(T).Name}");
     }
 
     private bool TryGetOption(string key, bool mayThrow, [NotNullWhen(true)] out string? optionArg)
@@ -55,10 +68,7 @@ public readonly ref struct ArrayArgsProvider
     public T? GetOption<T, TParser>(string key, TParser parser, bool throwIfNotExist) where TParser : IArgParser<T>
     {
         if (TryGetOption(key, throwIfNotExist, out var argument)) {
-            if (parser.TryParse(argument, out var result))
-                return result;
-            else
-                throw new FormatException($"Cannot parse `{argument}` to {typeof(T).Name}");
+            return GetArg<T, TParser>(argument, parser);
         }
         return default;
     }
@@ -72,11 +82,7 @@ public readonly ref struct ArrayArgsProvider
     {
         if (TryGetValueIndexes(startIndex, resultSpan.Length, keyAsThrowFlag, out var values)) {
             for (int i = 0; i < resultSpan.Length; i++) {
-                var arg = values[i];
-                if (parser.TryParse(arg, out var result))
-                    resultSpan[i] = result;
-                else
-                    throw new FormatException($"Cannot parse `{arg}` to {typeof(T).Name}");
+                resultSpan[i] = GetArg<T, TParser>(values[i], parser);
             }
             return resultSpan;
         }
