@@ -25,45 +25,53 @@ public sealed class ParameterSet(
         for (int i = 0; i < rest.Indexes.Length; i++) {
             var index = rest.Indexes[i];
 
-            if (index.Kind == ArgIndexKind.Slice) {
-                var (start, length) = index.SliceRange;
-                var arg = rest.Source.Slice(start, length);
-
-                switch (arg) {
-                    case ['-', '-', ..]:
-                        var strArg = new string(arg);
-                        // Dict handle
-                        if (_optionOrFlagParameters.TryGetValue(strArg, out var isOption)) {
-                            if (!isOption)
-                                dict.Add(strArg, ArgIndex.Flag);
-                            else if (++i < rest.Indexes.Length)
-                                dict.Add(strArg, rest.Indexes[i]);
-                            // else option key is the last arg of input
-                            break; // continue;
-                        }
-                        break;
-                    case ['-', ..]:
-                        if (_aliasDict.TryGetValue(new string(arg), out strArg) &&
-                            _optionOrFlagParameters.TryGetValue(strArg, out isOption)) {
-                            if (!isOption)
-                                dict.Add(strArg, ArgIndex.Flag);
-                            else if (++i < rest.Indexes.Length)
-                                dict.Add(strArg, rest.Indexes[i]);
-                            // else option key is the last arg of input
-                            break;
-                        }
-                        break;
-                    default:
-                        list.Add(index);
-                        break;
-                }
-            }
-            else { // escaped
+            // Escaped
+            if (index.Kind == ArgIndexKind.Escaped) {
                 var (start, length) = index.EscapedRange;
                 var unescaped = StringUtil.UnescapeToString(rest.Source.Slice(start, length));
 
                 list.Add(ArgIndex.FromCached(unescapeCount));
                 unescapeds[unescapeCount++] = unescaped;
+                continue;
+            }
+            // Slice
+            else {
+                var (start, length) = index.SliceRange;
+                var arg = rest.Source.Slice(start, length);
+
+                string strArg;
+                switch (arg) {
+                    case ['-', '-', ..]:
+                        strArg = arg.ToString();
+                        break;
+                    case ['-', ..]:
+                        // Not defined option key, omit
+                        if (!_aliasDict.TryGetValue(arg.ToString(), out strArg!))
+                            continue;
+                        break;
+                    // Value | MultiValue
+                    default:
+                        list.Add(index);
+                        continue;
+                }
+
+                if (_optionOrFlagParameters.TryGetValue(strArg, out var isOption)) {
+                    // Flag
+                    if (!isOption) {
+                        dict.Add(strArg, ArgIndex.Flag);
+                        continue;
+                    }
+
+                    // Option
+                    if (++i < rest.Indexes.Length) {
+                        dict.Add(strArg, rest.Indexes[i]);
+                        continue;
+                    }
+
+                    // else the option key is the last value in input, omit
+                }
+                // Not defined option key, omit it
+                else { }
             }
         }
 
@@ -79,32 +87,27 @@ public sealed class ParameterSet(
             var arg = args[i];
             switch (arg) {
                 case ['-', '-', ..]:
-                    if (_optionOrFlagParameters.TryGetValue(arg, out var isOption)) {
-                        if (!isOption)
-                            dict.Add(arg, null);
-                        else if (++i < args.Length)
-                            dict.Add(arg, args[i]);
-                        // else option key is the last arg of input
-                        break;
-                    }
                     break;
                 case ['-', ..]:
-                    if (_aliasDict.TryGetValue(arg, out arg) && _optionOrFlagParameters.TryGetValue(arg, out isOption)) {
-                        if (!isOption)
-                            dict.Add(arg, null);
-                        else if (++i < args.Length)
-                            dict.Add(arg, args[i]);
-                        // else option key is the last arg of input
-                        break;
-                    }
-                    break;
-                case ['"', .., '"']:
-                    list.Add(StringUtil.UnescapeToString(arg.AsSpan(1..^1)));
+                    // Not defined option key, omit
+                    if (!_aliasDict.TryGetValue(arg, out arg))
+                        continue;
                     break;
                 default:
                     list.Add(arg);
                     break;
             }
+
+            if (_optionOrFlagParameters.TryGetValue(arg, out var isOption)) {
+                if (!isOption)
+                    dict.Add(arg, null);
+                else if (++i < args.Length)
+                    dict.Add(arg, args[i]);
+                // else option key is the last arg of input
+                break;
+            }
+            // Not defined option key, omit
+            else { }
         }
 
         return new ArrayArgsProvider(dict, CollectionsMarshal.AsSpan(list));
@@ -147,9 +150,6 @@ public sealed class ParameterSet(
                     else if (ThrowIfOnRedundantArgument) {
                         throw new Exception();
                     }
-                    break;
-                case ['"', .., '"']:
-                    list.Add(StringUtil.UnescapeToString(arg.AsSpan(1..^1)));
                     break;
                 default:
                     list.Add(arg);

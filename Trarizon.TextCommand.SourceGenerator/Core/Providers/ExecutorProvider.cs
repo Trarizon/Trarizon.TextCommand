@@ -51,27 +51,31 @@ internal sealed class ExecutorProvider
 
     public SwitchSectionSyntax MatchingSwitchSection()
     {
-        var casePatternLabel = SyntaxFactory.CasePatternSwitchLabel(
-            SyntaxFactory.ListPattern(
-                SyntaxFactory.SeparatedList(
-                    ListPatternSubPatterns())),
-            SyntaxFactory.Token(SyntaxKind.ColonToken));
-
+        // case [..]:
+        // case [..]:
+        //     ...
         return SyntaxFactory.SwitchSection(
-            SyntaxFactory.SingletonList<SwitchLabelSyntax>(
-                casePatternLabel),
+            SyntaxFactory.List<SwitchLabelSyntax>(
+                Model.CommandPrefixes.Select(cmdPrefix =>
+                {
+                    return SyntaxFactory.CasePatternSwitchLabel(
+                        SyntaxFactory.ListPattern(
+                            SyntaxFactory.SeparatedList(
+                                ListPatternSubPatterns(cmdPrefix))),
+                        SyntaxFactory.Token(SyntaxKind.ColonToken));
+                })),
             SyntaxFactory.List(
                 CaseStatements()));
     }
 
-    private IEnumerable<PatternSyntax> ListPatternSubPatterns()
+    private IEnumerable<PatternSyntax> ListPatternSubPatterns(string[] executorCommandPrefixes)
     {
         if (Execution.CommandPrefix is not null) {
             yield return SyntaxFactory.ConstantPattern(
                 SyntaxProvider.LiteralStringExpression(Execution.CommandPrefix));
         }
 
-        foreach (var prefix in Model.CommandPrefixes) {
+        foreach (var prefix in executorCommandPrefixes) {
             yield return SyntaxFactory.ConstantPattern(
                 SyntaxProvider.LiteralStringExpression(prefix));
         }

@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Generic;
+using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models;
@@ -13,15 +14,18 @@ internal sealed class CommandModel(TypeDeclarationSyntax syntax, INamedTypeSymbo
     public List<ExecutorModel> GetExecutors(ExecutionModel execution)
     {
         List<ExecutorModel> executors = [];
-        foreach (var member in Syntax.Members) {
-            if (member is MethodDeclarationSyntax method) {
-                var symbol = execution.Context.SemanticModel.GetDeclaredSymbol(method)!;
-                if (symbol.GetAttributes() is [var attr, ..] &&
-                    attr.AttributeClass?.ToDisplayString() == Literals.ExecutorAttribute_TypeName &&
-                    !SymbolEqualityComparer.Default.Equals(symbol, Symbol)
-                ) {
-                    executors.Add(new ExecutorModel(execution, method, symbol, attr));
-                }
+        foreach (var methodSyntax in Syntax.Members.OfType<MethodDeclarationSyntax>()) {
+            var methodSymbol = execution.Context.SemanticModel.GetDeclaredSymbol(methodSyntax)!;
+
+            // Not execution method
+            if (SymbolEqualityComparer.Default.Equals(execution.Symbol, methodSymbol))
+                continue;
+
+            var executorAttrs = methodSymbol.GetAttributes()
+                 .Where(attr => attr.AttributeClass?.ToDisplayString() == Literals.ExecutorAttribute_TypeName);
+
+            if (executorAttrs.Any()) {
+                executors.Add(new ExecutorModel(execution, methodSyntax, methodSymbol, executorAttrs.ToList()));
             }
         }
         return executors;

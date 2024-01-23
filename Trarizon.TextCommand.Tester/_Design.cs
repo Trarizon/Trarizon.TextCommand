@@ -12,10 +12,6 @@ internal partial class _Design
     [Execution("/ghoti")]
     public partial bool Run(string customInput);
 
-    private partial void A(int a);
-
-    private partial void A(int b) => throw new NotImplementedException();
-
     private bool MaunallyRun(string input)
     {
         var matcher = new StringInputMatcher(input);
@@ -39,6 +35,7 @@ internal partial class _Design
 
     }
 
+    [Executor("multi", "mark")]
     [Executor("no-param")]
     public bool NoParam()
     {
@@ -72,7 +69,7 @@ internal partial class _Design
     }
 
     [Executor("explicit", "parameter", "type")]
-    public bool ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options, [Value(Required = true)] string? str, [Option] int number, [MultiValue] int?[] rest)
+    public bool ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options, [Value(Required = true)] string? str, [Option] int number, [MultiValue] Span<int?> rest)
     {
         Print(flag);
         Print(nonFlag);
@@ -80,7 +77,7 @@ internal partial class _Design
             Print(opt);
         Print(str);
         Print(number);
-        Print(rest.AsEnumerable());
+        // Print(rest.AsEnumerable());
         return default!;
     }
 

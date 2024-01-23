@@ -9,14 +9,14 @@ using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models;
-internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationSyntax syntax, IMethodSymbol symbol, AttributeData attribute)
+internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationSyntax syntax, IMethodSymbol symbol, IReadOnlyList<AttributeData> attributes)
 {
     public ExecutionModel Execution => execution;
 
     public MethodDeclarationSyntax Syntax => syntax;
     public IMethodSymbol Symbol => symbol;
 
-    private readonly AttributeData _attribute = attribute;
+    private readonly IReadOnlyList<AttributeData> _attributes = attributes;
 
     public ParameterModel[]? _parameters;
     public ParameterModel[] Parameters
@@ -37,9 +37,19 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
 
     // Attribute Data
 
-    private string[]? _commandPrefixes;
-    public string[] CommandPrefixes => _commandPrefixes ??= (_attribute.GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? []);
-
+    private string[][]? _commandPrefixes;
+    public string[][] CommandPrefixes
+    {
+        get {
+            if (_commandPrefixes is null) {
+                _commandPrefixes = new string[_attributes.Count][];
+                for (int i = 0; i < _commandPrefixes.Length; i++) {
+                    _commandPrefixes[i] = _attributes[i].GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? [];
+                }
+            }
+            return _commandPrefixes;
+        }
+    }
 
     public Filter ValidateStaticKeyword()
     {
@@ -67,11 +77,13 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
 
     public Filter ValidateCommandPrefixes()
     {
-        foreach (var prefix in CommandPrefixes) {
-            if (!ValidationHelper.IsValidCommandPrefix(prefix))
-                return Filter.CreateDiagnostic(DiagnosticFactory.Create(
-                    DiagnosticDescriptors.CommandPrefixCannotContainsSpaceOrLeadingWithMinus,
-                    Syntax.Identifier));
+        foreach (var prefixes in CommandPrefixes) {
+            foreach (var prefix in prefixes) {
+                if (!ValidationHelper.IsValidCommandPrefix(prefix))
+                    return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+                        DiagnosticDescriptors.CommandPrefixCannotContainsSpaceOrLeadingWithMinus,
+                        Syntax.Identifier));
+            }
         }
 
         return Filter.Success;

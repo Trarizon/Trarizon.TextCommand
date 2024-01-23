@@ -49,7 +49,7 @@ partial class Command
                     provider.GetFlag<bool, BooleanFlagParser>("--flag", parser: default),
                     provider.GetOption<string, ParsableParser<string>>("--option", parser: default, false),
                     provider.GetValue<int, ParsableParser<int>>(0, parser: default, null),
-                    provider.GetValues<int, ParsableParser<int>>(0, stackalloc int[5], parser: default, null));
+                    provider.GetValues<int, ParsableParser<int>>(0, stackalloc int[5], parser: default, "values", false));
         }
         return default;
     }
@@ -70,6 +70,8 @@ You can set custom parser by set properties on attribute.
     - You can use other types supports list pattern for `string`, but generator doesn't guarantee correctness. Error diagnostic may be added in the future.
     - When input is `string` or `ReadOnlySpan<char>`, the input will be split with white spaces.
 - Use `""` to escape `"` in raw string.
+
+- You can mark multiple `[Executor]` on a method
 
 ## API
 

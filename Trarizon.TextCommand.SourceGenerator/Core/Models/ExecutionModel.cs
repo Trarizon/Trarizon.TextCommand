@@ -102,15 +102,16 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
     public Filter ValidateExecutorsCommandPrefixes()
     {
         List<Diagnostic>? result = null;
-        for (int i = 0; i < Executors.Count; i++) {
-            var former = Executors[i];
-            for (int j = i + 1; j < Executors.Count; j++) {
-                var latter = Executors[j];
-                if (RepeatOfTruncate(former.CommandPrefixes, latter.CommandPrefixes)) {
+        var buffer = ToCmdPrefixBuffer(Executors);
+        for (int i = 0; i < buffer.Length; i++) {
+            var (formerExecutor, formerCmdPrefixes) = buffer[i];
+            for (int j = i + 1; j < buffer.Length; j++) {
+                var (latterExecutor, latterCmdPrefixes) = buffer[j];
+                if (RepeatOfTruncate(formerCmdPrefixes, latterCmdPrefixes)) {
                     (result ??= []).Add(DiagnosticFactory.Create(
                         DiagnosticDescriptors.ExecutorCommandPrefixRepeatOrTruncate_1,
-                        latter.Syntax.Identifier,
-                        former.Symbol.Name));
+                        latterExecutor.Syntax.Identifier,
+                        formerExecutor.Symbol.Name));
                 }
             }
         }
@@ -119,6 +120,19 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
             return Filter.CreateDiagnostic(result);
         else
             return Filter.Success;
+
+        static (ExecutorModel Executor, string[] CommandPrefixes)[] ToCmdPrefixBuffer(List<ExecutorModel> executors)
+        {
+            (ExecutorModel, string[])[] buffer = new (ExecutorModel, string[])[executors.Aggregate(0, (res, exec) => res + exec.CommandPrefixes.Length)];
+            int index = 0;
+            for (int i = 0; i < executors.Count; i++) {
+                var executor = executors[i];
+                for (int j = 0; j < executor.CommandPrefixes.Length; j++) {
+                    buffer[index++] = (executor, executor.CommandPrefixes[j]);
+                }
+            }
+            return buffer;
+        }
 
         static bool RepeatOfTruncate(string[] former, string[] latter)
         {

@@ -8,6 +8,7 @@
 - [Breaking] Removed `ArgsProvider.GetRestValues` use `GetValues` instead
 - Modified name of `Value` and `MultiValue`, now the output err message will not contains leading `--`
 - Mark `ArrayArgsProvider` with `EditorBrowsableState.Never`
+- `[Executor]` is allow multiple now
 
 ## 0.0.1
 

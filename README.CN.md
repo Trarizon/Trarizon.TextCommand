@@ -47,7 +47,7 @@ partial class Command
                     provider.GetFlag<bool, BooleanFlagParser>("--flag", parser: default),
                     provider.GetOption<string, ParsableParser<string>>("--option", parser: default, false),
                     provider.GetValue<int, ParsableParser<int>>(0, parser: default, null),
-                    provider.GetValues<int, ParsableParser<int>>(0, stackalloc int[5], parser: default, null));
+                    provider.GetValues<int, ParsableParser<int>>(0, stackalloc int[5], parser: default, "values", false));
         }
         return default;
     }
@@ -68,6 +68,8 @@ file static class ParameterSets
     - 目前其他任意允许列表模式匹配的类型都可以，但不做保证，以后有可能会加上error诊断限制，所以不推荐
     - 当参数为`string`或`ReadOnlySpan<char>`时会以空白字符进行分割后解析
 - 使用`""`转义`"`
+
+- 可以在一个方法上标记多个`[Executor]`
 
 ## API
 
