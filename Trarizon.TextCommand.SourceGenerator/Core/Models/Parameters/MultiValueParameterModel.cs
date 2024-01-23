@@ -6,9 +6,14 @@ internal sealed class MultiValueParameterModel(ParameterModel parameter) : ICLPa
 {
     public ParameterModel Parameter => parameter;
 
-    public int MaxCount { get; init; }
+    private int _maxCount;
+    public int MaxCount
+    {
+        get => IsRest ? int.MaxValue : _maxCount;
+        init => _maxCount = value;
+    }
 
-    public bool IsRest => MaxCount <= 0;
+    public bool IsRest => _maxCount <= 0;
 
     public bool Required { get; init; }
 

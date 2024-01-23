@@ -22,12 +22,12 @@ internal static class SyntaxHelper
                 var underlyingType = ((INamedTypeSymbol)type).TypeArguments[0];
                 var parsed = SyntaxFactory.IdentifierName(underlyingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                 var parser = ParsableParserTypeSyntax(parsed);
-                return NullableParserTypeSyntax(parser, parsed);
+                return NullableParserTypeSyntax(parsed, parser);
             case ImplicitCLParameterKind.NullableEnum:
                 underlyingType = ((INamedTypeSymbol)type).TypeArguments[0];
                 parsed = SyntaxFactory.IdentifierName(underlyingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                 parser = EnumParserTypeSyntax(parsed);
-                return NullableParserTypeSyntax(parser, parsed);
+                return NullableParserTypeSyntax(parsed, parser);
             default:
                 throw new InvalidOperationException();
         }
@@ -38,11 +38,11 @@ internal static class SyntaxHelper
                 SyntaxFactory.TypeArgumentList(
                     SyntaxFactory.SingletonSeparatedList(parsedType)));
 
-        static TypeSyntax NullableParserTypeSyntax(TypeSyntax parserType, TypeSyntax parsedType)
+        static TypeSyntax NullableParserTypeSyntax(TypeSyntax parsedType, TypeSyntax parserType)
             => SyntaxFactory.GenericName(
                 SyntaxFactory.Identifier($"{Constants.Global}::{Literals.NullableParser_TypeName}"),
                 SyntaxFactory.TypeArgumentList(
-                    SyntaxFactory.SeparatedList([parserType, parsedType])));
+                    SyntaxFactory.SeparatedList(new[] { parsedType, parserType })));
 
         static TypeSyntax ParsableParserTypeSyntax(TypeSyntax parsedType)
             => SyntaxFactory.GenericName(

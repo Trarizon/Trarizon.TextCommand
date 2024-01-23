@@ -4,7 +4,7 @@
 
 核心功能写完了，正在修补诊断分析器
 
-本库原设计用于聊天Bot的命令格式解析
+**该库仍在设计与编写中，使用时请注意**
 
 ## 基本使用
 使用例可见[Design.cs]((./Trarizon.TextCommand.Tester/_Design.cs))

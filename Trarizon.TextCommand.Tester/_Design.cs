@@ -10,7 +10,11 @@ namespace Trarizon.TextCommand.Tester;
 internal partial class _Design
 {
     [Execution("/ghoti")]
-    public partial bool Run(string input);
+    public partial bool Run(string customInput);
+
+    private partial void A(int a);
+
+    private partial void A(int b) => throw new NotImplementedException();
 
     private bool MaunallyRun(string input)
     {
@@ -24,7 +28,7 @@ internal partial class _Design
                     provider.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
             case ["multi-flag"]:
                 var provider2 = default(StringArgsProvider)!;
-                var arg = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default) 
+                var arg = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default)
                     | provider2.GetFlag<Option, BinaryFlagParser<Option>>("b", default);
                 break;
             default:
@@ -33,27 +37,7 @@ internal partial class _Design
 
         return default;
 
-        bool MultiFlagMethod(
-            [MultiValue]
-            [Flag]
-            [Flag] 
-                Option option)
-        {
-
-        }
     }
-
-    private Option MultiFlagParser(ReadOnlySpan<char> keyName)
-    {
-        switch (keyName) {
-            case "1":
-            default:
-                break;
-        }
-        return default!;
-    }
-
-    private Option CombineOptions() { }
 
     [Executor("no-param")]
     public bool NoParam()
@@ -88,7 +72,7 @@ internal partial class _Design
     }
 
     [Executor("explicit", "parameter", "type")]
-    public bool ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options, [Value] string? str, [Option] int number, [MultiValue] int?[] rest)
+    public bool ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options, [Value(Required = true)] string? str, [Option] int number, [MultiValue] int?[] rest)
     {
         Print(flag);
         Print(nonFlag);

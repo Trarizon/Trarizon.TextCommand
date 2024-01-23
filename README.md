@@ -4,6 +4,8 @@ For CLI-like input parsing, written with source generator.
 
 Core is done, patching diagnostic analyzer...
 
+**The library is still under designing and developing, so use at your own risk**
+
 ## Use
 
 (An example [here](./Trarizon.TextCommand.Tester/_Design.cs))
@@ -95,7 +97,7 @@ Custom parsers should be *field*, *Property* or *Method* in current type.
 For `flag`, parser implements `IArgFlagParser<T>`; for others, implements `IArgParser<T>`.
 Method parser should assignable to `ArgParsingDelegate` or `ArgFlagParsingDelegate`
 
-Buid-in parser:
+Build-in parser:
 - `ParsableParser<T>` : Parse `ISpanParsable<T>` 
 - `EnumParser<T>` : Parse enum type
 - `BooleanFlagParser` : Parse `Flag` to `bool`

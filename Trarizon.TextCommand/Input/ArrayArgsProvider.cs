@@ -1,11 +1,13 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Trarizon.TextCommand.Parsers;
 
 namespace Trarizon.TextCommand.Input;
-public readonly ref struct ArrayArgsProvider
+[EditorBrowsable(EditorBrowsableState.Never)]
+public readonly ref partial struct ArrayArgsProvider
 {
     private readonly Dictionary<string, string?> _dict;
     private readonly ReadOnlySpan<string> _list;
@@ -16,104 +18,59 @@ public readonly ref struct ArrayArgsProvider
         _list = list;
     }
 
-    private T GetArg<T, TParser>(string rawArg, TParser parser) where TParser : IArgParser<T>
+    private static bool TryParseArg<T, TParser>(string rawArg, TParser parser, [MaybeNullWhen(false)] out T result) where TParser : IArgParser<T>
     {
-        // Specialized for string,
         if (typeof(TParser) == typeof(ParsableParser<string>)) {
-            return Unsafe.As<string, T>(ref rawArg);
+            result = Unsafe.As<string, T>(ref rawArg);
+            return true;
         }
-        else if (parser.TryParse(rawArg, out var result))
-            return result;
-        else
-            throw new FormatException($"Cannot parse `{rawArg}` to {typeof(T).Name}");
+        else {
+            return parser.TryParse(rawArg, out result);
+        }
     }
 
-    private bool TryGetOption(string key, bool mayThrow, [NotNullWhen(true)] out string? optionArg)
+    /// <returns>Returns the index of first error</returns>
+    private static int TryParseArgs<T, TParser>(ReadOnlySpan<string> rawArgs, TParser parser, Span<T> resultSpan) where TParser : IArgParser<T>
+    {
+        for (int i = 0; i < rawArgs.Length; i++) {
+            if (!TryParseArg(rawArgs[i], parser, out resultSpan[i]!))
+                return i;
+        }
+        return -1;
+    }
+
+    private bool TryGetRawOption(string key, [NotNullWhen(true)] out string? optionArg)
     {
         if (_dict.TryGetValue(key, out optionArg!)) {
             Debug.Assert(optionArg != null);
             return true;
         }
-        else if (mayThrow)
-            throw new ArgumentException($"Argument of '{key}' does not exist.", nameof(key));
         else {
             optionArg = default;
             return false;
         }
     }
 
-    private bool GetFlag(string key)
+    private bool GetRawFlag(string key)
     {
         var res = _dict.TryGetValue(key, out var val);
         Debug.Assert(val is null);
         return res;
     }
 
-    private bool TryGetValueIndexes(int index, int count, string? keyName, out ReadOnlySpan<string> values)
+    private bool TryGetRawValues(int index, int count, out ReadOnlySpan<string> values)
     {
         if (index < _list.Length) {
             var end = int.Min(index + count, _list.Length);
             values = _list[index..end];
             return true;
         }
-        else if (keyName is null) {
+        else {
             values = default;
             return false;
         }
-        else {
-            throw new ArgumentException($"Parameter `{keyName}` has no value");
-        }
     }
 
-    public T? GetOption<T, TParser>(string key, TParser parser, bool throwIfNotExist) where TParser : IArgParser<T>
-    {
-        if (TryGetOption(key, throwIfNotExist, out var argument)) {
-            return GetArg<T, TParser>(argument, parser);
-        }
-        return default;
-    }
-
-    public T GetFlag<T, TParser>(string key, TParser parser) where TParser : IArgFlagParser<T>
-    {
-        return parser.Parse(GetFlag(key));
-    }
-
-    public Span<T> GetValues<T, TParser>(int startIndex, Span<T> resultSpan, TParser parser, string? keyAsThrowFlag) where TParser : IArgParser<T>
-    {
-        if (TryGetValueIndexes(startIndex, resultSpan.Length, keyAsThrowFlag, out var values)) {
-            for (int i = 0; i < resultSpan.Length; i++) {
-                resultSpan[i] = GetArg<T, TParser>(values[i], parser);
-            }
-            return resultSpan;
-        }
-        return default;
-    }
-
-    public T[] GetRestValues<T, TParser>(int startIndex, TParser parser, string? keyAsThrowFlag) where TParser : IArgParser<T>
-    {
-        T[] array = new T[_list.Length - startIndex];
-        GetValues<T, TParser>(startIndex, array, parser, keyAsThrowFlag);
-        return array;
-    }
-
-    public T[] GetValuesArray<T, TParser>(int startIndex, int length, TParser parser, string? keyAsThrowFlag) where TParser : IArgParser<T>
-    {
-        T[] array = new T[length];
-        GetValues<T, TParser>(startIndex, array, parser, keyAsThrowFlag);
-        return array;
-    }
-
-    public List<T> GetValuesList<T, TParser>(int startIndex, int length, TParser parser, string? keyAsThrowFlag) where TParser : IArgParser<T>
-    {
-        List<T> list = new(length);
-        GetValues(startIndex, CollectionsMarshal.AsSpan(list), parser, keyAsThrowFlag);
-        return list;
-    }
-
-    public T? GetValue<T, TParser>(int index, TParser parser, string? keyAndThrowFlag) where TParser : IArgParser<T>
-    {
-        T val = default!;
-        GetValues(index, MemoryMarshal.CreateSpan(ref val, 1), parser, keyAndThrowFlag);
-        return val;
-    }
+    public int GetAvailableArrayLength(int startIndex, int expectedLength)
+        => int.Min(expectedLength, _list.Length - startIndex);
 }

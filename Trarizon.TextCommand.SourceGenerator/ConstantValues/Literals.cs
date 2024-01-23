@@ -3,7 +3,7 @@ internal static class Literals
 {
     public const string Namespace = "Trarizon.TextCommand";
     public const string GeneratorNamespace = $"{Namespace}.SourceGenerator";
-    public const string Version = "1.0.0";
+    public const string Version = "0.0.2";
 
     // Attributes
 
@@ -38,11 +38,10 @@ internal static class Literals
     public const string ArgsProvider_GetOption_MethodIdentifier = "GetOption";
     public const string ArgsProvider_GetValue_MethodIdentifier = "GetValue";
     public const string ArgsProvider_GetValues_MethodIdentifier = "GetValues";
-    public const string ArgsProvider_GetRestValues_MethodIdentifier = "GetRestValues";
-    public const string ArgsProvider_GetRestValuesList_MethodIdentifier = "GetRestValuesList";
     public const string ArgsProvider_GetValuesArray_MethodIdentifier = "GetValuesArray";
     public const string ArgsProvider_GetValuesList_MethodIdentifier = "GetValuesList";
-
+    public const string ArgsProvider_GetAvailableArrayLength_MethodIdentifier = "GetAvailableArrayLength";
+   
     // Parsers
 
     public const string IArgParser_TypeName = $"{Namespace}.Parsers.IArgParser";
@@ -59,6 +58,7 @@ internal static class Literals
 
     public const string StringInputMatcher_VarIdentifier = "__matcher";
     public const string ParameterSets_TypeIdentifier = "__ParameterSets";
+    public const string Input_ParameterIdentifier = "input";
     public const int StackAllocThreshold = 1024;
 
     public const string Prefix_Alias = "-";

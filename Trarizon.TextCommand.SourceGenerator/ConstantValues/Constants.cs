@@ -17,10 +17,8 @@ internal static class Constants
     public const string AsSpan_Identifier = "AsSpan";
 
     public const string Dictionary_TypeName = "System.Collections.Generic.Dictionary";
-    public const string String_TypeName = "System.String";
-    public const string Boolean_TypeName = "System.Boolean";
-
     public const string GeneratedCodeAttribute_TypeName = "System.CodeDom.Compiler.GeneratedCodeAttribute";
+    public const string PartialMethodDeclarationHaveSignatureDifferences_ErrorCode = "CS8826";
 
     public const string Global = "global";
 }

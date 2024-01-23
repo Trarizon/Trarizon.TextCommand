@@ -30,9 +30,6 @@ internal sealed class ExecutionProvider
         CommandPrefix = model.CommandName;
     }
 
-    // Syntax
-    public string InputParameter_Identifier => _model.Symbol.Parameters[0].Name;
-
     public MethodDeclarationSyntax MethodDeclaration()
     {
         return SyntaxFactory.MethodDeclaration(
@@ -43,7 +40,11 @@ internal sealed class ExecutionProvider
             _model.Syntax.ExplicitInterfaceSpecifier,
             _model.Syntax.Identifier,
             _model.Syntax.TypeParameterList,
-            _model.Syntax.ParameterList,
+            // Replace the input parameter identifier
+            _model.Syntax.ParameterList.WithParameters(
+                SyntaxFactory.SingletonSeparatedList(
+                    _model.Syntax.ParameterList.Parameters[0].WithIdentifier(
+                        SyntaxFactory.Identifier(Literals.Input_ParameterIdentifier)))),
             _model.Syntax.ConstraintClauses,
             SyntaxFactory.Block(
                 SyntaxFactory.List(
@@ -68,13 +69,13 @@ internal sealed class ExecutionProvider
                             SyntaxFactory.SingletonSeparatedList(
                                 SyntaxFactory.Argument(
                                     SyntaxFactory.IdentifierName(
-                                        InputParameter_Identifier)))),
+                                        Literals.Input_ParameterIdentifier)))),
                         default));
                 governing = SyntaxFactory.IdentifierName(Literals.StringInputMatcher_VarIdentifier);
                 break;
             case InputParameterType.Unknown:
             case InputParameterType.Span:
-                governing = SyntaxFactory.IdentifierName(InputParameter_Identifier);
+                governing = SyntaxFactory.IdentifierName(Literals.Input_ParameterIdentifier);
                 break;
             case InputParameterType.Array:
                 governing = SyntaxFactory.InvocationExpression(
@@ -82,7 +83,7 @@ internal sealed class ExecutionProvider
                     SyntaxFactory.ArgumentList(
                         SyntaxFactory.SingletonSeparatedList(
                             SyntaxFactory.Argument(
-                                SyntaxFactory.IdentifierName(InputParameter_Identifier)))));
+                                SyntaxFactory.IdentifierName(Literals.Input_ParameterIdentifier)))));
                 break;
             case InputParameterType.List:
                 governing = SyntaxFactory.InvocationExpression(
@@ -90,7 +91,7 @@ internal sealed class ExecutionProvider
                     SyntaxFactory.ArgumentList(
                         SyntaxFactory.SingletonSeparatedList(
                             SyntaxFactory.Argument(
-                                SyntaxFactory.IdentifierName(InputParameter_Identifier)))));
+                                SyntaxFactory.IdentifierName(Literals.Input_ParameterIdentifier)))));
                 break;
             default:
                 throw new InvalidOperationException();

@@ -6,7 +6,6 @@ using System.Text;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Core.Providers;
-using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit.Extensions;
 
@@ -79,7 +78,13 @@ public class ExecutionGenerator : IIncrementalGenerator
                             SyntaxFactory.TriviaList(
                                 SyntaxFactory.Trivia(
                                     SyntaxFactory.NullableDirectiveTrivia(
-                                        SyntaxFactory.Token(SyntaxKind.EnableKeyword), true)))),
+                                        SyntaxFactory.Token(SyntaxKind.EnableKeyword), true)),
+                                SyntaxFactory.Trivia(
+                                    SyntaxFactory.PragmaWarningDirectiveTrivia(
+                                        SyntaxFactory.Token(SyntaxKind.DisableKeyword),
+                                        SyntaxFactory.SingletonSeparatedList<ExpressionSyntax>(
+                                            SyntaxFactory.IdentifierName(Constants.PartialMethodDeclarationHaveSignatureDifferences_ErrorCode)),
+                                        true)))),
                     provider.ParameterSets_ClassDeclaration(),
                 }));
 

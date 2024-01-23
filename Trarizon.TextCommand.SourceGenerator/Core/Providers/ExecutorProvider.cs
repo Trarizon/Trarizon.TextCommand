@@ -152,16 +152,16 @@ internal sealed class ExecutorProvider
                                         DictParameterArgument(
                                             namedParameters,
                                             [
-                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.String_TypeName}"),
-                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.Boolean_TypeName}"),
+                                                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
+                                                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)),
                                             ],
                                             p => (SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{p.Name}"),
                                                 SyntaxProvider.LiteralBooleanExpression(p is OptionProvider))),
                                         DictParameterArgument(
                                             aliasParameters,
                                             [
-                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.String_TypeName}"),
-                                                SyntaxFactory.IdentifierName($"{Constants.Global}::{Constants.String_TypeName}"),
+                                                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
+                                                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
                                             ],
                                             p => (SyntaxProvider.LiteralStringExpression($"{Literals.Prefix_Alias}{p.Alias!}"),
                                                 SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{p.Name}"))),

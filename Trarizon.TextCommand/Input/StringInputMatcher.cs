@@ -46,7 +46,7 @@ public ref struct StringInputMatcher
             else { // Slice
                 var (start, length) = argIndex.SliceRange;
 #if DEBUG
-                _calledCache.Add(_input.AsSpan(start, length).ToString());
+                _calledCache.Add(_input.Slice(start, length).ToString());
 #endif
                 return new(_input.Slice(start, length));
             }
