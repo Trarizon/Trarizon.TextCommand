@@ -65,7 +65,6 @@ file static class ParameterSets
 
 - 当前一个类型内只能有一个`Execution`，以后可能允许多个
 - `Execution`参数为单个参数，可以为`string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
-    - 目前其他任意允许列表模式匹配的类型都可以，但不做保证，以后有可能会加上error诊断限制，所以不推荐
     - 当参数为`string`或`ReadOnlySpan<char>`时会以空白字符进行分割后解析
 - 使用`""`转义`"`
 
