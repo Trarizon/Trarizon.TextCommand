@@ -9,13 +9,13 @@ public ref struct StringInputRest
     /// slice or
     /// escaped
     /// </summary>
-    internal readonly Span<ArgIndex> Indexes;
+    internal readonly Span<ArgIndex> Indices;
     internal int CountOfEscapes;
 
-    internal StringInputRest(ReadOnlySpan<char> source, Span<ArgIndex> indexes, int countOfEscapes)
+    internal StringInputRest(ReadOnlySpan<char> source, Span<ArgIndex> indices, int countOfEscapes)
     {
         Source = source;
-        Indexes = indexes;
+        Indices = indices;
         CountOfEscapes = countOfEscapes;
     }
 }

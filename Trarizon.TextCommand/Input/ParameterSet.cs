@@ -22,8 +22,8 @@ public sealed class ParameterSet(
         string[] unescapeds = new string[rest.CountOfEscapes];
         int unescapeCount = 0;
 
-        for (int i = 0; i < rest.Indexes.Length; i++) {
-            var index = rest.Indexes[i];
+        for (int i = 0; i < rest.Indices.Length; i++) {
+            var index = rest.Indices[i];
 
             // Escaped
             if (index.Kind == ArgIndexKind.Escaped) {
@@ -63,8 +63,8 @@ public sealed class ParameterSet(
                     }
 
                     // Option
-                    if (++i < rest.Indexes.Length) {
-                        dict.Add(strArg, rest.Indexes[i]);
+                    if (++i < rest.Indices.Length) {
+                        dict.Add(strArg, rest.Indices[i]);
                         continue;
                     }
 
