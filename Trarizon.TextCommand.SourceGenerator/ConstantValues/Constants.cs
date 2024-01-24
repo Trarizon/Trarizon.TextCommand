@@ -18,7 +18,9 @@ internal static class Constants
 
     public const string Dictionary_TypeName = "System.Collections.Generic.Dictionary";
     public const string GeneratedCodeAttribute_TypeName = "System.CodeDom.Compiler.GeneratedCodeAttribute";
+
     public const string PartialMethodDeclarationHaveSignatureDifferences_ErrorCode = "CS8826";
+    public const string LabelNotBeenReferenced_ErrorCode = "CS0164";
 
     public const string Global = "global";
 }

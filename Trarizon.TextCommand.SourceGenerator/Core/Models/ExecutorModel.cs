@@ -63,6 +63,9 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
 
     public Filter ValidateReturnType()
     {
+        if (Execution.Symbol.ReturnsVoid)
+            return Filter.Success;
+
         if (Execution.Context.SemanticModel.Compilation.ClassifyCommonConversion(
             Symbol.ReturnType,
             Execution.Symbol.ReturnType).Exists

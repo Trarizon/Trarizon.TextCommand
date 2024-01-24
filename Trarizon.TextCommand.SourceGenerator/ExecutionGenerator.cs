@@ -82,8 +82,10 @@ public class ExecutionGenerator : IIncrementalGenerator
                                 SyntaxFactory.Trivia(
                                     SyntaxFactory.PragmaWarningDirectiveTrivia(
                                         SyntaxFactory.Token(SyntaxKind.DisableKeyword),
-                                        SyntaxFactory.SingletonSeparatedList<ExpressionSyntax>(
-                                            SyntaxFactory.IdentifierName(Constants.PartialMethodDeclarationHaveSignatureDifferences_ErrorCode)),
+                                        SyntaxFactory.SeparatedList<ExpressionSyntax>( new[]{
+                                            SyntaxFactory.IdentifierName(Constants.PartialMethodDeclarationHaveSignatureDifferences_ErrorCode),
+                                            SyntaxFactory.IdentifierName(Constants.LabelNotBeenReferenced_ErrorCode),
+                                        }),
                                         true)))),
                     provider.ParameterSets_ClassDeclaration(),
                 }));

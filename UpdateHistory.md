@@ -3,12 +3,14 @@
 ## 0.0.2
 
 - [Bug] Fix bug on incorrect length of `MultiValue` parameter
+- [Bug] Fix bug when Execution returns `void`
 - [Breaking] Modified parameter of `ArgsProvider.GetValues` series
 - [Breaking] Swapped type parameter of `NullableParser<,>`
 - [Breaking] Removed `ArgsProvider.GetRestValues` use `GetValues` instead
 - Modified name of `Value` and `MultiValue`, now the output err message will not contains leading `--`
 - Mark `ArrayArgsProvider` with `EditorBrowsableState.Never`
 - `[Executor]` is allow multiple now
+- If Execution returns `void`, executor can returns any type now
 
 ## 0.0.1
 

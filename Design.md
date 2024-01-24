@@ -29,7 +29,7 @@
 
 ### Executor
 
-- 返回类型需要可隐式转换到Execution的返回类型
+- 返回类型需要可隐式转换到Execution的返回类型，除非Execution返回`void`
 - 不同Executor的Attribute参数不能重复或被截断（会在switch被其他分支匹配）
 - CommandPrefixes不能带有空白字符，
 - 一个方法可以标记多个`[Executor]`表示不同命令指向同一个方法

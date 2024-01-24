@@ -15,6 +15,8 @@ internal sealed class ExecutionProvider
 
     public CommandProvider Command { get; }
 
+    public IMethodSymbol Symbol => _model.Symbol;
+
     public ExecutorProvider[] Executors { get; }
 
     public string? CommandPrefix { get; }
@@ -101,7 +103,7 @@ internal sealed class ExecutionProvider
         yield return SyntaxFactory.SwitchStatement(
             governing,
             SyntaxFactory.List(
-                Executors.Select(e => e.MatchingSwitchSection())));
+                Executors.SelectMany(e => e.MatchingSwitchSections())));
 
         yield return ReturnStatement();
     }

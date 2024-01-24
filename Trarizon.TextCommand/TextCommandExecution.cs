@@ -4,7 +4,7 @@ using Trarizon.TextCommand.Utilities;
 namespace Trarizon.TextCommand;
 public static class TextCommandExecution
 {
-    public static string[] SplitAsArgs(string input)
+    public static string[] SplitAsArgs(this string input)
     {
         var rest = new StringInputMatcher(input)[..];
         var result = new string[rest.Indices.Length];

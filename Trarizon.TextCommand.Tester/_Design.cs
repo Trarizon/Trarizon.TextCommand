@@ -10,18 +10,23 @@ namespace Trarizon.TextCommand.Tester;
 internal partial class _Design
 {
     [Execution("/ghoti")]
-    public partial bool Run(string customInput);
+    public partial void Run(string customInput);
 
     private bool MaunallyRun(string input)
     {
         var matcher = new StringInputMatcher(input);
-        switch (matcher) {
+        switch (input.SplitAsArgs()) {
             case ["/ghoti", "no-param", ..]:
                 return NoParam();
-            case ["ghoti", "def", .. var rest]:
-                var provider = default(StringArgsProvider)!;
+            case ["/ghoti", "a", .. var rest]:
+                var provider_a = default(StringArgsProvider);
+            __B_Label:
+                var str = "--opt";
                 return Method(
-                    provider.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
+                    provider_a.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
+            case ["/ghoti", "b", .. var rest1]:
+                provider_a = default(StringArgsProvider);
+                goto __B_Label;
             case ["multi-flag"]:
                 var provider2 = default(StringArgsProvider)!;
                 var arg = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default)
@@ -35,7 +40,7 @@ internal partial class _Design
 
     }
 
-    [Executor("multi", "mark")]
+    [Executor("multi", "mark", "no", "param")]
     [Executor("no-param")]
     public bool NoParam()
     {
@@ -50,6 +55,7 @@ internal partial class _Design
     }
 
     [Executor("def")]
+    [Executor("multi", "marked")]
     public bool Method([Option(Parser = nameof(Par))] string? opt)
     {
         return false;
