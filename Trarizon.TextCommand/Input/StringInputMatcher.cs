@@ -22,7 +22,7 @@ public ref struct StringInputMatcher
 
     // Every time call the getter will create a string
     // So this is for one-time use
-    public string this[int index]
+    public ReadOnlySpan<char> this[int index]
     {
         get {
 #if DEBUG
@@ -34,7 +34,8 @@ public ref struct StringInputMatcher
 #endif
 
             var argIndex = _indexes[index];
-            if (argIndex.Kind == ArgIndexKind.Escaped) { // Requires escape
+            // Requires escape
+            if (argIndex.Kind == ArgIndexKind.Escaped) {
                 var (start, length) = argIndex.EscapedRange;
                 var unescaped = StringUtil.UnescapeToString(_input.Slice(start, length));
                 _countOfEscaped--;
@@ -43,12 +44,13 @@ public ref struct StringInputMatcher
 #endif
                 return unescaped;
             }
-            else { // Slice
+            // Slice
+            else {
                 var (start, length) = argIndex.SliceRange;
 #if DEBUG
                 _calledCache.Add(_input.Slice(start, length).ToString());
 #endif
-                return new(_input.Slice(start, length));
+                return _input.Slice(start, length);
             }
         }
     }
