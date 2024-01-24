@@ -64,8 +64,16 @@ public sealed class ParameterSet(
 
                     // Option
                     if (++i < rest.Indices.Length) {
-                        dict.Add(strArg, rest.Indices[i]);
-                        continue;
+                        var nextIndex = rest.Indices[i];
+                        if (nextIndex.Kind == ArgIndexKind.Escaped) {
+                            (start, length) = nextIndex.EscapedRange;
+                            var unescaped = StringUtil.UnescapeToString(rest.Source.Slice(start, length));
+                            dict.Add(strArg, ArgIndex.FromCached(unescapeCount));
+                            unescapeds[unescapeCount++] = unescaped;
+                        }
+                        else {
+                            dict.Add(strArg, rest.Indices[i]);
+                        }
                     }
 
                     // else the option key is the last value in input, omit

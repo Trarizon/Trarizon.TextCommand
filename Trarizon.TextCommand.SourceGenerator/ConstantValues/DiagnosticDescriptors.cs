@@ -170,4 +170,12 @@ internal static class DiagnosticDescriptors
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);
+
+    public readonly static DiagnosticDescriptor ParsedArgumentMaybeNull = new(
+        "TCMD0021",
+        nameof(ParsedArgumentMaybeNull),
+        "Parsed argument may be null while parameter is not null",
+        Literals.Namespace,
+        DiagnosticSeverity.Warning,
+        true);
 }

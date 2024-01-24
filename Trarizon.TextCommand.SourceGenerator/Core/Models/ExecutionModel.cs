@@ -78,6 +78,9 @@ internal sealed class ExecutionModel(ContextModel context, MethodDeclarationSynt
 
     public Filter ValidateReturnType()
     {
+        if (Symbol.ReturnsVoid)
+            return Filter.Success;
+
         if (Symbol.ReturnType.IsCanBeDefault()) {
             return Filter.Success;
         }

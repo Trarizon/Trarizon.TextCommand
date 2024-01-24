@@ -4,6 +4,7 @@
 
 - [Bug] Fix bug on incorrect length of `MultiValue` parameter
 - [Bug] Fix bug when Execution returns `void`
+- [Bug] Fix bug on parsing failure when input option is escaped 
 - [Breaking] Modified parameter of `ArgsProvider.GetValues` series
 - [Breaking] Swapped type parameter of `NullableParser<,>`
 - [Breaking] Removed `ArgsProvider.GetRestValues` use `GetValues` instead
@@ -11,6 +12,8 @@
 - Mark `ArrayArgsProvider` with `EditorBrowsableState.Never`
 - `[Executor]` is allow multiple now
 - If Execution returns `void`, executor can returns any type now
+- Relax restrictions on parser type, now parser return type should be able to implicit convert to target parameter type
+- Optimize nullable diagnostic
 
 ## 0.0.1
 

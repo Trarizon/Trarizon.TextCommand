@@ -16,6 +16,8 @@ partial struct Filter
     public static Filter<T> CreateDiagnostic<T>(Diagnostic diagnostic) where T : notnull => new(default, diagnostic);
     public static Filter<T> CreateDiagnostic<T>(IEnumerable<Diagnostic> diagnostics) where T : notnull => new(default, diagnostics);
     public static Filter<T> Create<T>(in T context) where T : notnull => new(context, default(List<Diagnostic>));
+    public static Filter<T> Create<T>(in T context, Diagnostic diagnostic) where T : notnull => new(context, diagnostic);
+    public static Filter<T> Create<T>(in T context, IEnumerable<Diagnostic> diagnostics) where T : notnull => new(context, diagnostics);
 
     public static Filter<TResult> Select<T, TResult>(in T context, Func<T, Filter<TResult>> selector) where TResult : notnull
     {

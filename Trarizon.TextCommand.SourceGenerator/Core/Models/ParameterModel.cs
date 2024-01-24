@@ -87,107 +87,157 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
         }
         else {
             var res = GetCLParameterModel();
-            if (res.TryGetValue(out var value, out var err)) {
-                CLParameter = value;
-                return Filter.Success;
-            }
-            return Filter.CreateDiagnostic(DiagnosticFactory.Create(err, Syntax));
+            if (!res.IsClosed)
+                CLParameter = res.Context;
+            return res;
         }
 
-        Result<ICLParameterModel, DiagnosticDescriptor> GetCLParameterModel()
+        Filter<ICLParameterModel> GetCLParameterModel()
         {
             var parserAttrArg = _attribute.GetNamedArgument<string>(Literals.ParameterAttribute_ParserPropertyIdentifier);
             if (parserAttrArg is null) {
-                return GetImplicitParserParameterModel();
+                if (GetImplicitParserParameterModel().TryGetValue(out var val, out var err))
+                    return Filter.Create(val);
+                else
+                    return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(err, Syntax));
             }
 
-            var parserMember = Executor.Execution.Command.Symbol.GetMembers(parserAttrArg).FirstOrDefault();
-            if (parserMember is null) {
-                return DiagnosticDescriptors.CannotFindExplicitParser;
+            if (!GetMemberParser(parserAttrArg).TryGetValue(out var parser, out var err2)) {
+                return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(err2, Syntax));
             }
 
-            Either<(ITypeSymbol Type, ISymbol Member), IMethodSymbol> parser;
-            switch (parserMember) {
-                case IFieldSymbol field:
-                    parser = (field.Type, parserMember);
-                    break;
-                case IPropertySymbol property:
-                    parser = (property.Type, parserMember);
-                    break;
-                case IMethodSymbol method:
-                    parser = new(method);
-                    break;
-                default:
-                    return DiagnosticDescriptors.CannotFindExplicitParser;
-            }
-
+            var semanticModel = Executor.Execution.Context.SemanticModel;
+            bool nullableNotMatched;
+            ITypeSymbol? parsedType;
+            ICLParameterModel result;
             switch (ParameterKind) {
                 case CLParameterKind.Flag: {
                     if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(memberParser.Type, Symbol.Type, out var isFlag) || !isFlag)
-                            return DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser;
+                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, Symbol.Type, out parsedType, out var isFlag, out nullableNotMatched) || !isFlag) {
+                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                                DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser, Syntax));
+                        }
                     }
-                    else if (!ValidationHelper.IsValidMethodParser(methodParser, Symbol.Type, CLParameterKind.Flag))
-                        return DiagnosticDescriptors.CustomFlagParsingMethodMatchArgFlagParsingDelegate;
+                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, Symbol.Type, CLParameterKind.Flag, out parsedType, out nullableNotMatched)) {
+                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                            DiagnosticDescriptors.CustomFlagParsingMethodMatchArgFlagParsingDelegate, Syntax));
+                    }
 
-                    return new FlagParameterModel(this) {
+                    result = new FlagParameterModel(this) {
                         ParserInfo = parser,
+                        ParsedTypeSymbol = parsedType,
                         Alias = _attribute.GetConstructorArgument<string>(Literals.FlagAttribute_Alias_CtorParameterIndex),
                         Name = _attribute.GetNamedArgument<string>(Literals.FlagAttribute_Name_PropertyIdentifier)!
                     };
+                    break;
                 }
                 case CLParameterKind.Option: {
                     if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(memberParser.Type, Symbol.Type, out var isFlag) || isFlag)
-                            return DiagnosticDescriptors.CustomParserShouldImplsIArgParser;
+                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, Symbol.Type, out parsedType, out var isFlag, out nullableNotMatched) || isFlag) {
+                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                                DiagnosticDescriptors.CustomParserShouldImplsIArgParser, Syntax));
+                        }
                     }
-                    else if (!ValidationHelper.IsValidMethodParser(methodParser, Symbol.Type, ParameterKind))
-                        return DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate;
+                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, Symbol.Type, ParameterKind, out parsedType, out nullableNotMatched)) {
+                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                            DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate, Syntax));
+                    }
 
-                    return new OptionParameterModel(this) {
+                    result = new OptionParameterModel(this) {
                         ParserInfo = parser,
+                        ParsedTypeSymbol = parsedType,
                         Alias = _attribute.GetConstructorArgument<string>(Literals.OptionAttribute_Alias_CtorParameterIndex),
                         Name = _attribute.GetNamedArgument<string>(Literals.OptionAttribute_Name_PropertyIdentifier)!,
                         Required = _attribute.GetNamedArgument<bool>(Literals.OptionAttribute_Required_PropertyIdentifier),
                     };
+                    break;
                 }
                 case CLParameterKind.Value: {
                     if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(memberParser.Type, Symbol.Type, out var isFlag) || isFlag)
-                            return DiagnosticDescriptors.CustomParserShouldImplsIArgParser;
+                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, Symbol.Type, out parsedType, out var isFlag, out nullableNotMatched) || isFlag)
+                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                                DiagnosticDescriptors.CustomParserShouldImplsIArgParser, Syntax));
                     }
-                    else if (!ValidationHelper.IsValidMethodParser(methodParser, Symbol.Type, ParameterKind))
-                        return DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate;
+                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, Symbol.Type, ParameterKind, out parsedType, out nullableNotMatched)) {
+                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                            DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate, Syntax));
+                    }
 
-                    return new ValueParameterModel(this) {
+                    result = new ValueParameterModel(this) {
                         ParserInfo = parser,
+                        ParsedTypeSymbol = parsedType,
                         Required = _attribute.GetNamedArgument<bool>(Literals.ValueAttribute_Required_PropertyIdentifier),
                     };
+                    break;
                 }
                 case CLParameterKind.MultiValue: {
                     var collectionType = ValidationHelper.ValidateMultiValueCollectionType(Symbol.Type, out var elementType, out var elemGetter);
-                    if (collectionType == MultiValueCollectionType.Invalid)
-                        return DiagnosticDescriptors.InvalidMultiValueCollectionType;
+                    if (collectionType == MultiValueCollectionType.Invalid) {
+                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                            DiagnosticDescriptors.InvalidMultiValueCollectionType, Syntax));
+                    }
 
                     if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(memberParser.Type, elementType, out var isFlag))
-                            return DiagnosticDescriptors.CustomParserShouldImplsIArgParser;
-                        if (isFlag)
-                            return DiagnosticDescriptors.MultiValueParserCannotBeFlagParser;
+                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, elementType, out parsedType, out var isFlag, out nullableNotMatched)) {
+                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                                DiagnosticDescriptors.CustomParserShouldImplsIArgParser, Syntax));
+                        }
+                        if (isFlag) {
+                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                                DiagnosticDescriptors.MultiValueParserCannotBeFlagParser, Syntax));
+                        }
                     }
-                    else if (!ValidationHelper.IsValidMethodParser(methodParser, Symbol.Type, ParameterKind))
-                        return DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate;
+                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, elementType, ParameterKind, out parsedType, out nullableNotMatched)) {
+                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
+                            DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate, Syntax));
+                    }
 
-                    return new MultiValueParameterModel(this) {
+                    result = new MultiValueParameterModel(this) {
                         CollectionType = collectionType,
                         ParserInfo = parser,
                         ParsedTypeSymbol = elementType,
                         MaxCount = _attribute.GetConstructorArgument<int>(Literals.MultiValueAttribute_MaxCount_CtorParameterIndex),
                         Required = _attribute.GetNamedArgument<bool>(Literals.MultiValueAttribute_Required_PropertyIdentifier),
                     };
+                    break;
                 }
                 default:
                     throw new InvalidOperationException();
+            }
+
+            if (nullableNotMatched) {
+                return Filter.Create(result).Predicate(_ => Filter.CreateDiagnostic(DiagnosticFactory.Create(
+                    DiagnosticDescriptors.ParsedArgumentMaybeNull, Syntax)));
+            }
+            else {
+                return Filter.Create(result);
+            }
+
+            #region Util Methods
+
+            Result<Either<(ITypeSymbol Type, ISymbol Member), IMethodSymbol>, DiagnosticDescriptor> GetMemberParser(string customParserName)
+            {
+                var parserMember = Executor.Execution.Command.Symbol.GetMembers(customParserName).FirstOrDefault();
+                if (parserMember is null) {
+                    return DiagnosticDescriptors.CannotFindExplicitParser;
+                }
+
+                Either<(ITypeSymbol Type, ISymbol Member), IMethodSymbol> parser;
+                switch (parserMember) {
+                    case IFieldSymbol field:
+                        parser = (field.Type, parserMember);
+                        break;
+                    case IPropertySymbol property:
+                        parser = (property.Type, parserMember);
+                        break;
+                    case IMethodSymbol method:
+                        parser = new(method);
+                        break;
+                    default:
+                        return DiagnosticDescriptors.CannotFindExplicitParser;
+                }
+
+                return parser;
             }
 
             Result<ICLParameterModel, DiagnosticDescriptor> GetImplicitParserParameterModel()
@@ -268,6 +318,8 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
                         throw new InvalidOperationException();
                 }
             }
+
+            #endregion
         }
     }
 

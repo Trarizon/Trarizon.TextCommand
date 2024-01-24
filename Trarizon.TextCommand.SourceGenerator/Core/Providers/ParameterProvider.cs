@@ -45,7 +45,7 @@ internal abstract class ParameterProvider
 
     private TypeSyntax? _parsedTypeSyntax;
     protected TypeSyntax ParsedTypeSyntax
-        => _parsedTypeSyntax ??= SyntaxFactory.IdentifierName(Model.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+        => _parsedTypeSyntax ??= SyntaxFactory.IdentifierName(Model.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormats.FullQualifiedFormatIncludeNullableRefTypeModifier));
 
     [MemberNotNull(nameof(_parserTypeSyntax), nameof(_parserArgSyntax))]
     private void InitParserSyntaxes()
@@ -71,9 +71,8 @@ internal abstract class ParameterProvider
                 SyntaxFactory.GenericName(
                     SyntaxFactory.Identifier(identifier),
                     SyntaxFactory.TypeArgumentList(
-                        SyntaxFactory.SingletonSeparatedList<TypeSyntax>(
-                            SyntaxFactory.IdentifierName(
-                                Model.Parameter.Symbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))));
+                        SyntaxFactory.SingletonSeparatedList(
+                            ParsedTypeSyntax)));
             _parserArgSyntax =
                 SyntaxFactory.Argument(
                     SyntaxFactory.ObjectCreationExpression(

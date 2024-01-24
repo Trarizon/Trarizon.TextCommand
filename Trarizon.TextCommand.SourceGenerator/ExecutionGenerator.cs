@@ -85,6 +85,7 @@ public class ExecutionGenerator : IIncrementalGenerator
                                         SyntaxFactory.SeparatedList<ExpressionSyntax>( new[]{
                                             SyntaxFactory.IdentifierName(Constants.PartialMethodDeclarationHaveSignatureDifferences_ErrorCode),
                                             SyntaxFactory.IdentifierName(Constants.LabelNotBeenReferenced_ErrorCode),
+                                            SyntaxFactory.IdentifierName(Constants.PossibleNullReferenceArgumentForParameter_ErrorCode),
                                         }),
                                         true)))),
                     provider.ParameterSets_ClassDeclaration(),

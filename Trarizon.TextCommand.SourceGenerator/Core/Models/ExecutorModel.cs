@@ -68,8 +68,7 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
 
         if (Execution.Context.SemanticModel.Compilation.ClassifyCommonConversion(
             Symbol.ReturnType,
-            Execution.Symbol.ReturnType).Exists
-        ) {
+            Execution.Symbol.ReturnType).IsImplicit) {
             return Filter.Success;
         }
 

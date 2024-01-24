@@ -17,5 +17,19 @@ internal sealed class FlagParameterModel(ParameterModel parameter) : ICLParamete
 
     public required Either<ImplicitCLParameterKind, Either<(ITypeSymbol Type, ISymbol Member), IMethodSymbol>> ParserInfo { get; init; }
 
-    public ITypeSymbol ParsedTypeSymbol => Parameter.Symbol.Type;
+    private ITypeSymbol? _parsedTypeSymbol;
+    public ITypeSymbol ParsedTypeSymbol
+    {
+        get {
+            if(_parsedTypeSymbol is null) {
+                _parsedTypeSymbol = Parameter.Symbol.Type;
+                // Remove nullable annotation of reference type for implicit parser
+                if (!_parsedTypeSymbol.IsValueType && _parsedTypeSymbol.NullableAnnotation is NullableAnnotation.Annotated)
+                    _parsedTypeSymbol = _parsedTypeSymbol.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+            }
+            return _parsedTypeSymbol;
+        }
+
+        init => _parsedTypeSymbol = value;
+    }
 }

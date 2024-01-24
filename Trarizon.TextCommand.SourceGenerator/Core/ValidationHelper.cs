@@ -1,7 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
@@ -92,48 +94,46 @@ internal static class ValidationHelper
         return MultiValueCollectionType.Invalid;
     }
 
-    public static bool IsCustomParser(ITypeSymbol parserType, ITypeSymbol argType, out bool isFlag)
+    public static bool IsCustomParser(SemanticModel semanticModel, ITypeSymbol parserType, ITypeSymbol parameterType,
+        [NotNullWhen(true)] out ITypeSymbol? parsedType, out bool isFlag, out bool nullableClassTypeMayAssignToNotNullable)
     {
         foreach (var interfaceType in parserType.AllInterfaces) {
             switch (interfaceType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric)) {
                 case Literals.IArgParser_TypeName:
-                    if (interfaceType.TypeArguments is [var typeArg] &&
-                        (typeArg.IsValueType
-                            ? SymbolEqualityComparer.IncludeNullability.Equals(typeArg, argType)
-                            : SymbolEqualityComparer.Default.Equals(typeArg, argType))
-                    ) {
-                        isFlag = false;
-                        return true;
-                    }
-                    break;
+                    if (interfaceType.TypeArguments is not [var typeArg])
+                        break;
+                    isFlag = false;
+                    parsedType = typeArg;
+                    return IsValidParser(semanticModel, typeArg, parameterType, out nullableClassTypeMayAssignToNotNullable);
+
                 case Literals.IArgFlagParser_TypeName:
-                    if (interfaceType.TypeArguments is [var flagTypeArg] &&
-                        (flagTypeArg.IsValueType
-                            ? SymbolEqualityComparer.IncludeNullability.Equals(flagTypeArg, argType)
-                            : SymbolEqualityComparer.Default.Equals(flagTypeArg, argType))
-                    ) {
-                        isFlag = true;
-                        return true;
-                    }
-                    break;
+                    if (interfaceType.TypeArguments is not [var flagTypeArg])
+                        break;
+                    isFlag = true;
+                    parsedType = flagTypeArg;
+                    return IsValidParser(semanticModel, flagTypeArg, parameterType, out nullableClassTypeMayAssignToNotNullable);
             }
         }
+        parsedType = null;
         isFlag = default;
+        nullableClassTypeMayAssignToNotNullable = false;
         return false;
     }
 
-    public static bool IsValidMethodParser(IMethodSymbol method, ITypeSymbol argType, CLParameterKind parameterKind)
+    public static bool IsValidMethodParser(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol parameterType, CLParameterKind parameterKind,
+        [NotNullWhen(true)] out ITypeSymbol? parsedType, out bool nullableClassTypeMayAssignToNotNullable)
     {
         switch (parameterKind) {
             case CLParameterKind.Flag:
-                if (method is { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] }
-                    && SymbolEqualityComparer.Default.Equals(method.ReturnType, argType))
-                    return true;
-                return false;
+                // Match delegate signature
+                if (method is not { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] })
+                    break;
+                parsedType = method.ReturnType;
+                return IsValidParser(semanticModel, parsedType, parameterType, out nullableClassTypeMayAssignToNotNullable);
             case CLParameterKind.Option:
             case CLParameterKind.Value:
             case CLParameterKind.MultiValue:
-                if (method is {
+                if (method is not {
                     ReturnType.SpecialType: SpecialType.System_Boolean,
                     Parameters:
                     [
@@ -143,13 +143,33 @@ internal static class ValidationHelper
                             Type: var resultParameterType,
                         }
                     ]
-                }) {
-                    return spanParameterType.ToDisplayString() == Constants.ReadOnlySpan_Char_TypeName
-                        && SymbolEqualityComparer.Default.Equals(argType, resultParameterType);
+                } || spanParameterType.ToDisplayString() != Constants.ReadOnlySpan_Char_TypeName) {
+                    break;
                 }
-                return false;
+
+                parsedType = resultParameterType;
+                return IsValidParser(semanticModel, parsedType, parameterType, out nullableClassTypeMayAssignToNotNullable);
             default:
                 throw new InvalidOperationException();
+        }
+
+        parsedType = null;
+        nullableClassTypeMayAssignToNotNullable = default;
+        return false;
+    }
+
+    private static bool IsValidParser(SemanticModel semanticModel, ITypeSymbol parsedType, ITypeSymbol parameterType, out bool nullableClassTypeMayAssignToNotNullable)
+    {
+        var conversion = semanticModel.Compilation.ClassifyCommonConversion(parsedType, parameterType);
+        if (!conversion.IsImplicit) {
+            nullableClassTypeMayAssignToNotNullable = default;
+            return false;
+        }
+        else {
+            nullableClassTypeMayAssignToNotNullable = conversion.IsIdentity &&
+                parsedType.NullableAnnotation == NullableAnnotation.Annotated &&
+                parameterType.NullableAnnotation != NullableAnnotation.Annotated;
+            return true;
         }
     }
 
