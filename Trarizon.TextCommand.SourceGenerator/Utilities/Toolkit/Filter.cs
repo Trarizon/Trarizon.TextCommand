@@ -80,7 +80,6 @@ internal struct Filter<TContext> where TContext : notnull
     }
 
     public static implicit operator Filter(Filter<TContext> filter) => filter._diagnostics switch {
-        [var diag] => Filter.CreateDiagnostic(diag),
         [..] => Filter.CreateDiagnostic(filter._diagnostics),
         null => default,
     };
