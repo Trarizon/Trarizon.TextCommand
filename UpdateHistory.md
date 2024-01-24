@@ -8,6 +8,7 @@
 - [Breaking] Modified parameter of `ArgsProvider.GetValues` series
 - [Breaking] Swapped type parameter of `NullableParser<,>`
 - [Breaking] Removed `ArgsProvider.GetRestValues` use `GetValues` instead
+- [Breaking] `StringInputMatcher.this[]` returns `ReadOnlySpan<char>` now
 - Modified name of `Value` and `MultiValue`, now the output err message will not contains leading `--`
 - Mark `ArrayArgsProvider` with `EditorBrowsableState.Never`
 - `[Executor]` is allow multiple now
