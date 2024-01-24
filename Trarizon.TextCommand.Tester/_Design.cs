@@ -23,7 +23,7 @@ internal partial class _Design
             case ["/ghoti", "a", .. var rest]:
                 var provider_a = default(StringArgsProvider);
             __B_Label:
-               // var str = "--opt";
+                // var str = "--opt";
                 return Method(provider_a.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
             case ["/ghoti", "b", .. var rest1]:
                 provider_a = default(StringArgsProvider);
@@ -64,7 +64,8 @@ internal partial class _Design
     }
 
     [Executor("explicit", "parameter", "type")]
-    public TRtn ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options, [Value(Required = true)] string? str, [Option] int number, [MultiValue] Span<int?> rest)
+    public TRtn ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options, 
+        [Value(Required = true)] string str, [Option] int number, [MultiValue] Span<int?> rest)
     {
         Print(flag);
         Print(nonFlag);
@@ -79,7 +80,7 @@ internal partial class _Design
     private static BinaryFlagParser<string> _strFlagParser = new("success", "failed");
     private static BinaryFlagParser<int> _intFlagParser = new(1, -1);
     private static CustomParser _customParser = default;
-    public static bool Par(ReadOnlySpan<char> input, out string? output)
+    public static bool Par(ReadOnlySpan<char> input, out string output)
     {
         output = input.ToString().Reverse().ToArray().AsSpan().ToString();
         return true;
@@ -97,6 +98,7 @@ internal partial class _Design
         Print(methodParser);
         return default!;
     }
+
     public enum Option
     {
         A,

@@ -2,8 +2,6 @@
 
 For CLI-like input parsing, written with source generator.
 
-Core is done, patching diagnostic analyzer...
-
 **The library is still under designing and developing, and writing test is such a hassle, so be careful**
 
 ## Use
