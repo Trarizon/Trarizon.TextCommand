@@ -3,4 +3,6 @@
 public sealed class ExecutionAttribute(string? commandName = null) : Attribute
 {
     public string? CommandName => commandName;
+
+    public string? ErrorHandler { get; init; }
 }

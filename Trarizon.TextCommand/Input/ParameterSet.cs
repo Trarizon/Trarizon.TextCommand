@@ -1,5 +1,6 @@
 ﻿using System.Collections.Frozen;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Trarizon.TextCommand.Utilities;
 
@@ -82,6 +83,8 @@ public sealed class ParameterSet(
                 else { }
             }
         }
+
+        Debug.Assert(unescapeCount == unescapeds.Length);
 
         return new(rest.Source, unescapeds, dict, CollectionsMarshal.AsSpan(list));
     }

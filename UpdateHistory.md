@@ -1,5 +1,11 @@
 # Update History
 
+## 0.1.0
+
+- [Breaking] Method signature of `ArgProvider.Get`s changed.
+- Add Error handling
+
+
 ## 0.0.2
 
 - [Bug] Fix bug on incorrect length of `MultiValue` parameter

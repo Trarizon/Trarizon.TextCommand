@@ -1,27 +1,19 @@
 ﻿using System.Runtime.InteropServices;
-using Trarizon.TextCommand.Exceptions;
+using Trarizon.TextCommand.Input.Parsing;
 using Trarizon.TextCommand.Parsers;
 
 namespace Trarizon.TextCommand.Input;
 partial struct StringArgsProvider
 {
-    public T? GetOption<T, TParser>(string key, TParser parser, bool throwIfNotSet) where TParser : IArgParser<T>
+    public ParsingResult<T> GetOption<T, TParser>(string key, TParser parser) where TParser : IArgParser<T>
     {
-        if (TryGetRawOption(key, out var argIndex)) {
-            if (TryParseArg<T, TParser>(argIndex, parser, out var result, out _)) {
-                return result;
-            }
-            else {
-                ParseException.Throw<T>(key);
-                return default;
-            }
-        }
-        else if (throwIfNotSet) {
-            ValueNotSetException.Throw(key);
-            return default;
-        }
-        else
-            return default;
+        if (!TryGetRawOptionIndex(key, out var argIndex))
+            return new(ParsingErrorSimple.NotSet);
+
+        if (!TryParseArg<T, TParser>(argIndex, parser, out var result))
+            return new(new ParsingErrorSimple(argIndex));
+
+        return new(result);
     }
 
     public T GetFlag<T, TParser>(string key, TParser parser) where TParser : IArgFlagParser<T>
@@ -29,85 +21,48 @@ partial struct StringArgsProvider
         return parser.Parse(GetRawFlag(key));
     }
 
-
-    public Span<T> GetValues<T, TParser>(int startIndex, Span<T> resultSpan, TParser parser, string paramName, bool throwIfNotSet) where TParser : IArgParser<T>
+    public ParsingResultsUnmanaged<T> GetValuesUnmanaged<T, TParser>(int startIndex, Span<ParsingResult<T>> allocatedSpace, TParser parser) where T : unmanaged where TParser : IArgParser<T>
     {
-        if (TryGetRawValues(startIndex, GetAvailableArrayLength(startIndex, resultSpan.Length), out var argIndices)) {
-            var errIndex = TryParseArgs(argIndices, parser, resultSpan);
-            if (errIndex == -1) {
-                return resultSpan[..argIndices.Length];
-            }
-            else {
-                ParseException.Throw<T>($"{paramName}[{errIndex}]");
-                return default;
-            }
-        }
-        else if (throwIfNotSet) {
-            ValueNotSetException.Throw(paramName);
+        if (!TryGetRawValuesIndices(startIndex, allocatedSpace.Length, out var argIndices))
             return default;
-        }
-        else
-            return [];
+
+        var rtn = new ParsingResultsUnmanaged<T>(allocatedSpace);
+        TryParseArgs(argIndices, parser, rtn.Results, rtn.Errors);
+
+        return rtn;
     }
 
-    public T[] GetValuesArray<T, TParser>(int startIndex, int maxLength, TParser parser, string paramName, bool throwIfNotSet) where TParser : IArgParser<T>
+    public ParsingResultsArray<T> GetValuesArray<T, TParser>(int startIndex, Span<ParsingErrorSimple> allocatedErrorSpace, TParser parser) where TParser : IArgParser<T>
     {
-        if (TryGetRawValues(startIndex, GetAvailableArrayLength(startIndex, maxLength), out var argIndices)) {
-            T[] array = new T[argIndices.Length];
-            var errIndex = TryParseArgs(argIndices, parser, array.AsSpan());
-            if (errIndex == -1) {
-                return array;
-            }
-            else {
-                ParseException.Throw<T>($"{paramName}[{errIndex}]");
-                return default;
-            }
-        }
-        else if (throwIfNotSet) {
-            ValueNotSetException.Throw(paramName);
+        if (!TryGetRawValuesIndices(startIndex, allocatedErrorSpace.Length, out var argIndices))
             return default;
-        }
-        else
-            return [];
+
+        var rtn = new ParsingResultsArray<T>(allocatedErrorSpace);
+        TryParseArgs(argIndices, parser, rtn.Results.AsSpan(), rtn.Errors);
+
+        return rtn;
     }
 
-    public List<T> GetValuesList<T, TParser>(int startIndex, int maxLength, TParser parser, string paramName, bool throwIfNotSet) where TParser : IArgParser<T>
+    public ParsingResultsList<T> GetValuesList<T, TParser>(int startIndex, Span<ParsingErrorSimple> allocatedErrorSpace, TParser parser) where TParser : IArgParser<T>
     {
-        if (TryGetRawValues(startIndex, GetAvailableArrayLength(startIndex, maxLength), out var argIndices)) {
-            List<T> list = new(argIndices.Length);
-            var errIndex = TryParseArgs(argIndices, parser, CollectionsMarshal.AsSpan(list));
-            if (errIndex == -1) {
-                return list;
-            }
-            else {
-                ParseException.Throw<T>($"{paramName}[{errIndex}]");
-                return default;
-            }
-        }
-        else if (throwIfNotSet) {
-            ValueNotSetException.Throw(paramName);
+        if (!TryGetRawValuesIndices(startIndex, allocatedErrorSpace.Length, out var argIndices))
             return default;
-        }
-        else
-            return [];
+
+        var rtn = new ParsingResultsList<T>(allocatedErrorSpace);
+        TryParseArgs(argIndices, parser, CollectionsMarshal.AsSpan(rtn.Results), rtn.Errors);
+
+        return rtn;
     }
 
-    public T? GetValue<T, TParser>(int index, TParser parser, string paramName, bool throwIfNotSet) where TParser : IArgParser<T>
+    public ParsingResult<T> GetValue<T, TParser>(int index, TParser parser) where TParser : IArgParser<T>
     {
-        if (TryGetRawValues(index, 1, out var argIndices)) {
-            if (TryParseArg<T, TParser>(argIndices[0], parser, out var result, out _)) {
-                return result;
-            }
-            else {
-                ParseException.Throw<T>(paramName);
-                return default;
-            }
-        }
-        else if (throwIfNotSet) {
-            ValueNotSetException.Throw(paramName);
+        if (!TryGetRawValuesIndices(index, 1, out var argIndices))
             return default;
-        }
-        else
-            return default;
+
+        var argIndex = argIndices[0];
+        if (!TryParseArg<T, TParser>(argIndex, parser, out var result))
+            return new(new ParsingErrorSimple(argIndex));
+         
+        return new(result);
     }
 }

@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Attributes;
 using Trarizon.TextCommand.Attributes.Parameters;
 using Trarizon.TextCommand.Input;
+using Trarizon.TextCommand.Input.Parsing;
 using Trarizon.TextCommand.Parsers;
 
 using TRtn = string;
@@ -14,32 +15,51 @@ internal partial class _Design
     [Execution("/ghoti")]
     public partial string? Run(string customInput);
 
+    //[Execution("/ghoti", ErrorHandler = "")]
     private TRtn MaunallyRun(string input)
     {
         var matcher = new StringInputMatcher(input);
-        switch (input.SplitAsArgs()) {
+        switch (matcher) {
             case ["/ghoti", "no-param", ..]:
                 return NoParam();
             case ["/ghoti", "a", .. var rest]:
                 var provider_a = default(StringArgsProvider);
             __B_Label:
                 // var str = "--opt";
-                return Method(provider_a.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
+                ParsingErrors.Builder builder = default;
+
+                var optRes = provider_a.GetOption<int, ParsableParser<int>>("--param", default);
+                builder.Add(optRes, "param", ParsingErrorKind.ParameterNotSet);
+
+                var anoRes = provider_a.GetValuesUnmanaged(0, stackalloc ParsingResult<Option>[2], default(EnumParser<Option>));
+                builder.Add(anoRes, "param", ParsingErrorKind.ParameterNotSet);
+
+                if (builder.HasError)
+                    return ErrorHandler(builder.GetErrors(provider_a, "Method"));
+                else
+                    return Method(provider_a.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
             case ["/ghoti", "b", .. var rest1]:
                 provider_a = default(StringArgsProvider);
+
                 goto __B_Label;
             case ["multi-flag"]:
                 var provider2 = default(StringArgsProvider)!;
                 var arg = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default)
                     | provider2.GetFlag<Option, BinaryFlagParser<Option>>("b", default);
                 break;
-            default:
-                break;
         }
 
         return default!;
 
         TRtn Method(string? str) => default!;
+    }
+
+    private TRtn ErrorHandler(in ParsingErrors errors)
+    {
+        foreach (var err in errors) {
+
+        }
+        return default!;
     }
 
     [Executor("multi", "mark", "no", "param")]
@@ -64,8 +84,9 @@ internal partial class _Design
     }
 
     [Executor("explicit", "parameter", "type")]
-    public TRtn ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options, 
-        [Value(Required = true)] string str, [Option] int number, [MultiValue] Span<int?> rest)
+    public TRtn ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options,
+        [Value(Required = true)] string str, [Option] int number, [MultiValue(3)] Span<int?> ints,
+        [MultiValue] ReadOnlySpan<string> rest)
     {
         Print(flag);
         Print(nonFlag);

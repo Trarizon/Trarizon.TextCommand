@@ -1,19 +1,12 @@
 ﻿using System.Runtime.InteropServices;
 using Trarizon.TextCommand.Exceptions;
-using Trarizon.TextCommand.Input.Parsing;
 using Trarizon.TextCommand.Parsers;
 
 namespace Trarizon.TextCommand.Input;
 partial struct ArrayArgsProvider
 {
-    public ParsingResult<T> GetOption<T, TParser>(string key, TParser parser, bool throwIfNotSet) where TParser : IArgParser<T>
+    public T? GetOption<T, TParser>(string key, TParser parser, bool throwIfNotSet) where TParser : IArgParser<T>
     {
-        if (!TryGetRawOption(key, out var optArg))
-            return new(ParsingErrorSimple.NotSet);
-
-        if (!TryParseArg<T, TParser>(optArg, parser, out var result))
-            return new(new ParsingErrorSimple())
-
         if (TryGetRawOption(key, out var rawArg)) {
             if (TryParseArg<T, TParser>(rawArg, parser, out var result)) {
                 return result;
