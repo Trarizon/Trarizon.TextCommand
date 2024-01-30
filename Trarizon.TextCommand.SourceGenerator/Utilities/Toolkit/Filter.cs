@@ -35,7 +35,7 @@ internal readonly partial struct Filter
     [MemberNotNullWhen(false, nameof(Diagnostics))]
     public bool IsSuccess => _diagnostics is null;
 
-    public readonly IEnumerable<Diagnostic> Diagnostics => _diagnostics!;
+    public readonly IEnumerable<Diagnostic>? Diagnostics => _diagnostics;
 }
 
 internal struct Filter<TContext> where TContext : notnull
