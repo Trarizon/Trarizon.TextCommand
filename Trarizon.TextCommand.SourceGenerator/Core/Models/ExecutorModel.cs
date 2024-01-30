@@ -1,7 +1,9 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
@@ -11,45 +13,31 @@ using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models;
 internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationSyntax syntax, IMethodSymbol symbol, IReadOnlyList<AttributeData> attributes)
 {
-    public ExecutionModel Execution => execution;
+    public ExecutionModel Execution { get; } = execution;
 
-    public MethodDeclarationSyntax Syntax => syntax;
-    public IMethodSymbol Symbol => symbol;
-
-    private readonly IReadOnlyList<AttributeData> _attributes = attributes;
-
-    public ParameterModel[]? _parameters;
-    public ParameterModel[] Parameters
+    private ImmutableArray<ParameterModel> _parameters;
+    public ImmutableArray<ParameterModel> Parameters
     {
         get {
-            if (_parameters is null) {
-                var syntaxes = Syntax.ParameterList.Parameters;
-                var symbols = Symbol.Parameters;
-                var count = Math.Min(syntaxes.Count, symbols.Length);
-                _parameters = new ParameterModel[count];
-                for (int i = 0; i < count; i++) {
-                    _parameters[i] = new(this, syntaxes[i], symbols[i]);
-                }
+            if (_parameters.IsDefault) {
+                _parameters = Syntax.ParameterList.Parameters
+                    .Select(p => new ParameterModel(this, p, Execution.Command.SemanticModel.GetDeclaredSymbol(p)!))
+                    .ToImmutableArray();
             }
             return _parameters;
         }
     }
 
-    // Attribute Data
+    public MethodDeclarationSyntax Syntax { get; } = syntax;
+
+    public IMethodSymbol Symbol { get; } = symbol;
+
+    private readonly IReadOnlyList<AttributeData> _attributes = attributes;
+
+    // Data
 
     private string[][]? _commandPrefixes;
-    public string[][] CommandPrefixes
-    {
-        get {
-            if (_commandPrefixes is null) {
-                _commandPrefixes = new string[_attributes.Count][];
-                for (int i = 0; i < _commandPrefixes.Length; i++) {
-                    _commandPrefixes[i] = _attributes[i].GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? [];
-                }
-            }
-            return _commandPrefixes;
-        }
-    }
+    public string[][] CommandPrefixes => _commandPrefixes ??= _attributes.Select(attr => attr.GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? []).ToArray();
 
     public Filter ValidateStaticKeyword()
     {
@@ -66,7 +54,7 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
         if (Execution.Symbol.ReturnsVoid)
             return Filter.Success;
 
-        if (Execution.Context.SemanticModel.Compilation.ClassifyCommonConversion(
+        if (Execution.Command.SemanticModel.Compilation.ClassifyCommonConversion(
             Symbol.ReturnType,
             Execution.Symbol.ReturnType).IsImplicit) {
             return Filter.Success;
@@ -100,12 +88,12 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
         for (int i = 0; i < parameters.Length; i++) {
             var p = parameters[i];
             if (hasRestValues) {
-                if (p.ParameterKind is CLParameterKind.Value or CLParameterKind.MultiValue)
+                if (p.ParameterKind is ParameterKind.Value or ParameterKind.MultiValue)
                     errors.Add(DiagnosticFactory.Create(
                         DiagnosticDescriptors.ValueOrMultiValueAfterRestValueWillAlwaysDefault,
                         p.Syntax));
             }
-            else if (p.ParameterKind == CLParameterKind.MultiValue && ((MultiValueParameterModel)p.CLParameter).IsRest)
+            else if (p.ParameterData is MultiValueParameterData { IsRest: true })
                 hasRestValues = true;
         }
 
@@ -117,49 +105,47 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
 
     public Filter ValidateOptionKeys()
     {
-        Dictionary<string, ParameterModel> aliases = [];
-        Dictionary<string, ParameterModel> names = [];
+        Dictionary<string, INamedParameterData> aliases = new(Parameters.Length);
+        Dictionary<string, INamedParameterData> names = new(Parameters.Length);
 
-        HashSet<ParameterModel>? aliasRepeats = null;
-        HashSet<ParameterModel>? nameRepeats = null;
+        List<INamedParameterData>? warnedAliases = null;
+        List<INamedParameterData>? warnedNames = null;
 
-        foreach (var parameter in Parameters) {
-            if (parameter.CLParameter is INamedParameterModel namedParameter) {
-                if (namedParameter.Alias is { } alias) {
-                    if (aliases.ContainsKey(alias)) {
-                        (aliasRepeats ??= []).Add(aliases[alias]); // No error when repeat add
-                        aliasRepeats.Add(parameter);
-                    }
-                    else {
-                        aliases.Add(alias, parameter);
-                    }
-                }
-
-                var name = namedParameter.Name;
-                if (names.ContainsKey(name)) {
-                    (nameRepeats ??= []).Add(names[name]);
-                    nameRepeats.Add(parameter);
+        foreach (var namedParameter in Parameters.OfType<INamedParameterData>()) {
+            if (namedParameter.Alias is { } alias) {
+                if (aliases.ContainsKey(alias)) {
+                    warnedAliases ??= new(2) { aliases[alias] };
+                    warnedAliases.Add(namedParameter);
                 }
                 else {
-                    names.Add(name, parameter);
+                    aliases.Add(alias, namedParameter);
                 }
+            }
+
+            var name = namedParameter.Name;
+            if (names.ContainsKey(name)) {
+                warnedNames ??= new(2) { names[name] };
+                warnedNames.Add(namedParameter);
+            }
+            else {
+                names.Add(name, namedParameter);
             }
         }
 
-        if (aliasRepeats is null && nameRepeats is null)
+        if (warnedAliases is null && warnedNames is null)
             return Filter.Success;
 
-        Diagnostic[] diagnostics = new Diagnostic[aliasRepeats?.Count ?? 0 + nameRepeats?.Count ?? 0];
+        Diagnostic[] diagnostics = new Diagnostic[warnedAliases?.Count ?? 0 + warnedNames?.Count ?? 0];
         int index = 0;
-        foreach (var parameter in aliasRepeats.EmptyIfNull()) {
+        foreach (var parameter in warnedAliases.EmptyIfNull()) {
             diagnostics[index++] = DiagnosticFactory.Create(
                 DiagnosticDescriptors.NamedParameterAliasRepeat,
-                parameter.Syntax);
+                parameter.Model.Syntax);
         }
-        foreach (var parameter in nameRepeats.EmptyIfNull()) {
+        foreach (var parameter in warnedNames.EmptyIfNull()) {
             diagnostics[index++] = DiagnosticFactory.Create(
                 DiagnosticDescriptors.NamedParameterNameRepeat,
-                parameter.Syntax);
+                parameter.Model.Syntax);
         }
 
         return Filter.CreateDiagnostic(diagnostics);

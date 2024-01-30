@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
@@ -11,140 +12,123 @@ using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models;
 internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syntax, IParameterSymbol symbol)
 {
-    public ExecutorModel Executor => executor;
+    public ExecutorModel Executor { get; } = executor;
 
-    public ParameterSyntax Syntax => syntax;
+    public ParameterSyntax Syntax { get; } = syntax;
 
-    public IParameterSymbol Symbol => symbol;
+    public IParameterSymbol Symbol { get; } = symbol;
 
     private AttributeData? _attribute;
 
     // Values
 
-    public CLParameterKind ParameterKind { get; private set; }
+    public ParameterKind ParameterKind { get; private set; }
 
-    public ICLParameterModel CLParameter { get; private set; } = default!;
+    private IParameterData? _parameterData;
+    public IParameterData ParameterData
+    {
+        get => _parameterData ?? throw new InvalidOperationException("Parameter not set");
+        set => _parameterData = value;
+    }
 
     public Filter ValidateSingleAttribute_SetParameterKind()
     {
-        AttributeData? result = null;
-
-        foreach (var attr in Symbol.GetAttributes()) {
-            if (result != null) { // multi
-                return Filter.CreateDiagnostic(DiagnosticFactory.Create(
-                    DiagnosticDescriptors.MarkSingleParameterAttributes,
-                    Syntax));
-            }
-
-            var display = attr.AttributeClass?.ToDisplayString();
+        if (Symbol.GetAttributes().TrySingleOrNone(attr =>
+        {
+            var display = attr!.AttributeClass?.ToDisplayString();
             switch (display) {
                 case Literals.FlagAttribute_TypeName:
-                    ParameterKind = CLParameterKind.Flag;
+                    ParameterKind = ParameterKind.Flag;
                     break;
                 case Literals.OptionAttribute_TypeName:
-                    ParameterKind = CLParameterKind.Option;
+                    ParameterKind = ParameterKind.Option;
                     break;
                 case Literals.ValueAttribute_TypeName:
-                    ParameterKind = CLParameterKind.Value;
+                    ParameterKind = ParameterKind.Value;
                     break;
                 case Literals.MultiValueAttribute_TypeName:
-                    ParameterKind = CLParameterKind.MultiValue;
+                    ParameterKind = ParameterKind.MultiValue;
                     break;
                 default:
-                    continue;
+                    return false;
             }
-            result = attr;
-        }
-
-        _attribute = result;
-        return Filter.Success;
-    }
-
-    public Filter ValidateCLParameter_SetCLParameter()
-    {
-        if (_attribute is null) { // ParameterKind == Invalid(Implicit)
-            var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
-            switch (implicitParameterKind) {
-                case ImplicitCLParameterKind.Boolean:
-                    CLParameter = new FlagParameterModel(this) {
-                        ParserInfo = implicitParameterKind,
-                    };
-                    break;
-                case ImplicitCLParameterKind.SpanParsable:
-                case ImplicitCLParameterKind.Enum:
-                case ImplicitCLParameterKind.NullableSpanParsable:
-                case ImplicitCLParameterKind.NullableEnum:
-                    CLParameter = new OptionParameterModel(this) {
-                        ParserInfo = implicitParameterKind,
-                    };
-                    break;
-                default:
-                    return Filter.CreateDiagnostic(DiagnosticFactory.Create(
-                        DiagnosticDescriptors.ParameterNoImplicitParser,
-                        Syntax));
-            }
+            return true;
+        }, out _attribute)) {
             return Filter.Success;
         }
+
+        return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+            DiagnosticDescriptors.MarkSingleParameterAttributes,
+            Syntax));
+    }
+
+    public Filter ValidateParameterData_SetParameterData()
+    {
+        Debug.Assert(_attribute is null || ParameterKind != ParameterKind.Invalid);
+
+        Result<(IParameterData Parameter, Diagnostic? NullableWarning), Diagnostic> res = _attribute is null
+            ? GetImplicitParserParameterData().Select(data => (data, default(Diagnostic)))
+            : GetParameterData();
+
+        if (res.TryGetValue(out var val, out var err)) {
+            ParameterData = val.Parameter;
+            if (val.NullableWarning is not null)
+                return Filter.CreateDiagnostic(val.NullableWarning);
+            else
+                return Filter.Success;
+        }
         else {
-            var res = GetCLParameterModel();
-            if (!res.IsClosed)
-                CLParameter = res.Context;
-            return res;
+            return Filter.CreateDiagnostic(err);
         }
 
-        Filter<ICLParameterModel> GetCLParameterModel()
+        Result<(IParameterData Parameter, Diagnostic? NullableWarning), Diagnostic> GetParameterData()
         {
             var parserAttrArg = _attribute.GetNamedArgument<string>(Literals.ParameterAttribute_ParserPropertyIdentifier);
             if (parserAttrArg is null) {
-                if (GetImplicitParserParameterModel().TryGetValue(out var val, out var err))
-                    return Filter.Create(val);
-                else
-                    return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(err, Syntax));
+                return GetImplicitParserParameterData().Select(data => (data, default(Diagnostic)));
             }
 
-            if (!GetMemberParser(parserAttrArg).TryGetValue(out var parser, out var err2)) {
-                return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(err2, Syntax));
-            }
+            return GetMemberParserInfo(parserAttrArg)
+                 .SelectWrapped(GetExplicitParserParameterData);
+        }
 
-            var semanticModel = Executor.Execution.Context.SemanticModel;
+        Result<ParserInfoProvider, Diagnostic> GetMemberParserInfo(string customParserName)
+        {
+            var parserMember = Executor.Execution.Command.Symbol.GetMembers(customParserName).FirstOrDefault();
+            return parserMember switch {
+                IFieldSymbol field => new ParserInfoProvider(field.Type, field),
+                IPropertySymbol property => new ParserInfoProvider(property.Type, property),
+                IMethodSymbol method => new ParserInfoProvider(method),
+                _ => DiagnosticFactory.Create(
+                    DiagnosticDescriptors.CannotFindExplicitParser_1,
+                    Syntax,
+                    customParserName),
+            };
+        }
+
+        Result<(IParameterData Parameter, Diagnostic? NullableWarning), Diagnostic> GetExplicitParserParameterData(ParserInfoProvider parserInfo)
+        {
             bool nullableNotMatched;
-            ITypeSymbol? parsedType;
-            ICLParameterModel result;
-            switch (ParameterKind) {
-                case CLParameterKind.Flag: {
-                    if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, Symbol.Type, out parsedType, out var isFlag, out nullableNotMatched) || !isFlag) {
-                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                                DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser, Syntax));
-                        }
-                    }
-                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, Symbol.Type, CLParameterKind.Flag, out parsedType, out nullableNotMatched)) {
-                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                            DiagnosticDescriptors.CustomFlagParsingMethodMatchArgFlagParsingDelegate, Syntax));
-                    }
+            IParameterData parameter;
 
-                    result = new FlagParameterModel(this) {
-                        ParserInfo = parser,
+            switch (ParameterKind) {
+                case ParameterKind.Flag: {
+                    if (ValidateParser(Symbol.Type, true, out var parsedType, out nullableNotMatched) is { } err)
+                        return err;
+                    parameter = new FlagParameterData(this) {
+                        ParserInfo = parserInfo,
                         ParsedTypeSymbol = parsedType,
                         Alias = _attribute.GetConstructorArgument<string>(Literals.FlagAttribute_Alias_CtorParameterIndex),
                         Name = _attribute.GetNamedArgument<string>(Literals.FlagAttribute_Name_PropertyIdentifier)!
                     };
                     break;
                 }
-                case CLParameterKind.Option: {
-                    if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, Symbol.Type, out parsedType, out var isFlag, out nullableNotMatched) || isFlag) {
-                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                                DiagnosticDescriptors.CustomParserShouldImplsIArgParser, Syntax));
-                        }
-                    }
-                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, Symbol.Type, ParameterKind, out parsedType, out nullableNotMatched)) {
-                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                            DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate, Syntax));
-                    }
 
-                    result = new OptionParameterModel(this) {
-                        ParserInfo = parser,
+                case ParameterKind.Option: {
+                    if (ValidateParser(Symbol.Type, false, out var parsedType, out nullableNotMatched) is { } err)
+                        return err;
+                    parameter = new OptionParameterData(this) {
+                        ParserInfo = parserInfo,
                         ParsedTypeSymbol = parsedType,
                         Alias = _attribute.GetConstructorArgument<string>(Literals.OptionAttribute_Alias_CtorParameterIndex),
                         Name = _attribute.GetNamedArgument<string>(Literals.OptionAttribute_Name_PropertyIdentifier)!,
@@ -152,180 +136,190 @@ internal sealed class ParameterModel(ExecutorModel executor, ParameterSyntax syn
                     };
                     break;
                 }
-                case CLParameterKind.Value: {
-                    if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, Symbol.Type, out parsedType, out var isFlag, out nullableNotMatched) || isFlag)
-                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                                DiagnosticDescriptors.CustomParserShouldImplsIArgParser, Syntax));
-                    }
-                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, Symbol.Type, ParameterKind, out parsedType, out nullableNotMatched)) {
-                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                            DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate, Syntax));
-                    }
 
-                    result = new ValueParameterModel(this) {
-                        ParserInfo = parser,
+                case ParameterKind.Value: {
+                    if (ValidateParser(Symbol.Type, false, out var parsedType, out nullableNotMatched) is { } err)
+                        return err;
+                    parameter = new ValueParameterData(this) {
+                        ParserInfo = parserInfo,
                         ParsedTypeSymbol = parsedType,
                         Required = _attribute.GetNamedArgument<bool>(Literals.ValueAttribute_Required_PropertyIdentifier),
                     };
                     break;
                 }
-                case CLParameterKind.MultiValue: {
-                    var collectionType = ValidationHelper.ValidateMultiValueCollectionType(Symbol.Type, out var elementType, out var elemGetter);
-                    if (collectionType == MultiValueCollectionType.Invalid) {
-                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                            DiagnosticDescriptors.InvalidMultiValueCollectionType, Syntax));
+
+                case ParameterKind.MultiValue: {
+                    var collectionType = ValidationHelper.ValidateMultiValueCollectionType(Symbol.Type, out var elementType);
+                    if (collectionType is MultiValueCollectionType.Invalid) {
+                        return DiagnosticFactory.Create(
+                            DiagnosticDescriptors.InvalidMultiValueCollectionType,
+                            Syntax);
                     }
 
-                    if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-                        if (!ValidationHelper.IsCustomParser(semanticModel, memberParser.Type, elementType, out parsedType, out var isFlag, out nullableNotMatched)) {
-                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                                DiagnosticDescriptors.CustomParserShouldImplsIArgParser, Syntax));
-                        }
-                        if (isFlag) {
-                            return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                                DiagnosticDescriptors.MultiValueParserCannotBeFlagParser, Syntax));
-                        }
-                    }
-                    else if (!ValidationHelper.IsValidMethodParser(semanticModel, methodParser, elementType, ParameterKind, out parsedType, out nullableNotMatched)) {
-                        return Filter.CreateDiagnostic<ICLParameterModel>(DiagnosticFactory.Create(
-                            DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate, Syntax));
-                    }
+                    if (ValidateParser(elementType, false, out var parsedType, out nullableNotMatched) is { } err)
+                        return err;
 
-                    result = new MultiValueParameterModel(this) {
+                    parameter = new MultiValueParameterData(this) {
                         CollectionType = collectionType,
-                        ParserInfo = parser,
-                        ParsedTypeSymbol = elementType,
+                        ParserInfo = parserInfo,
+                        ParsedTypeSymbol = parsedType,
                         MaxCount = _attribute.GetConstructorArgument<int>(Literals.MultiValueAttribute_MaxCount_CtorParameterIndex),
                         Required = _attribute.GetNamedArgument<bool>(Literals.MultiValueAttribute_Required_PropertyIdentifier),
                     };
                     break;
                 }
+
                 default:
                     throw new InvalidOperationException();
             }
 
             if (nullableNotMatched) {
-                return Filter.Create(result).Predicate(_ => Filter.CreateDiagnostic(DiagnosticFactory.Create(
-                    DiagnosticDescriptors.ParsedArgumentMaybeNull, Syntax)));
+                return (parameter, DiagnosticFactory.Create(
+                    DiagnosticDescriptors.ParsedArgumentMaybeNull,
+                    Syntax));
             }
             else {
-                return Filter.Create(result);
+                return (parameter, null);
             }
 
-            #region Util Methods
-
-            Result<Either<(ITypeSymbol Type, ISymbol Member), IMethodSymbol>, DiagnosticDescriptor> GetMemberParser(string customParserName)
+            Diagnostic? ValidateParser(ITypeSymbol assignedType, bool isFlag, out ITypeSymbol parsedType, out bool nullableNotMatched)
             {
-                var parserMember = Executor.Execution.Command.Symbol.GetMembers(customParserName).FirstOrDefault();
-                if (parserMember is null) {
-                    return DiagnosticDescriptors.CannotFindExplicitParser;
-                }
+                SemanticModel semanticModel = Executor.Execution.Command.SemanticModel;
 
-                Either<(ITypeSymbol Type, ISymbol Member), IMethodSymbol> parser;
-                switch (parserMember) {
-                    case IFieldSymbol field:
-                        parser = (field.Type, parserMember);
+                switch (parserInfo.Kind) {
+                    case ParserKind.FieldOrProperty:
+                        if (!ValidationHelper.IsCustomParser(semanticModel, parserInfo.FieldOrProperty.Type, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                            return DiagnosticFactory.Create(isFlag
+                                ? DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser
+                                : DiagnosticDescriptors.CustomParserShouldImplsIArgParser,
+                                Syntax);
+                        }
                         break;
-                    case IPropertySymbol property:
-                        parser = (property.Type, parserMember);
+                    case ParserKind.Method:
+                        if (!ValidationHelper.IsValidMethodParser(semanticModel, parserInfo.Method, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                            return DiagnosticFactory.Create(isFlag
+                                ? DiagnosticDescriptors.CustomFlagParsingMethodMatchArgFlagParsingDelegate
+                                : DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate,
+                                Syntax);
+                        }
                         break;
-                    case IMethodSymbol method:
-                        parser = new(method);
-                        break;
-                    default:
-                        return DiagnosticDescriptors.CannotFindExplicitParser;
-                }
-
-                return parser;
-            }
-
-            Result<ICLParameterModel, DiagnosticDescriptor> GetImplicitParserParameterModel()
-            {
-                switch (ParameterKind) {
-                    case CLParameterKind.Flag: {
-                        var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
-                        switch (implicitParameterKind) {
-                            case ImplicitCLParameterKind.Boolean:
-                                return new FlagParameterModel(this) {
-                                    ParserInfo = ImplicitCLParameterKind.Boolean,
-                                    Alias = _attribute.GetConstructorArgument<string>(Literals.FlagAttribute_Alias_CtorParameterIndex),
-                                    Name = _attribute.GetNamedArgument<string>(Literals.FlagAttribute_Name_PropertyIdentifier)!
-                                };
-                            case ImplicitCLParameterKind.Invalid:
-                            default:
-                                return DiagnosticDescriptors.ParameterNoImplicitParser;
-                        }
-                    }
-                    case CLParameterKind.Option: {
-                        var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
-                        switch (implicitParameterKind) {
-                            case ImplicitCLParameterKind.Invalid:
-                                return DiagnosticDescriptors.ParameterNoImplicitParser;
-                            case ImplicitCLParameterKind.Boolean:
-                                // In Non-flag, treat bool as SpanParsable
-                                implicitParameterKind = ImplicitCLParameterKind.SpanParsable;
-                                goto default;
-                            default:
-                                return new OptionParameterModel(this) {
-                                    ParserInfo = implicitParameterKind,
-                                    Alias = _attribute.GetConstructorArgument<string>(Literals.OptionAttribute_Alias_CtorParameterIndex),
-                                    Name = _attribute.GetNamedArgument<string>(Literals.OptionAttribute_Name_PropertyIdentifier)!,
-                                    Required = _attribute.GetNamedArgument<bool>(Literals.OptionAttribute_Required_PropertyIdentifier),
-                                };
-                        }
-                    }
-                    case CLParameterKind.Value: {
-                        var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
-                        switch (implicitParameterKind) {
-                            case ImplicitCLParameterKind.Invalid:
-                                return DiagnosticDescriptors.ParameterNoImplicitParser;
-                            case ImplicitCLParameterKind.Boolean:
-                                // In Non-flag, treat bool as SpanParsable
-                                implicitParameterKind = ImplicitCLParameterKind.SpanParsable;
-                                goto default;
-                            default:
-                                return new ValueParameterModel(this) {
-                                    ParserInfo = implicitParameterKind,
-                                    Required = _attribute.GetNamedArgument<bool>(Literals.ValueAttribute_Required_PropertyIdentifier),
-                                };
-                        }
-                    }
-                    case CLParameterKind.MultiValue: {
-                        var collectionType = ValidationHelper.ValidateMultiValueCollectionType(Symbol.Type, out var elemType, out var elemGetter);
-                        if (collectionType == MultiValueCollectionType.Invalid)
-                            return DiagnosticDescriptors.ParameterNoImplicitParser;
-
-                        var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(elemType);
-                        switch (implicitParameterKind) {
-                            case ImplicitCLParameterKind.Invalid:
-                                return DiagnosticDescriptors.ParameterNoImplicitParser;
-                            case ImplicitCLParameterKind.Boolean:
-                                // In Non-flag, treat bool as SpanParsable
-                                implicitParameterKind = ImplicitCLParameterKind.SpanParsable;
-                                goto default;
-                            default:
-                                return new MultiValueParameterModel(this) {
-                                    CollectionType = collectionType,
-                                    ParserInfo = implicitParameterKind,
-                                    ParsedTypeSymbol = elemType,
-                                    MaxCount = _attribute.GetConstructorArgument<int>(Literals.MultiValueAttribute_MaxCount_CtorParameterIndex),
-                                    Required = _attribute.GetNamedArgument<bool>(Literals.MultiValueAttribute_Required_PropertyIdentifier),
-                                };
-                        }
-                    }
-                    default:
+                    default: // Invalid or Implicit
                         throw new InvalidOperationException();
                 }
+                return null;
             }
+        }
 
-            #endregion
+        Result<IParameterData, Diagnostic> GetImplicitParserParameterData()
+        {
+            switch (ParameterKind) {
+                // Implicit parameter
+                case ParameterKind.Invalid: {
+                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+
+                    return implicitParameterKind switch {
+                        ImplicitParameterKind.Boolean => new FlagParameterData(this) {
+                            ParserInfo = new ParserInfoProvider(implicitParameterKind),
+                        },
+                        ImplicitParameterKind.SpanParsable or
+                        ImplicitParameterKind.Enum or
+                        ImplicitParameterKind.NullableSpanParsable or
+                        ImplicitParameterKind.NullableEnum => new OptionParameterData(this) {
+                            ParserInfo = new ParserInfoProvider(implicitParameterKind),
+                        },
+                        _ => DiagnosticFactory.Create(
+                            DiagnosticDescriptors.ParameterNoImplicitParser,
+                            Syntax),
+                    };
+                }
+
+                // In non-invalid case, _attribute is not null
+                // Flag
+                case ParameterKind.Flag: {
+                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+                    return implicitParameterKind switch {
+                        ImplicitParameterKind.Boolean => new FlagParameterData(this) {
+                            ParserInfo = new ParserInfoProvider(implicitParameterKind),
+                            Alias = _attribute!.GetConstructorArgument<string>(Literals.FlagAttribute_Alias_CtorParameterIndex),
+                            Name = _attribute!.GetNamedArgument<string>(Literals.FlagAttribute_Name_PropertyIdentifier)!
+                        },
+                        _ => DiagnosticFactory.Create(
+                            DiagnosticDescriptors.ParameterNoImplicitParser,
+                            Syntax),
+                    };
+                }
+
+                // Option
+                case ParameterKind.Option: {
+                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+                    if (implicitParameterKind is ImplicitParameterKind.Boolean)
+                        implicitParameterKind = ImplicitParameterKind.SpanParsable;
+
+                    return implicitParameterKind switch {
+                        ImplicitParameterKind.Invalid => DiagnosticFactory.Create(
+                            DiagnosticDescriptors.ParameterNoImplicitParser,
+                            Syntax),
+                        _ => new OptionParameterData(this) {
+                            ParserInfo = new ParserInfoProvider(implicitParameterKind),
+                            Alias = _attribute!.GetConstructorArgument<string>(Literals.OptionAttribute_Alias_CtorParameterIndex),
+                            Name = _attribute!.GetNamedArgument<string>(Literals.OptionAttribute_Name_PropertyIdentifier)!,
+                            Required = _attribute!.GetNamedArgument<bool>(Literals.OptionAttribute_Required_PropertyIdentifier),
+                        },
+                    };
+                }
+
+                // Value
+                case ParameterKind.Value: {
+                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+                    if (implicitParameterKind is ImplicitParameterKind.Boolean)
+                        implicitParameterKind = ImplicitParameterKind.SpanParsable;
+
+                    return implicitParameterKind switch {
+                        ImplicitParameterKind.Invalid => DiagnosticFactory.Create(
+                            DiagnosticDescriptors.ParameterNoImplicitParser,
+                            Syntax),
+                        _ => new ValueParameterData(this) {
+                            ParserInfo = new ParserInfoProvider(implicitParameterKind),
+                            Required = _attribute!.GetNamedArgument<bool>(Literals.ValueAttribute_Required_PropertyIdentifier),
+                        },
+                    };
+                }
+
+                // MultiValue
+                case ParameterKind.MultiValue: {
+                    var collectionType = ValidationHelper.ValidateMultiValueCollectionType(Symbol.Type, out var elemType);
+                    if (collectionType == MultiValueCollectionType.Invalid)
+                        return DiagnosticFactory.Create(
+                            DiagnosticDescriptors.ParameterNoImplicitParser,
+                            Syntax);
+
+                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(elemType);
+                    if (implicitParameterKind is ImplicitParameterKind.Boolean)
+                        implicitParameterKind = ImplicitParameterKind.SpanParsable;
+
+                    return implicitParameterKind switch {
+                        ImplicitParameterKind.Invalid => DiagnosticFactory.Create(
+                            DiagnosticDescriptors.ParameterNoImplicitParser,
+                            Syntax),
+                        _ => new MultiValueParameterData(this) {
+                            CollectionType = collectionType,
+                            ParserInfo = new ParserInfoProvider(implicitParameterKind),
+                            ParsedTypeSymbol = elemType,
+                            MaxCount = _attribute!.GetConstructorArgument<int>(Literals.MultiValueAttribute_MaxCount_CtorParameterIndex),
+                            Required = _attribute!.GetNamedArgument<bool>(Literals.MultiValueAttribute_Required_PropertyIdentifier),
+                        },
+                    };
+                }
+
+                default:
+                    throw new InvalidOperationException();
+            }
         }
     }
 
     public Filter ValidateRequiredParameterNullableAnnotation()
     {
-        if (CLParameter is IRequiredParameterModel requiredParameter and not MultiValueParameterModel &&
+        if (ParameterData is IRequiredParameterData requiredParameter and not MultiValueParameterData &&
             !requiredParameter.Required &&
             !ValidationHelper.IsCanBeDefault(Symbol.Type)
         ) {

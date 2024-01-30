@@ -1,9 +1,10 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
-using Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
+using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
 
@@ -12,9 +13,9 @@ internal abstract class ParameterProvider
 {
     public ExecutorProvider Executor { get; }
 
-    protected abstract ICLParameterModel Model { get; }
+    protected abstract ParameterModel Model { get; }
 
-    public string Argument_VarIdentifier => $"__arg_{Model.Parameter.Symbol.Name}_{Executor.Model.Symbol.Name}";
+    public string Argument_VarIdentifier => $"__arg_{Model.Symbol.Name}_{Executor.Model.Symbol.Name}";
 
     protected ParameterProvider(ExecutorProvider executor)
     {
@@ -45,43 +46,47 @@ internal abstract class ParameterProvider
 
     private TypeSyntax? _parsedTypeSyntax;
     protected TypeSyntax ParsedTypeSyntax
-        => _parsedTypeSyntax ??= SyntaxFactory.IdentifierName(Model.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormats.FullQualifiedFormatIncludeNullableRefTypeModifier));
+        => _parsedTypeSyntax ??= SyntaxFactory.IdentifierName(Model.ParameterData.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormats.FullQualifiedFormatIncludeNullableRefTypeModifier));
 
     [MemberNotNull(nameof(_parserTypeSyntax), nameof(_parserArgSyntax))]
     private void InitParserSyntaxes()
     {
-        // Implicit 
-        if (Model.ParserInfo.TryGetLeft(out var prmKind, out var parser)) {
-            _parserTypeSyntax = SyntaxHelper.GetDefaultParserType(Model.ParsedTypeSymbol, prmKind);
-            _parserArgSyntax = SyntaxProvider.DefaultArgument(ParserTypeSyntax);
-        }
-        // Parser field or property
-        else if (parser.TryGetLeft(out var memberParser, out var methodParser)) {
-            var (type, member) = memberParser;
-            _parserTypeSyntax = SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-            _parserArgSyntax = SyntaxFactory.Argument(
-                SyntaxProvider.SiblingMemberAccessExpression(member));
-        }
-        // parsing method
-        else {
-            var identifier = Model.Parameter.ParameterKind == CLParameterKind.Flag
-                ? $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}"
-                : $"{Constants.Global}::{Literals.DelegateParser_TypeName}";
-            _parserTypeSyntax =
-                SyntaxFactory.GenericName(
-                    SyntaxFactory.Identifier(identifier),
-                    SyntaxFactory.TypeArgumentList(
-                        SyntaxFactory.SingletonSeparatedList(
-                            ParsedTypeSyntax)));
-            _parserArgSyntax =
-                SyntaxFactory.Argument(
-                    SyntaxFactory.ObjectCreationExpression(
-                        _parserTypeSyntax,
-                        SyntaxFactory.ArgumentList(
+        var parserInfo = Model.ParameterData.ParserInfo;
+        switch (parserInfo.Kind) {
+            case ParserKind.Implicit:
+                _parserTypeSyntax = SyntaxHelper.GetDefaultParserType(Model.ParameterData.ParsedTypeSymbol, parserInfo.ImplicitCLParameterKind);
+                _parserArgSyntax = SyntaxProvider.DefaultArgument(ParserTypeSyntax);
+                break;
+
+            case ParserKind.FieldOrProperty:
+                var (type, member) = parserInfo.FieldOrProperty;
+                _parserTypeSyntax = SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                _parserArgSyntax = SyntaxFactory.Argument(
+                    SyntaxProvider.SiblingMemberAccessExpression(member));
+                break;
+
+            case ParserKind.Method:
+                var identifier = Model.ParameterKind == ParameterKind.Flag
+                    ? $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}"
+                    : $"{Constants.Global}::{Literals.DelegateParser_TypeName}";
+                _parserTypeSyntax =
+                    SyntaxFactory.GenericName(
+                        SyntaxFactory.Identifier(identifier),
+                        SyntaxFactory.TypeArgumentList(
                             SyntaxFactory.SingletonSeparatedList(
-                                SyntaxFactory.Argument(
-                                    SyntaxProvider.SiblingMemberAccessExpression(methodParser)))),
-                    default));
+                                ParsedTypeSyntax)));
+                _parserArgSyntax =
+                    SyntaxFactory.Argument(
+                        SyntaxFactory.ObjectCreationExpression(
+                            _parserTypeSyntax,
+                            SyntaxFactory.ArgumentList(
+                                SyntaxFactory.SingletonSeparatedList(
+                                    SyntaxFactory.Argument(
+                                        SyntaxProvider.SiblingMemberAccessExpression(parserInfo.Method)))),
+                        default));
+                break;
+            default:
+                throw new InvalidOperationException();
         }
     }
 

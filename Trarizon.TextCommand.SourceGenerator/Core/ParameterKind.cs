@@ -1,5 +1,5 @@
 ﻿namespace Trarizon.TextCommand.SourceGenerator.Core;
-internal enum CLParameterKind
+internal enum ParameterKind
 {
     Invalid,
     Flag,

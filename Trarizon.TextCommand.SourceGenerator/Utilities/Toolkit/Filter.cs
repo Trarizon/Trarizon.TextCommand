@@ -1,6 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -10,7 +12,8 @@ namespace Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 partial struct Filter
 {
     public static Filter Success => default;
-    public static Filter CreateDiagnostic(Diagnostic diagnostic) => Unsafe.As<Diagnostic, Filter>(ref diagnostic);
+    public static Filter CreateDiagnostic() => CreateDiagnostic(Array.Empty<Diagnostic>());
+    public static Filter CreateDiagnostic(Diagnostic diagnostic) => CreateDiagnostic(new[] { diagnostic });
     public static Filter CreateDiagnostic(IEnumerable<Diagnostic> diagnostics) => Unsafe.As<IEnumerable<Diagnostic>, Filter>(ref diagnostics);
 
     public static Filter<T> CreateDiagnostic<T>(Diagnostic diagnostic) where T : notnull => new(default, diagnostic);
@@ -27,9 +30,12 @@ partial struct Filter
 
 internal readonly partial struct Filter
 {
-    private readonly object? _diagnostic;
-    public readonly Diagnostic? Diagnostic => _diagnostic as Diagnostic;
-    public readonly IEnumerable<Diagnostic>? Diagnostics => _diagnostic as IEnumerable<Diagnostic>;
+    private readonly IEnumerable<Diagnostic>? _diagnostics;
+
+    [MemberNotNullWhen(false, nameof(Diagnostics))]
+    public bool IsSuccess => _diagnostics is null;
+
+    public readonly IEnumerable<Diagnostic> Diagnostics => _diagnostics!;
 }
 
 internal struct Filter<TContext> where TContext : notnull
@@ -60,25 +66,15 @@ internal struct Filter<TContext> where TContext : notnull
         _diagnostics = [diagnostic];
     }
 
-    private void AddDiagnostic(Diagnostic diagnostic)
+    private void TryAddDiagnostic(Filter filter)
     {
-        if (_diagnostics is null)
-            _diagnostics = new List<Diagnostic>(1) { diagnostic };
-        else
-            _diagnostics.Add(diagnostic);
-    }
+        if (filter.IsSuccess)
+            return;
 
-    private void AddDiagnostics(IEnumerable<Diagnostic> diagnostics)
-    {
-        if (_diagnostics is null) {
-            if (diagnostics is List<Diagnostic> list)
-                _diagnostics = list;
-            else
-                _diagnostics = diagnostics.ToList();
-        }
-        else {
-            _diagnostics.AddRange(diagnostics);
-        }
+        if (_diagnostics is null)
+            _diagnostics = new(filter.Diagnostics);
+        else
+            _diagnostics.AddRange(filter.Diagnostics);
     }
 
     public static implicit operator Filter(Filter<TContext> filter) => filter._diagnostics switch {
@@ -105,10 +101,7 @@ internal struct Filter<TContext> where TContext : notnull
             return this;
 
         var result = predicate(Context!);
-        if (result.Diagnostic != null)
-            AddDiagnostic(result.Diagnostic);
-        else if (result.Diagnostics != null)
-            AddDiagnostics(result.Diagnostics);
+        TryAddDiagnostic(result);
         return this;
     }
 
@@ -119,10 +112,7 @@ internal struct Filter<TContext> where TContext : notnull
 
         foreach (var item in selector(Context)) {
             var result = predicate(item);
-            if (result.Diagnostic is { } diag)
-                AddDiagnostic(diag);
-            else if (result.Diagnostics is { } diags)
-                AddDiagnostics(diags);
+            TryAddDiagnostic(result);
         }
 
         return this;
@@ -135,7 +125,7 @@ internal struct Filter<TContext> where TContext : notnull
 
         var result = selector(Context);
         if (result.HasError)
-            AddDiagnostics(result.Diagnostics);
+            TryAddDiagnostic(result);
         else
             return new(result.Context, _diagnostics);
         return new(default, _diagnostics);

@@ -26,11 +26,11 @@ internal sealed class ExecutorProvider
         Parameters = new ParameterProvider[model.Parameters.Length];
         int valueIndex = 0;
         for (int i = 0; i < Parameters.Length; i++) {
-            Parameters[i] = model.Parameters[i].CLParameter switch {
-                FlagParameterModel flg => new FlagProvider(this, flg),
-                OptionParameterModel opt => new OptionProvider(this, opt),
-                ValueParameterModel val => new ValueProvider(this, val, valueIndex++),
-                MultiValueParameterModel mtv => new MultiValueProvider(this, mtv, GetAndPlus(ref valueIndex, mtv.MaxCount)),
+            Parameters[i] = model.Parameters[i].ParameterData switch {
+                FlagParameterData flg => new FlagProvider(this, flg),
+                OptionParameterData opt => new OptionProvider(this, opt),
+                ValueParameterData val => new ValueProvider(this, val, valueIndex++),
+                MultiValueParameterData mtv => new MultiValueProvider(this, mtv, GetAndPlus(ref valueIndex, mtv.MaxCount)),
                 _ => throw new InvalidOperationException(),
             };
         }

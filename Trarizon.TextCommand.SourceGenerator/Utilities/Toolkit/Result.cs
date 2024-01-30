@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 internal readonly struct Result<T, TError> where TError : class
@@ -30,4 +31,11 @@ internal readonly struct Result<T, TError> where TError : class
         value = _value;
         error = _error;
         return Success;
-    }}
+    }
+
+    public Result<TResult, TError> Select<TResult>(Func<T, TResult> selector)
+        => Success ? new(selector(_value)) : new(_error);
+
+    public Result<TResult, TError> SelectWrapped<TResult>(Func<T, Result<TResult, TError>> selector)
+        => Success ? selector(_value) : new(_error);
+}
