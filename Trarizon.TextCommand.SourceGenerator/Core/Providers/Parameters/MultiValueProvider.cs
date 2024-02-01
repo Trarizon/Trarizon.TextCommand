@@ -3,24 +3,25 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
+using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Providers.Parameters;
-internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValueParameterModel model, int index) : ParameterProvider(executor)
+internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValueParameterData data, int index) : ParameterProvider(executor)
 {
-    protected override ICLParameterModel Model => model;
+    protected override ParameterModel Model => data.Model;
 
     protected override (string Identifier, ArgumentSyntax[] Arguments) GetProviderMethodInfo()
     {
         string literal;
         ExpressionSyntax expression;
 
-        switch (model.CollectionType) {
+        switch (data.CollectionType) {
             case MultiValueCollectionType.ReadOnlySpan:
             case MultiValueCollectionType.Span:
                 // For conditions cannot create Span, use T[] instead;
-                if (!Model.ParsedTypeSymbol.IsUnmanagedType || model.MaxCount > Literals.StackAllocThreshold) {
+                if (!data.ParsedTypeSymbol.IsUnmanagedType || data.MaxCount > Literals.StackAllocThreshold) {
                     goto case MultiValueCollectionType.Array;
                 }
 
@@ -28,7 +29,7 @@ internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValuePa
                 // stackalloc T[provider.GetAvailableArrayLength(start, length)]
                 expression = SyntaxFactory.StackAllocArrayCreationExpression(
                     SyntaxFactory.ArrayType(
-                        SyntaxFactory.IdentifierName(Model.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
+                        SyntaxFactory.IdentifierName(data.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)),
                         SyntaxFactory.SingletonList(
                             SyntaxFactory.ArrayRankSpecifier(
                                 SyntaxFactory.SingletonSeparatedList<ExpressionSyntax>(
@@ -44,17 +45,17 @@ internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValuePa
                                                 SyntaxFactory.Argument(
                                                     SyntaxProvider.LiteralInt32Expression(index)),
                                                 SyntaxFactory.Argument(
-                                                    SyntaxProvider.LiteralInt32Expression(model.MaxCount)),
+                                                    SyntaxProvider.LiteralInt32Expression(data.MaxCount)),
                                             }))))))));
                 break;
             case MultiValueCollectionType.Array:
             case MultiValueCollectionType.Enumerable:
                 literal = Literals.ArgsProvider_GetValuesArray_MethodIdentifier;
-                expression = SyntaxProvider.LiteralInt32Expression(model.MaxCount);
+                expression = SyntaxProvider.LiteralInt32Expression(data.MaxCount);
                 break;
             case MultiValueCollectionType.List:
                 literal = Literals.ArgsProvider_GetValuesList_MethodIdentifier;
-                expression = SyntaxProvider.LiteralInt32Expression(model.MaxCount);
+                expression = SyntaxProvider.LiteralInt32Expression(data.MaxCount);
                 break;
             default:
                 throw new InvalidOperationException();
@@ -63,8 +64,8 @@ internal sealed class MultiValueProvider(ExecutorProvider executor, MultiValuePa
             SyntaxFactory.Argument(SyntaxProvider.LiteralInt32Expression(index)),
             SyntaxFactory.Argument(expression),
             ParserArgumentSyntax,
-            SyntaxFactory.Argument(SyntaxProvider.LiteralStringExpression(model.Parameter.Symbol.Name)),
-            SyntaxFactory.Argument(SyntaxProvider.LiteralBooleanExpression(model.Required))
+            SyntaxFactory.Argument(SyntaxProvider.LiteralStringExpression(Model.Symbol.Name)),
+            SyntaxFactory.Argument(SyntaxProvider.LiteralBooleanExpression(data.Required))
         ]);
     }
 }

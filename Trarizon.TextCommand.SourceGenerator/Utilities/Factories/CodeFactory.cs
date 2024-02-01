@@ -25,30 +25,30 @@ internal static class CodeFactory
     }
 
     public static TypeDeclarationSyntax CloneContainingTypeDeclarations(TypeDeclarationSyntax sourceSyntax,
-    SyntaxList<MemberDeclarationSyntax> members)
-    {
-        TypeDeclarationSyntax type = ClonePartialDeclaration(sourceSyntax, default, default, members);
+        SyntaxList<MemberDeclarationSyntax> members)
+        {
+            TypeDeclarationSyntax type = ClonePartialDeclaration(sourceSyntax, default, default, members);
 
-        while (sourceSyntax.GetParent<TypeDeclarationSyntax>() is { } sourceParent) {
-            sourceSyntax = sourceParent;
-            type = ClonePartialDeclaration(sourceSyntax, default, default,
-                SyntaxFactory.SingletonList<MemberDeclarationSyntax>(type));
+            while (sourceSyntax.GetParent<TypeDeclarationSyntax>() is { } sourceParent) {
+                sourceSyntax = sourceParent;
+                type = ClonePartialDeclaration(sourceSyntax, default, default,
+                    SyntaxFactory.SingletonList<MemberDeclarationSyntax>(type));
+            }
+
+            return type;
         }
 
-        return type;
-    }
-
     public static TypeDeclarationSyntax ClonePartialDeclaration(TypeDeclarationSyntax source,
-    SyntaxList<AttributeListSyntax> attributeLists,
-    BaseListSyntax? baseList,
-    SyntaxList<MemberDeclarationSyntax> members)
-    => source switch {
-        ClassDeclarationSyntax clz => ClonePartialDeclaration(clz, attributeLists, baseList, members),
-        StructDeclarationSyntax str => ClonePartialDeclaration(str, attributeLists, baseList, members),
-        RecordDeclarationSyntax rec => ClonePartialDeclaration(rec, attributeLists, baseList, members),
-        InterfaceDeclarationSyntax itf => ClonePartialDeclaration(itf, attributeLists, baseList, members),
-        _ => throw new InvalidOperationException("Unknown type declaration"),
-    };
+        SyntaxList<AttributeListSyntax> attributeLists,
+        BaseListSyntax? baseList,
+        SyntaxList<MemberDeclarationSyntax> members)
+        => source switch {
+            ClassDeclarationSyntax clz => ClonePartialDeclaration(clz, attributeLists, baseList, members),
+            StructDeclarationSyntax str => ClonePartialDeclaration(str, attributeLists, baseList, members),
+            RecordDeclarationSyntax rec => ClonePartialDeclaration(rec, attributeLists, baseList, members),
+            InterfaceDeclarationSyntax itf => ClonePartialDeclaration(itf, attributeLists, baseList, members),
+            _ => throw new InvalidOperationException("Unknown type declaration"),
+        };
 
     /// <summary>
     /// Create a partial class by copy the basic info of original class

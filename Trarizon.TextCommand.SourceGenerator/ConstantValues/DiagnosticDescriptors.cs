@@ -59,10 +59,10 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public readonly static DiagnosticDescriptor CannotFindExplicitParser = new(
+    public readonly static DiagnosticDescriptor CannotFindExplicitParser_1 = new(
         "TCMD0008",
-        nameof(CannotFindExplicitParser),
-        "Cannot find explicit parser field, property, or method in command type",
+        nameof(CannotFindExplicitParser_1),
+        @"Cannot find explicit parser field, property, or method named ""{0}"" in command type",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);

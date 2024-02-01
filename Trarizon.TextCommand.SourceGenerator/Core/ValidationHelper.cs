@@ -35,11 +35,11 @@ internal static class ValidationHelper
         return InputParameterType.Unknown;
     }
 
-    public static ImplicitCLParameterKind ValidateImplicitParameterKind(ITypeSymbol type)
+    public static ImplicitParameterKind ValidateImplicitParameterKind(ITypeSymbol type)
     {
         // Boolean
         if (type.SpecialType is SpecialType.System_Boolean) {
-            return ImplicitCLParameterKind.Boolean;
+            return ImplicitParameterKind.Boolean;
         }
 
         // Nullable mark
@@ -54,32 +54,30 @@ internal static class ValidationHelper
             && interfaceType.TypeArguments.Length == 1)
         ) {
             return isNullable
-                ? ImplicitCLParameterKind.NullableSpanParsable
-                : ImplicitCLParameterKind.SpanParsable;
+                ? ImplicitParameterKind.NullableSpanParsable
+                : ImplicitParameterKind.SpanParsable;
         }
 
         // Enum
         if (type.TypeKind == TypeKind.Enum) {
             return isNullable
-                ? ImplicitCLParameterKind.NullableEnum
-                : ImplicitCLParameterKind.Enum;
+                ? ImplicitParameterKind.NullableEnum
+                : ImplicitParameterKind.Enum;
         }
 
         // Invalid
-        return ImplicitCLParameterKind.Invalid;
+        return ImplicitParameterKind.Invalid;
     }
 
-    public static MultiValueCollectionType ValidateMultiValueCollectionType(ITypeSymbol type, out ITypeSymbol elementType, out Func<TypeSyntax, TypeSyntax> elementSyntaxGetter)
+    public static MultiValueCollectionType ValidateMultiValueCollectionType(ITypeSymbol type, out ITypeSymbol elementType)
     {
         if (type is IArrayTypeSymbol arrayType) {
             elementType = arrayType.ElementType;
-            elementSyntaxGetter = static array => ((ArrayTypeSyntax)array).ElementType;
             return MultiValueCollectionType.Array;
         }
 
         if (type is INamedTypeSymbol { TypeArguments: [var typeArg] } namedType) {
             elementType = typeArg;
-            elementSyntaxGetter = static generic => ((GenericNameSyntax)generic).TypeArgumentList.Arguments[0];
             return namedType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric) switch {
                 Constants.ReadOnlySpan_TypeName => MultiValueCollectionType.ReadOnlySpan,
                 Constants.Span_TypeName => MultiValueCollectionType.Span,
@@ -90,77 +88,65 @@ internal static class ValidationHelper
         }
 
         elementType = null!;
-        elementSyntaxGetter = null!;
         return MultiValueCollectionType.Invalid;
     }
 
-    public static bool IsCustomParser(SemanticModel semanticModel, ITypeSymbol parserType, ITypeSymbol parameterType,
-        [NotNullWhen(true)] out ITypeSymbol? parsedType, out bool isFlag, out bool nullableClassTypeMayAssignToNotNullable)
+    public static bool IsCustomParser(SemanticModel semanticModel, ITypeSymbol parserType, ITypeSymbol assignedType, bool isFlag,
+        [NotNullWhen(true)] out ITypeSymbol? parsedType, out bool nullableClassTypeMayAssignToNotNullable)
     {
-        foreach (var interfaceType in parserType.AllInterfaces) {
-            switch (interfaceType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric)) {
-                case Literals.IArgParser_TypeName:
-                    if (interfaceType.TypeArguments is not [var typeArg])
-                        break;
-                    isFlag = false;
-                    parsedType = typeArg;
-                    return IsValidParser(semanticModel, typeArg, parameterType, out nullableClassTypeMayAssignToNotNullable);
+        var displayString = isFlag ? Literals.IArgFlagParser_TypeName : Literals.IArgParser_TypeName;
 
-                case Literals.IArgFlagParser_TypeName:
-                    if (interfaceType.TypeArguments is not [var flagTypeArg])
-                        break;
-                    isFlag = true;
-                    parsedType = flagTypeArg;
-                    return IsValidParser(semanticModel, flagTypeArg, parameterType, out nullableClassTypeMayAssignToNotNullable);
+        foreach (var interfaceType in parserType.AllInterfaces) {
+            if (interfaceType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric) == displayString &&
+                interfaceType.TypeArguments is [var typeArg]
+            ) {
+                parsedType = typeArg;
+                return IsParsedTypeMatched(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
         }
         parsedType = null;
-        isFlag = default;
         nullableClassTypeMayAssignToNotNullable = false;
         return false;
     }
 
-    public static bool IsValidMethodParser(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol parameterType, CLParameterKind parameterKind,
+    public static bool IsValidMethodParser(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol assignedType, bool isFlag,
         [NotNullWhen(true)] out ITypeSymbol? parsedType, out bool nullableClassTypeMayAssignToNotNullable)
     {
-        switch (parameterKind) {
-            case CLParameterKind.Flag:
-                // Match delegate signature
-                if (method is not { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] })
-                    break;
-                parsedType = method.ReturnType;
-                return IsValidParser(semanticModel, parsedType, parameterType, out nullableClassTypeMayAssignToNotNullable);
-            case CLParameterKind.Option:
-            case CLParameterKind.Value:
-            case CLParameterKind.MultiValue:
-                if (method is not {
-                    ReturnType.SpecialType: SpecialType.System_Boolean,
-                    Parameters:
-                    [
-                        { Type: var spanParameterType },
-                        {
-                            RefKind: RefKind.Out,
-                            Type: var resultParameterType,
-                        }
-                    ]
-                } || spanParameterType.ToDisplayString() != Constants.ReadOnlySpan_Char_TypeName) {
-                    break;
-                }
+        if (isFlag) {
+            // Match delegate signature
+            if (method is not { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] })
+                goto End;
+            parsedType = method.ReturnType;
+            return IsParsedTypeMatched(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+        }
+        else {
+            if (method is not {
+                ReturnType.SpecialType: SpecialType.System_Boolean,
+                Parameters:
+                [
+                    { Type: var spanParameterType },
+                    {
+                        RefKind: RefKind.Out,
+                        Type: var resultParameterType,
+                    }
+                ]
+            } || spanParameterType.ToDisplayString() != Constants.ReadOnlySpan_Char_TypeName) {
+                goto End;
+            }
 
-                parsedType = resultParameterType;
-                return IsValidParser(semanticModel, parsedType, parameterType, out nullableClassTypeMayAssignToNotNullable);
-            default:
-                throw new InvalidOperationException();
+            parsedType = resultParameterType;
+            return IsParsedTypeMatched(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
         }
 
+    End:
         parsedType = null;
         nullableClassTypeMayAssignToNotNullable = default;
         return false;
     }
 
-    private static bool IsValidParser(SemanticModel semanticModel, ITypeSymbol parsedType, ITypeSymbol parameterType, out bool nullableClassTypeMayAssignToNotNullable)
+    private static bool IsParsedTypeMatched(SemanticModel semanticModel, ITypeSymbol parsedType, ITypeSymbol assignedType, out bool nullableClassTypeMayAssignToNotNullable)
     {
-        var conversion = semanticModel.Compilation.ClassifyCommonConversion(parsedType, parameterType);
+        var conversion = semanticModel.Compilation.ClassifyCommonConversion(parsedType, assignedType);
         if (!conversion.IsImplicit) {
             nullableClassTypeMayAssignToNotNullable = default;
             return false;
@@ -168,7 +154,7 @@ internal static class ValidationHelper
         else {
             nullableClassTypeMayAssignToNotNullable = conversion.IsIdentity &&
                 parsedType.NullableAnnotation == NullableAnnotation.Annotated &&
-                parameterType.NullableAnnotation != NullableAnnotation.Annotated;
+                assignedType.NullableAnnotation != NullableAnnotation.Annotated;
             return true;
         }
     }

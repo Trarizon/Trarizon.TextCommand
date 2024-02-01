@@ -7,23 +7,23 @@ using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal static class SyntaxHelper
 {
-    public static TypeSyntax GetDefaultParserType(ITypeSymbol type, ImplicitCLParameterKind parameterKind)
+    public static TypeSyntax GetDefaultParserType(ITypeSymbol type, ImplicitParameterKind parameterKind)
     {
         switch (parameterKind) {
-            case ImplicitCLParameterKind.Boolean:
+            case ImplicitParameterKind.Boolean:
                 return SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.BooleanFlagParser_TypeName}");
-            case ImplicitCLParameterKind.SpanParsable:
+            case ImplicitParameterKind.SpanParsable:
                 return ParsableParserTypeSyntax(
                     SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
-            case ImplicitCLParameterKind.Enum:
+            case ImplicitParameterKind.Enum:
                 return EnumParserTypeSyntax(
                     SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)));
-            case ImplicitCLParameterKind.NullableSpanParsable:
+            case ImplicitParameterKind.NullableSpanParsable:
                 var underlyingType = ((INamedTypeSymbol)type).TypeArguments[0];
                 var parsed = SyntaxFactory.IdentifierName(underlyingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                 var parser = ParsableParserTypeSyntax(parsed);
                 return NullableParserTypeSyntax(parsed, parser);
-            case ImplicitCLParameterKind.NullableEnum:
+            case ImplicitParameterKind.NullableEnum:
                 underlyingType = ((INamedTypeSymbol)type).TypeArguments[0];
                 parsed = SyntaxFactory.IdentifierName(underlyingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                 parser = EnumParserTypeSyntax(parsed);

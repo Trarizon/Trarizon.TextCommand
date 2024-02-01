@@ -3,8 +3,9 @@
 ## 0.1.0
 
 - [Breaking] Method signature of `ArgProvider.Get`s changed.
+- [Breaking] Changed format of keys in parameter set
 - Add Error handling
-
+- Refactor generator
 
 ## 0.0.2
 

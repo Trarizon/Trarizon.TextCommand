@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
+
+//using Trarizon.TextCommand.SourceGenerator.Core.OldModels;
 using Trarizon.TextCommand.SourceGenerator.Core.Providers;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit.Extensions;
@@ -32,19 +34,7 @@ public class ExecutionGenerator : IIncrementalGenerator
             {
                 token.ThrowIfCancellationRequested();
 
-                return Filter.Select(context, static context =>
-                {
-                    var methodSyntax = (MethodDeclarationSyntax)context.TargetNode;
-                    if (methodSyntax.GetParent<TypeDeclarationSyntax>() is { } typeSyntax) {
-                        return Filter.Create(new ContextModel(context, typeSyntax).ExecutionModel);
-                    }
-                    else {
-                        // Cannot be global, compiler will warn this
-                        return default;
-                    }
-                })
-                .ThrowIfCancelled(token)
-                .Predicate(e => e.ValidatePartialKeyWord())
+                return Filter.Select(new CommandModel(context), c => c.SelectExecution())
                 .Predicate(e => e.ValidateParameter_SetInputParameterType())
                 .Predicate(e => e.ValidateReturnType())
                 .Predicate(e => e.ValidateCommandName())
@@ -56,7 +46,7 @@ public class ExecutionGenerator : IIncrementalGenerator
                     .PredicateMany(e => e.Parameters,
                         p => Filter.Create(p)
                         .Predicate(p => p.ValidateSingleAttribute_SetParameterKind())
-                        .Predicate(p => p.ValidateCLParameter_SetCLParameter())
+                        .Predicate(p => p.ValidateParameterData_SetParameterData())
                         .CloseIfHasError()
                         .Predicate(p => p.ValidateRequiredParameterNullableAnnotation()))
                     .Predicate(e => e.ValidateValueParametersAfterRestValues())
