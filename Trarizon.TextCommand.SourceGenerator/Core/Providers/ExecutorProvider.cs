@@ -228,7 +228,7 @@ internal sealed class ExecutorProvider
                                                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
                                                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)),
                                             ],
-                                            p => (SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{p.Name}"),
+                                            p => (SyntaxProvider.LiteralStringExpression(p.Name),
                                                 SyntaxProvider.LiteralBooleanExpression(p is OptionProvider))),
                                         DictParameterArgument(
                                             aliasParameters,
@@ -236,8 +236,8 @@ internal sealed class ExecutorProvider
                                                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
                                                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
                                             ],
-                                            p => (SyntaxProvider.LiteralStringExpression($"{Literals.Prefix_Alias}{p.Alias!}"),
-                                                SyntaxProvider.LiteralStringExpression($"{Literals.Prefix}{p.Name}"))),
+                                            p => (SyntaxProvider.LiteralStringExpression(p.Alias!),
+                                                SyntaxProvider.LiteralStringExpression(p.Name))),
                                     })),
                                 default))))));
 

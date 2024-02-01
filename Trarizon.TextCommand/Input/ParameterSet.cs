@@ -5,123 +5,124 @@ using Trarizon.TextCommand.Utilities;
 
 namespace Trarizon.TextCommand.Input;
 public sealed class ParameterSet(
-    Dictionary<string, bool>? optionOrFlagParameters,
-    Dictionary<string, string>? aliasDict)
+	Dictionary<string, bool>? optionOrFlagParameters,
+	Dictionary<string, string>? aliasDict)
 {
-    private readonly FrozenDictionary<string, bool> _optionOrFlagParameters = optionOrFlagParameters?.ToFrozenDictionary() ?? FrozenDictionary<string, bool>.Empty;
-    private readonly FrozenDictionary<string, string> _aliasDict = aliasDict?.ToFrozenDictionary() ?? FrozenDictionary<string, string>.Empty;
+	private readonly FrozenDictionary<string, bool> _optionOrFlagParameters = optionOrFlagParameters?.ToFrozenDictionary() ?? FrozenDictionary<string, bool>.Empty;
+	private readonly FrozenDictionary<string, string> _aliasDict = aliasDict?.ToFrozenDictionary() ?? FrozenDictionary<string, string>.Empty;
 
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public StringArgsProvider Parse(in StringInputRest rest)
-    {
-        Dictionary<string, ArgIndex> dict = [];
-        // slice
-        // from cache
-        // flag
-        List<ArgIndex> list = [];
-        string[] unescapeds = new string[rest.CountOfEscapes];
-        int unescapeCount = 0;
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public StringArgsProvider Parse(in StringInputRest rest)
+	{
+		Dictionary<string, ArgIndex> dict = [];
+		// slice
+		// from cache
+		// flag
+		List<ArgIndex> list = [];
+		string[] unescapeds = new string[rest.CountOfEscapes];
+		int unescapeCount = 0;
 
-        for (int i = 0; i < rest.Indices.Length; i++) {
-            var index = rest.Indices[i];
+		for (int i = 0; i < rest.Indices.Length; i++) {
+			var index = rest.Indices[i];
 
-            // Escaped
-            if (index.Kind == ArgIndexKind.Escaped) {
-                var (start, length) = index.EscapedRange;
-                var unescaped = StringUtil.UnescapeToString(rest.Source.Slice(start, length));
+			// Escaped
+			if (index.Kind == ArgIndexKind.Escaped) {
+				var (start, length) = index.EscapedRange;
+				var unescaped = StringUtil.UnescapeToString(rest.Source.Slice(start, length));
 
-                list.Add(ArgIndex.FromCached(unescapeCount));
-                unescapeds[unescapeCount++] = unescaped;
-                continue;
-            }
-            // Slice
-            else {
-                var (start, length) = index.SliceRange;
-                var arg = rest.Source.Slice(start, length);
+				list.Add(ArgIndex.FromCached(unescapeCount));
+				unescapeds[unescapeCount++] = unescaped;
+				continue;
+			}
+			// Slice
+			else {
+				var (start, length) = index.SliceRange;
+				var arg = rest.Source.Slice(start, length);
 
-                string strArg;
-                switch (arg) {
-                    case ['-', '-', ..]:
-                        strArg = arg.ToString();
-                        break;
-                    case ['-', ..]:
-                        // Not defined option key, omit
-                        if (!_aliasDict.TryGetValue(arg.ToString(), out strArg!))
-                            continue;
-                        break;
-                    // Value | MultiValue
-                    default:
-                        list.Add(index);
-                        continue;
-                }
+				string strArg;
+				switch (arg) {
+					case ['-', '-', .. var nameKey]:
+						strArg = nameKey.ToString();
+						break;
+					case ['-', .. var aliasKey]:
+						// Not defined option key, omit
+						if (!_aliasDict.TryGetValue(aliasKey.ToString(), out strArg!))
+							continue;
+						break;
+					// Value | MultiValue
+					default:
+						list.Add(index);
+						continue;
+				}
 
-                if (_optionOrFlagParameters.TryGetValue(strArg, out var isOption)) {
-                    // Flag
-                    if (!isOption) {
-                        dict.Add(strArg, ArgIndex.Flag);
-                        continue;
-                    }
+				if (_optionOrFlagParameters.TryGetValue(strArg, out var isOption)) {
+					// Flag
+					if (!isOption) {
+						dict.Add(strArg, ArgIndex.Flag);
+						continue;
+					}
 
-                    // Option
-                    if (++i < rest.Indices.Length) {
-                        var nextIndex = rest.Indices[i];
-                        if (nextIndex.Kind == ArgIndexKind.Escaped) {
-                            (start, length) = nextIndex.EscapedRange;
-                            var unescaped = StringUtil.UnescapeToString(rest.Source.Slice(start, length));
-                            dict.Add(strArg, ArgIndex.FromCached(unescapeCount));
-                            unescapeds[unescapeCount++] = unescaped;
-                        }
-                        else {
-                            dict.Add(strArg, rest.Indices[i]);
-                        }
-                    }
+					// Option
+					if (++i < rest.Indices.Length) {
+						var nextIndex = rest.Indices[i];
+						if (nextIndex.Kind == ArgIndexKind.Escaped) {
+							(start, length) = nextIndex.EscapedRange;
+							var unescaped = StringUtil.UnescapeToString(rest.Source.Slice(start, length));
+							dict.Add(strArg, ArgIndex.FromCached(unescapeCount));
+							unescapeds[unescapeCount++] = unescaped;
+						}
+						else {
+							dict.Add(strArg, rest.Indices[i]);
+						}
+					}
 
-                    // else the option key is the last value in input, omit
-                }
-                // Not defined option key, omit it
-                else { }
-            }
-        }
+					// else the option key is the last value in input, omit
+				}
+				// Not defined option key, omit it
+				else { }
+			}
+		}
 
-        return new(rest.Source, unescapeds, dict, CollectionsMarshal.AsSpan(list));
-    }
+		return new(rest.Source, unescapeds, dict, CollectionsMarshal.AsSpan(list));
+	}
 
-    public ArrayArgsProvider Parse(ReadOnlySpan<string> args)
-    {
-        Dictionary<string, string?> dict = [];
-        List<string> list = [];
+	public ArrayArgsProvider Parse(ReadOnlySpan<string> args)
+	{
+		Dictionary<string, string?> dict = [];
+		List<string> list = [];
 
-        for (int i = 0; i < args.Length; i++) {
-            var arg = args[i];
-            switch (arg) {
-                case ['-', '-', ..]:
-                    break;
-                case ['-', ..]:
-                    // Not defined option key, omit
-                    if (!_aliasDict.TryGetValue(arg, out arg))
-                        continue;
-                    break;
-                default:
-                    list.Add(arg);
-                    break;
-            }
+		for (int i = 0; i < args.Length; i++) {
+			var arg = args[i];
+			switch (arg) {
+				case ['-', '-', .. var nameKey]:
+					arg = nameKey;
+					break;
+				case ['-', .. var aliasKey]:
+					// Not defined option key, omit
+					if (!_aliasDict.TryGetValue(aliasKey, out arg))
+						continue;
+					break;
+				default:
+					list.Add(arg);
+					break;
+			}
 
-            if (_optionOrFlagParameters.TryGetValue(arg, out var isOption)) {
-                if (!isOption)
-                    dict.Add(arg, null);
-                else if (++i < args.Length)
-                    dict.Add(arg, args[i]);
-                // else option key is the last arg of input
-                break;
-            }
-            // Not defined option key, omit
-            else { }
-        }
+			if (_optionOrFlagParameters.TryGetValue(arg, out var isOption)) {
+				if (!isOption)
+					dict.Add(arg, null);
+				else if (++i < args.Length)
+					dict.Add(arg, args[i]);
+				// else option key is the last arg of input
+				break;
+			}
+			// Not defined option key, omit
+			else { }
+		}
 
-        return new ArrayArgsProvider(dict, CollectionsMarshal.AsSpan(list));
-    }
+		return new ArrayArgsProvider(dict, CollectionsMarshal.AsSpan(list));
+	}
 
-    /* TODO: does input support other collections like IList<>?
+	/* TODO: does input support other collections like IList<>?
     
     public ArrayArgsProvider Parse(IEnumerable<string> args)
     {

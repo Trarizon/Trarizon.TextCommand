@@ -1,5 +1,10 @@
 # Update History
 
+## 0.0.3
+
+- [Breaking] Changed format of keys in parameter set
+- Refactor generator
+
 ## 0.0.2
 
 - [Bug] Fix bug on incorrect length of `MultiValue` parameter
