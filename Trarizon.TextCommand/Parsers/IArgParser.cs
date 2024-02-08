@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using Trarizon.TextCommand.Input;
 
 namespace Trarizon.TextCommand.Parsers;
 public interface IArgParser<T>
 {
-    bool TryParse(ReadOnlySpan<char> rawArg, [MaybeNullWhen(false)] out T result);
+    bool TryParse(InputArg input, [MaybeNullWhen(false)] out T result);
 }
 
 public interface IArgFlagParser<T>

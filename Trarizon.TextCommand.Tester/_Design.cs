@@ -3,17 +3,19 @@ using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Attributes;
 using Trarizon.TextCommand.Attributes.Parameters;
 using Trarizon.TextCommand.Input;
-using Trarizon.TextCommand.Input.Parsing;
+using Trarizon.TextCommand.Input.Result;
 using Trarizon.TextCommand.Parsers;
 
 using TRtn = string;
 
 namespace Trarizon.TextCommand.Tester;
 
-internal partial class _Design
+internal class _Design
 {
-    [Execution("/ghoti")]
-    public partial string? Run(string customInput);
+    // TODO: 接下来写生成器，argprovider重写了，parameterSet参数小改
+
+    //[Execution("/ghoti")]
+    public string? Run(string customInput) => default;
 
     //[Execution("/ghoti", ErrorHandler = "")]
     private TRtn MaunallyRun(string input)
@@ -23,27 +25,27 @@ internal partial class _Design
             case ["/ghoti", "no-param", ..]:
                 return NoParam();
             case ["/ghoti", "a", .. var rest]:
-                var provider_a = default(StringArgsProvider);
+                var provider_a = default(ArgsProvider);
             __B_Label:
                 // var str = "--opt";
-                ParsingErrors.Builder builder = default;
+                ArgParsingErrors.Builder builder = default;
 
-                var optRes = provider_a.GetOption<int, ParsableParser<int>>("--param", default);
-                builder.Add(optRes, "param", ParsingErrorKind.ParameterNotSet);
+                var optRes = provider_a.GetOption<string, DelegateParser<string>>("param", new(Par));
+                builder.AddWhenError(optRes, "param", ArgResultKind.ParameterNotSet);
 
-                var anoRes = provider_a.GetValuesUnmanaged(0, stackalloc ParsingResult<Option>[2], default(EnumParser<Option>));
-                builder.Add(anoRes, "param", ParsingErrorKind.ParameterNotSet);
+                var anoRes = provider_a.GetValuesUnmanaged<int, ParsableParser<int>>(0, default, stackalloc ArgResult<int>[2]);
+                builder.AddWhenError(anoRes, "ano", ArgResultKind.ParameterNotSet);
 
                 if (builder.HasError)
-                    return ErrorHandler(builder.GetErrors(provider_a, "Method"));
+                    return ErrorHandler(builder.Build(provider_a, "Method"));
                 else
-                    return Method(provider_a.GetOption<string, DelegateParser<string>>("--opt", new(Par), false));
+                    return Method(optRes.Value, anoRes.Values);
             case ["/ghoti", "b", .. var rest1]:
-                provider_a = default(StringArgsProvider);
+                provider_a = default(ArgsProvider);
 
                 goto __B_Label;
             case ["multi-flag"]:
-                var provider2 = default(StringArgsProvider)!;
+                var provider2 = default(ArgsProvider)!;
                 var arg = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default)
                     | provider2.GetFlag<Option, BinaryFlagParser<Option>>("b", default);
                 break;
@@ -51,14 +53,11 @@ internal partial class _Design
 
         return default!;
 
-        TRtn Method(string? str) => default!;
+        TRtn Method(string? str, ReadOnlySpan<int> span) => default!;
     }
 
-    private TRtn ErrorHandler(in ParsingErrors errors)
+    private TRtn ErrorHandler(in ArgParsingErrors errors)
     {
-        foreach (var err in errors) {
-
-        }
         return default!;
     }
 
@@ -101,7 +100,7 @@ internal partial class _Design
     private static BinaryFlagParser<string> _strFlagParser = new("success", "failed");
     private static BinaryFlagParser<int> _intFlagParser = new(1, -1);
     private static CustomParser _customParser = default;
-    public static bool Par(ReadOnlySpan<char> input, out string output)
+    public static bool Par(InputArg input, out string output)
     {
         output = input.ToString().Reverse().ToArray().AsSpan().ToString();
         return true;
@@ -128,12 +127,13 @@ internal partial class _Design
 
     readonly struct CustomParser : IArgParser<string?>
     {
-        public readonly bool TryParse(ReadOnlySpan<char> rawArg, [MaybeNullWhen(false)] out string result)
+        public readonly bool TryParse(InputArg input, [MaybeNullWhen(false)] out string result)
         {
             // Repeat string twice
-            var span = (stackalloc char[rawArg.Length * 2]);
-            rawArg.CopyTo(span);
-            rawArg.CopyTo(span[rawArg.Length..]);
+            var inputSpan = input.RawInputSpan;
+            var span = (stackalloc char[inputSpan.Length * 2]);
+            inputSpan.CopyTo(span);
+            inputSpan.CopyTo(span[inputSpan.Length..]);
             result = new(span);
             return true;
         }
