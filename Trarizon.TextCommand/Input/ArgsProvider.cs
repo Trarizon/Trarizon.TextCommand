@@ -59,24 +59,12 @@ public readonly ref partial struct ArgsProvider
         // Slice
         if (index.Kind == ArgIndexKind.Slice) {
             var (start, length) = index.SliceRange;
-            var rawSpan = _sourceInput.Slice(start, length);
-            return parser.TryParse(rawSpan, out result);
+            return parser.TryParse(new(_sourceInput.Slice(start, length)), out result);
         }
         // From cached
         else {
             Debug.Assert(index.Kind is ArgIndexKind.FromCached);
-
-            var rawArg = _sourceArray[index.CachedIndex];
-
-            // Specialized for string,
-            // to avoid string->ROS<char>->string conversion while parse
-            if (typeof(TParser) == typeof(ParsableParser<string>)) {
-                result = Unsafe.As<string, T>(ref rawArg);
-                return true;
-            }
-            else {
-                return parser.TryParse(rawArg, out result);
-            }
+            return parser.TryParse(new(_sourceArray[index.CachedIndex]), out result);
         }
     }
 
