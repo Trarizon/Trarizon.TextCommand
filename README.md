@@ -83,7 +83,7 @@ Attribute|Comments
 
 Attribute params|Comments
 :-:|:--
-`Parser`|Parser of parameter, See rules [below](#parser-rules)
+`Parser`<br/>`ParserType`|Use one of these. Parser of parameter, See rules [below](#parser-rules)
 `Alias`|*Constructor param.* Alias of parameter, use with prefix `-`
 `Name`|Name of parameer, default is the name of parameter
 `Required`|Default is `false`. Exceptions threw when not existing if `true`
@@ -91,10 +91,10 @@ Attribute params|Comments
 
 ### Parser Rules
 
-Custom parsers should be *field*, *Property* or *Method* in current type.
+Custom parsers should be *field*, *property* or *method* in current type. Or any value type implements required interfaces.
 
 For `flag`, parser implements `IArgFlagParser<T>`; for others, implements `IArgParser<T>`.
-Method parser should assignable to `ArgParsingDelegate` or `ArgFlagParsingDelegate`
+Method parser should be implicit converted to `ArgParsingDelegate` or `ArgFlagParsingDelegate`
 
 Build-in parser:
 - `ParsableParser<T>` : Parse `ISpanParsable<T>` 
@@ -104,3 +104,10 @@ Build-in parser:
 - `DelegateParser<T>` : Wrap a parser delegate
 - `DelegateFlagParser<T>` : Wrap a parser delegate
 - `NullableParser<TParser, T>` : Wrap parser for `Nullable<T>`
+
+### Error Handling
+
+Custom error handler should be *method* in current type, and match following rules:
+- Return type of current type should be void or implicit converted to return type of execution method.
+- First parameter is `ArgResultErrors`, could be marked with `in`
+- Second parameter is optional, with type `string`, means the executor method name where the error comes.

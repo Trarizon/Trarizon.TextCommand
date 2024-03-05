@@ -83,7 +83,7 @@ Attribute参数中提供了部分设置用于自定义，
 
 参数|注释
 :-:|:--
-`Parser`|参数的解析器，详细见下文[Parser规范](#Parser规范)
+`Parser`<br/>`ParserType`|二选一。参数的解析器，详细见下文[Parser规范](#Parser规范)
 `Alias`|**构造函数参数**，参数别名，即用单个`-`指定的参数
 `Name`|参数名，默认使用方法定义的参数名
 `Required`|默认`false`，若为`true`，则解析时不存在该参数会抛异常
@@ -91,7 +91,7 @@ Attribute参数中提供了部分设置用于自定义，
 
 ### Parser规范
 
-自定义Parser应为类型内部的**字段**或**属性**
+自定义Parser应为类型内部的**字段**、**属性**或**方法**。或任意实现了要求接口的值类型
 
 对于`Flag`，parser需实现`IArgFlagParser<T>`；对于其他参数，需实现`IArgParser<T>`
 
@@ -103,3 +103,10 @@ Attribute参数中提供了部分设置用于自定义，
 - `DelegateParser<T>` : 包装一个方法进行解析
 - `DelegateFlagParser<T>` : 包装一个方法进行解析
 - `NullableParser<TParser, T>` : 提供了`Nullable<T>`解析的包装
+
+### Error处理
+
+自定义ErrorHandler应为类型内部的**方法**，并符合以下要求：
+- 返回值为void或可隐式转换为Execution的返回值
+- 第一个参数为`ArgResultErrors`类型，可标记为`in`
+- 第二个参数可选，应为`string`类型，表示发生错误的`Executor`方法名

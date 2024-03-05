@@ -42,9 +42,10 @@
 	- `ISpanParsable`默认Parser为`ParsableParser<>`
 	- `enum`类型默认Parser为`EnumParser`
 	- `Nullable<T> where T : ISpanParsable<T>`默认Parser为`NullableParser<ParsableParser<T>, T>`
-- Parser需为当前类型的字段、属性或方法
+- Parser需为当前类型的字段、属性、方法或类型。使用`Parser`或`ParserType`属性标记
 	- 字段/属性Parser视类型需实现`IArgParser`或`IArgFlagParser`
 	- 方法Parser签名视CLParameter类型匹配`ArgParsingDelegate`或`ArgParsingDelegate`，程序会以`DelegateParser<>`或`DelegateFlagParser<>`包装使用
+	- 类型Parser需要实现对应的`IArgParser`或`IArgFlagParser`，且应为值类型
 - 参数名不允许重复
 - [warning] RestValues之后不应出现Value或Values参数
 - [warning] 未标记Required的参数可能为`default`
@@ -65,9 +66,11 @@
 #### Value
 
 - Parser同[Option](#option)
+- RestValue之后的值始终为空数组
  
-#### Values
+#### MultiValue
 
 - [warning] 参数不能<=0，该值预留作为RestValues
 - 类型必须为`Span<>`,`ReadOnlySpan<>`,`T[]`,`List<>`,`IEnumerable<>`之一
 - Parser同[Value](#value)
+- RestValue之后的值始终为空数组
