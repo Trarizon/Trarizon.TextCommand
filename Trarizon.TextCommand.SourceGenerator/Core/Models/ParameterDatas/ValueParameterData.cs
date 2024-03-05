@@ -1,20 +1,17 @@
 ﻿using Microsoft.CodeAnalysis;
-using Trarizon.TextCommand.SourceGenerator.Core.Models;
 
-namespace Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
-internal sealed class ValueParameterData(ParameterModel parameter) : IParameterData, IRequiredParameterData
+namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
+internal sealed class ValueParameterData(ParameterModel model) : IParameterData, IRequiredParameterData, IValueParameterData
 {
-    public ParameterModel Model { get; } = parameter;
+    public ParameterModel Model { get; } = model;
 
     public required ParserInfoProvider ParserInfo { get; init; }
 
     private ITypeSymbol? _parsedTypeSymbol;
     public ITypeSymbol ParsedTypeSymbol
     {
-        get
-        {
-            if (_parsedTypeSymbol is null)
-            {
+        get {
+            if (_parsedTypeSymbol is null) {
                 _parsedTypeSymbol = Model.Symbol.Type;
                 // Remove nullable annotation of reference type for implicit parser
                 if (!_parsedTypeSymbol.IsValueType && _parsedTypeSymbol.NullableAnnotation == NullableAnnotation.Annotated)
@@ -26,4 +23,12 @@ internal sealed class ValueParameterData(ParameterModel parameter) : IParameterD
     }
 
     public bool Required { get; init; }
+
+    public int Index { get; set; }
+
+    public bool IsUnreachable => Index < 0;
+
+    int IValueParameterData.MaxCount => 1;
+
+    bool IValueParameterData.IsRest => false;
 }

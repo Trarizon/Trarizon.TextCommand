@@ -1,7 +1,7 @@
 ﻿namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal enum ImplicitParameterKind
 {
-    Invalid,
+    Invalid = 0,
     Boolean,
     SpanParsable,
     Enum,

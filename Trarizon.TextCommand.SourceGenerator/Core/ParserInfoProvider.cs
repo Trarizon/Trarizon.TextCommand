@@ -1,33 +1,50 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal readonly struct ParserInfoProvider
 {
+    public static readonly ParserInfoProvider Invalid = default;
+
     public ParserKind Kind { get; }
 
-    private readonly ImplicitParameterKind _implicitCLParameterKind;
-    public ImplicitParameterKind ImplicitCLParameterKind => _implicitCLParameterKind;
+    public ImplicitParameterKind ImplicitParameterKind { get; }
 
-    private readonly ITypeSymbol? _memberType;
-    private readonly ISymbol? _member;
-    public (ITypeSymbol Type, ISymbol Member) FieldOrProperty => (_memberType!, _member!);
-    public IMethodSymbol Method => (IMethodSymbol)_member!;
+    private readonly (ITypeSymbol, ISymbol) _member;
+    public (ITypeSymbol Type, ISymbol Member) FieldOrProperty => _member;
+    public IMethodSymbol Method => (IMethodSymbol)_member.Item2;
+    public ITypeSymbol Struct => (ITypeSymbol)_member.Item2;
 
-    public ParserInfoProvider(ImplicitParameterKind implicitCLParameterKind)
+    public ParserInfoProvider(ImplicitParameterKind implicitParameterKind)
     {
         Kind = ParserKind.Implicit;
-        _implicitCLParameterKind = implicitCLParameterKind;
+        ImplicitParameterKind = implicitParameterKind;
     }
 
     public ParserInfoProvider(ITypeSymbol fieldOrPropertyType, ISymbol fieldOrPropertyMember)
     {
         Kind = ParserKind.FieldOrProperty;
-        (_memberType, _member) = (fieldOrPropertyType, fieldOrPropertyMember);
+        _member = (fieldOrPropertyType, fieldOrPropertyMember);
     }
 
     public ParserInfoProvider(IMethodSymbol method)
     {
         Kind = ParserKind.Method;
-        _member = method;
+        _member.Item2 = method;
+    }
+
+    public ParserInfoProvider(ITypeSymbol structType)
+    {
+        Kind = ParserKind.Struct;
+        _member.Item2 = structType;
+    }
+
+    public enum ParserKind
+    {
+        Invalid = 0,
+        Implicit,
+        FieldOrProperty,
+        Method,
+        Struct,
     }
 }

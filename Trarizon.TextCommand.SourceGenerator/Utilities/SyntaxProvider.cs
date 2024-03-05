@@ -1,6 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Generic;
+using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 
 namespace Trarizon.TextCommand.SourceGenerator.Utilities;
@@ -32,10 +34,6 @@ internal static class SyntaxProvider
             SyntaxFactory.IdentifierName(member.Name));
     }
 
-    public static ArgumentSyntax DefaultArgument(TypeSyntax type)
-        => SyntaxFactory.Argument(
-            SyntaxFactory.DefaultExpression(type));
-
     public static LocalDeclarationStatementSyntax LocalVarSingleVariableDeclaration(string variableName, ExpressionSyntax initializer)
         => SyntaxFactory.LocalDeclarationStatement(
             SyntaxFactory.VariableDeclaration(
@@ -56,9 +54,43 @@ internal static class SyntaxProvider
             SyntaxKind.NumericLiteralExpression,
             SyntaxFactory.Literal(value));
 
-    public static LiteralExpressionSyntax LiteralBooleanExpression(bool flag)
-        => SyntaxFactory.LiteralExpression(
-            flag ? SyntaxKind.TrueLiteralExpression : SyntaxKind.FalseLiteralExpression);
+    public static InvocationExpressionSyntax SimpleMethodInvocation(ExpressionSyntax self, SimpleNameSyntax method, ExpressionSyntax arg)
+    {
+        return SyntaxFactory.InvocationExpression(
+            SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                self,
+                method),
+            ArgumentList(arg));
+    }
+
+    public static InvocationExpressionSyntax SimpleMethodInvocation(ExpressionSyntax self, SimpleNameSyntax method, params ExpressionSyntax[] args)
+        => SimpleMethodInvocation(self, method, args.AsEnumerable());
+
+    public static InvocationExpressionSyntax SimpleMethodInvocation(ExpressionSyntax self, SimpleNameSyntax method, IEnumerable<ExpressionSyntax> args)
+    {
+        return SyntaxFactory.InvocationExpression(
+            SyntaxFactory.MemberAccessExpression(
+                SyntaxKind.SimpleMemberAccessExpression,
+                self,
+                method),
+            ArgumentList(args));
+    }
+
+    public static ArgumentListSyntax ArgumentList( ExpressionSyntax arg)
+        => SyntaxFactory.ArgumentList(
+            SyntaxFactory.SingletonSeparatedList(
+               SyntaxFactory.Argument(arg)));
+
+    public static ArgumentListSyntax ArgumentList(params ExpressionSyntax[] args)
+        => SyntaxFactory.ArgumentList(
+            SyntaxFactory.SeparatedList(
+                args.Select(SyntaxFactory.Argument)));
+
+    public static ArgumentListSyntax ArgumentList(IEnumerable<ExpressionSyntax> args)
+        => SyntaxFactory.ArgumentList(
+            SyntaxFactory.SeparatedList(
+                args.Select(SyntaxFactory.Argument)));
 
     #endregion
 }

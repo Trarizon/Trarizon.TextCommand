@@ -12,20 +12,16 @@ public readonly ref struct ArgParsingErrors
     // unescapeds when string input
     // source when array input
     private readonly ReadOnlySpan<string> _sourceArray;
-    private readonly string _executorMethodName;
     private readonly ReadOnlySpan<ArgParsingError> _errors;
 
     internal ArgParsingErrors(
         ReadOnlySpan<char> sourceString, ReadOnlySpan<string> sourceArray,
-        string executorMethodName, ReadOnlySpan<ArgParsingError> errors)
+        ReadOnlySpan<ArgParsingError> errors)
     {
         _sourceString = sourceString;
         _sourceArray = sourceArray;
-        _executorMethodName = executorMethodName;
         _errors = errors;
     }
-
-    public string ExecutorMethodName => _executorMethodName;
 
     public int Count => _errors.Length;
 
@@ -153,8 +149,8 @@ public readonly ref struct ArgParsingErrors
             }
         }
 
-        public readonly ArgParsingErrors Build(in ArgsProvider provider, string executorMethodName)
-            => new(provider._sourceInput, provider._sourceArray, executorMethodName, _errors.AsSpan());
+        public readonly ArgParsingErrors Build(in ArgsProvider provider)
+            => new(provider._sourceInput, provider._sourceArray, _errors.AsSpan());
 
         public readonly void DefaultErrorHandler()
         {

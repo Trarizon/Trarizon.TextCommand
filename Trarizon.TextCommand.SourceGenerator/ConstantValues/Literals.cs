@@ -1,4 +1,8 @@
-﻿namespace Trarizon.TextCommand.SourceGenerator.ConstantValues;
+﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Trarizon.TextCommand.SourceGenerator.Utilities;
+
+namespace Trarizon.TextCommand.SourceGenerator.ConstantValues;
 internal static class Literals
 {
     public const string Namespace = "Trarizon.TextCommand";
@@ -16,8 +20,10 @@ internal static class Literals
     public const string MultiValueAttribute_TypeName = $"{Namespace}.Attributes.Parameters.MultiValueAttribute";
 
     public const int ExecutionAttribute_CommandName_CtorParameterIndex = 0;
+    public const string ExecutionAttribute_ErrorHandler_PropertyIdentifier = "ErrorHandler";
     public const int ExecutorAttribute_CommandPrefixes_CtorParameterIndex = 0;
-    public const string ParameterAttribute_ParserPropertyIdentifier = "Parser";
+    public const string ParameterAttribute_Parser_PropertyIdentifier = "Parser";
+    public const string ParameterAttribute_ParserType_PropertyIdentifier = "ParserType";
     public const int FlagAttribute_Alias_CtorParameterIndex = 0;
     public const string FlagAttribute_Name_PropertyIdentifier = "Name";
     public const int OptionAttribute_Alias_CtorParameterIndex = 0;
@@ -27,21 +33,39 @@ internal static class Literals
     public const int MultiValueAttribute_MaxCount_CtorParameterIndex = 0;
     public const string MultiValueAttribute_Required_PropertyIdentifier = "Required";
 
-
     // Input
 
     public const string ParameterSet_TypeName = $"{Namespace}.Input.ParameterSet";
     public const string StringInputMatcher_TypeName = $"{Namespace}.Input.StringInputMatcher";
+    public const string InputArg_TypeName = $"{Namespace}.Input.InputArg";
 
     public const string ParameterSet_Parse_MethodIdentifier = "Parse";
     public const string ArgsProvider_GetFlag_MethodIdentifier = "GetFlag";
     public const string ArgsProvider_GetOption_MethodIdentifier = "GetOption";
     public const string ArgsProvider_GetValue_MethodIdentifier = "GetValue";
-    public const string ArgsProvider_GetValues_MethodIdentifier = "GetValues";
+    public const string ArgsProvider_GetValuesUnmanaged_MethodIdentifier = "GetValuesUnmanaged";
     public const string ArgsProvider_GetValuesArray_MethodIdentifier = "GetValuesArray";
     public const string ArgsProvider_GetValuesList_MethodIdentifier = "GetValuesList";
     public const string ArgsProvider_GetAvailableArrayLength_MethodIdentifier = "GetAvailableArrayLength";
-   
+
+    // Input.Result
+
+    public const string ArgParsingErrors_TypeName = $"{Namespace}.Input.Result.ArgParsingErrors";
+    public const string ArgParsingErrorsBuilder_TypeName = $"{Namespace}.Input.Result.ArgParsingErrors.Builder";
+    public const string ArgResultKind_TypeName = $"{Namespace}.Input.Result.ArgResultKind";
+    public const string ArgResult_TypeName = $"{Namespace}.Input.Result.ArgResult";
+    public const string ArgRawResultInfo_TypeName = $"{Namespace}.Input.Result.ArgRawResultInfo";
+
+    public const string ArgParsingErrorsBuilder_HasError_PropertyIdentifier = "HasError";
+    public const string ArgParsingErrorsBuilder_AddWhenError_MethodIdentifier = "AddWhenError";
+    public const string ArgParsingErrorsBuilder_DefaultErrorHandler_MethodIdentifier = "DefaultErrorHandler";
+    public const string ArgParsingErrorsBuilder_Build_MethodIdentifier = "Build";
+    public const string ArgResult_Value_PropertyIdentifier = "Value";
+    public const string ArgResults_Values_PropertyIdentifier = "Values";
+
+    public const string ArgResultKind_ParameterNotSet_FieldName = "ParameterNotSet";
+    public const string ArgResultKind_ParsingFailed_FieldName = "ParsingFailed";
+
     // Parsers
 
     public const string IArgParser_TypeName = $"{Namespace}.Parsers.IArgParser";

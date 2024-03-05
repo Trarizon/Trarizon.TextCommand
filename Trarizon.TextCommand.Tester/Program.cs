@@ -12,3 +12,21 @@ design.Run("/ghoti no-param");
 design.Run("/ghoti default settings --flag --option a --number 114");
 design.Run(@"/ghoti explicit parameter type -f A -nf true B ""string with space and """" escape """" "" 1 2 3 5 4 7 8");
 design.Run(@"/ghoti custom --custom value --strFlag --methodParser ""from method""");
+
+Unm<int>();
+Unm<int?>();
+Unm<A>();
+Unm<B>();
+
+
+void Unm<T>() where T : unmanaged { }
+
+struct A
+{
+    int a;
+    int b;
+}
+
+struct B {
+    int? a;
+}

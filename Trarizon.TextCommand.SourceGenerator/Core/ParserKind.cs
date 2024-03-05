@@ -1,7 +1,7 @@
 ﻿namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal enum ParserKind
 {
-    Invalid,
+    Invalid = 0,
     Implicit,
     FieldOrProperty,
     Method,

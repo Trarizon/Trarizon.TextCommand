@@ -1,58 +1,55 @@
 ﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
+using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal static class ValidationHelper
 {
-    public static InputParameterType ValidateInputParameterType(ITypeSymbol type)
+    /// <summary>
+    /// Is struct or nullable class
+    /// </summary>
+    public static bool IsCanBeDefault(this ITypeSymbol type)
     {
-        if (type.SpecialType is SpecialType.System_String)
-            return InputParameterType.String;
+        return type is not {
+            IsValueType: false,
+            NullableAnnotation: NullableAnnotation.NotAnnotated,
+        };
+    }
 
-        else if (type is IArrayTypeSymbol {
-            ElementType.SpecialType: SpecialType.System_String
-        }) {
-            return InputParameterType.Array;
-        }
+    public static bool IsValidCommandPrefix(string commandPrefix)
+    {
+        if (!commandPrefix.TryAt(0, out var c))
+            return false;
+        if (c == '-')
+            return false;
+        if (commandPrefix.Any(char.IsWhiteSpace))
+            return false;
 
-        else if (type is INamedTypeSymbol {
-            TypeArguments: [{ SpecialType: SpecialType.System_String }]
-        } namedType) {
-            return namedType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric) switch {
-                Constants.ReadOnlySpan_TypeName => InputParameterType.Span,
-                Constants.Span_TypeName => InputParameterType.Span,
-                Constants.List_TypeName => InputParameterType.List,
-                _ => InputParameterType.Unknown,
-            };
-        }
-
-        return InputParameterType.Unknown;
+        return true;
     }
 
     public static ImplicitParameterKind ValidateImplicitParameterKind(ITypeSymbol type)
     {
         // Boolean
-        if (type.SpecialType is SpecialType.System_Boolean) {
+        if (type.SpecialType is SpecialType.System_Boolean)
             return ImplicitParameterKind.Boolean;
-        }
 
-        // Nullable mark
-        bool isNullable = type.IsValueType && type.NullableAnnotation == NullableAnnotation.Annotated;
-        type = isNullable
-            ? ((INamedTypeSymbol)type).TypeArguments[0]
-            : type;
+        // Nullable
+        bool isNullable = type is {
+            IsValueType: true,
+            NullableAnnotation: NullableAnnotation.Annotated,
+        };
+        if (isNullable)
+            type = ((INamedTypeSymbol)type).TypeArguments[0];
 
         // ISpanParsable
-        if (type.AllInterfaces.Any(static interfaceType
-            => interfaceType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric) == Constants.ISpanParsable_TypeName
-            && interfaceType.TypeArguments.Length == 1)
-        ) {
+        var isSpanParsable = type.AllInterfaces.Any(interfaceType
+            => interfaceType.MatchDisplayString(Constants.ISpanParsable_TypeName, SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric)
+            && interfaceType.TypeArguments.Length == 1);
+        if (isSpanParsable) {
             return isNullable
                 ? ImplicitParameterKind.NullableSpanParsable
                 : ImplicitParameterKind.SpanParsable;
@@ -69,7 +66,7 @@ internal static class ValidationHelper
         return ImplicitParameterKind.Invalid;
     }
 
-    public static MultiValueCollectionType ValidateMultiValueCollectionType(ITypeSymbol type, out ITypeSymbol elementType)
+    public static MultiValueCollectionType ValidateMultiCollectionType(ITypeSymbol type, out ITypeSymbol elementType)
     {
         if (type is IArrayTypeSymbol arrayType) {
             elementType = arrayType.ElementType;
@@ -83,7 +80,7 @@ internal static class ValidationHelper
                 Constants.Span_TypeName => MultiValueCollectionType.Span,
                 Constants.List_TypeName => MultiValueCollectionType.List,
                 Constants.IEnumerable_TypeName => MultiValueCollectionType.Enumerable,
-                _ => MultiValueCollectionType.Invalid
+                _ => MultiValueCollectionType.Invalid,
             };
         }
 
@@ -91,21 +88,22 @@ internal static class ValidationHelper
         return MultiValueCollectionType.Invalid;
     }
 
-    public static bool IsCustomParser(SemanticModel semanticModel, ITypeSymbol parserType, ITypeSymbol assignedType, bool isFlag,
+    public static bool IsValidParserType(SemanticModel semanticModel, ITypeSymbol parserType, ITypeSymbol assignedType, bool isFlag,
         [NotNullWhen(true)] out ITypeSymbol? parsedType, out bool nullableClassTypeMayAssignToNotNullable)
     {
         var displayString = isFlag ? Literals.IArgFlagParser_TypeName : Literals.IArgParser_TypeName;
 
-        foreach (var interfaceType in parserType.AllInterfaces) {
-            if (interfaceType.ToDisplayString(SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric) == displayString &&
-                interfaceType.TypeArguments is [var typeArg]
+        foreach (var type in parserType.AllInterfaces) {
+            if (type.MatchDisplayString(displayString, SymbolDisplayFormats.CSharpErrorMessageWithoutGeneric)
+                && type.TypeArguments is [var typeArg]
             ) {
                 parsedType = typeArg;
-                return IsParsedTypeMatched(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+                return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
         }
-        parsedType = null;
-        nullableClassTypeMayAssignToNotNullable = false;
+
+        parsedType = default;
+        nullableClassTypeMayAssignToNotNullable = default;
         return false;
     }
 
@@ -114,69 +112,58 @@ internal static class ValidationHelper
     {
         if (isFlag) {
             // Match delegate signature
-            if (method is not { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] })
-                goto End;
-            parsedType = method.ReturnType;
-            return IsParsedTypeMatched(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
-        }
-        else {
-            if (method is not {
-                ReturnType.SpecialType: SpecialType.System_Boolean,
-                Parameters:
-                [
-                    { Type: var spanParameterType },
-                    {
-                        RefKind: RefKind.Out,
-                        Type: var resultParameterType,
-                    }
-                ]
-            } || spanParameterType.ToDisplayString() != Constants.ReadOnlySpan_Char_TypeName) {
-                goto End;
+            if (method is { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] }) {
+                parsedType = method.ReturnType;
+                return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
-
+            // return default;
+        }
+        else if (method is {
+            ReturnType.SpecialType: SpecialType.System_Boolean,
+            Parameters:
+            [
+                { Type: var spanParameterType },
+                { RefKind: RefKind.Out, Type: var resultParameterType, }
+            ]
+        } && spanParameterType.MatchDisplayString(Literals.InputArg_TypeName)) {
             parsedType = resultParameterType;
-            return IsParsedTypeMatched(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+            return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
         }
 
-    End:
-        parsedType = null;
+        parsedType = default;
         nullableClassTypeMayAssignToNotNullable = default;
         return false;
     }
 
-    private static bool IsParsedTypeMatched(SemanticModel semanticModel, ITypeSymbol parsedType, ITypeSymbol assignedType, out bool nullableClassTypeMayAssignToNotNullable)
+    public static bool IsValidErrorHandler(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol executionReturnType)
     {
-        var conversion = semanticModel.Compilation.ClassifyCommonConversion(parsedType, assignedType);
+        if (!(method.ReturnsVoid || IsTypeAssignable(semanticModel, method.ReturnType, executionReturnType, out _)))
+            return false;
+
+        switch (method.Parameters) {
+            case [{ Type: var type, RefKind: RefKind.None or RefKind.In }] when type.MatchDisplayString(Literals.ArgParsingErrors_TypeName):
+                return true;
+            case [{ Type: var type, RefKind: RefKind.None or RefKind.In }, { Type.SpecialType: SpecialType.System_String }] when type.MatchDisplayString(Literals.ArgParsingErrors_TypeName):
+                return true;
+            default:
+                break;
+        }
+
+        return false;
+    }
+
+    private static bool IsTypeAssignable(SemanticModel semanticModel, ITypeSymbol type, ITypeSymbol assignedType, out bool nullableClassTypeMayAssignToNotNullable)
+    {
+        var conversion = semanticModel.Compilation.ClassifyCommonConversion(type, assignedType);
         if (!conversion.IsImplicit) {
             nullableClassTypeMayAssignToNotNullable = default;
             return false;
         }
         else {
             nullableClassTypeMayAssignToNotNullable = conversion.IsIdentity &&
-                parsedType.NullableAnnotation == NullableAnnotation.Annotated &&
+                type.NullableAnnotation == NullableAnnotation.Annotated &&
                 assignedType.NullableAnnotation != NullableAnnotation.Annotated;
             return true;
         }
-    }
-
-    public static bool IsValidCommandPrefix(string commandPrefix)
-    {
-        if (commandPrefix[0] == '-')
-            return false;
-
-        foreach (var c in commandPrefix) {
-            if (char.IsWhiteSpace(c))
-                return false;
-        }
-
-        return true;
-    }
-
-    public static bool IsCanBeDefault(this ITypeSymbol type)
-    {
-        return type is not {
-            IsValueType: false,
-            NullableAnnotation: NullableAnnotation.NotAnnotated,
-        };
     }
 }

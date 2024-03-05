@@ -28,6 +28,8 @@
 		<PolySharpIncludeGeneratedTypes>
 			System.Index;
 			System.Range;
+			System.Diagnostics.CodeAnalysis.AllowNullAttribute;
+			System.Diagnostics.CodeAnalysis.DisallowNullAttribute;
 			System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute;
 			System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute;
 			System.Diagnostics.CodeAnalysis.MemberNotNullAttribute;

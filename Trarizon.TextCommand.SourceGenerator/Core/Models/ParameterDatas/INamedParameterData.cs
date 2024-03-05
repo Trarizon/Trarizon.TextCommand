@@ -1,4 +1,4 @@
-﻿namespace Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
+﻿namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
 internal interface INamedParameterData : IParameterData
 {
     string? Alias { get; }

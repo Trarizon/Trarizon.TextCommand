@@ -1,18 +1,16 @@
 ﻿using System.Collections.Frozen;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Trarizon.TextCommand.Utilities;
 
 namespace Trarizon.TextCommand.Input;
 public sealed class ParameterSet(
-    // TODO: 源生成器中欧冠需要修正bool类型为int类型
     // 数字表示该值需要的参数数量，目前只需要1和0，
     // 1表示option，0表示flag
-    Dictionary<string, int>? optionOrFlagParameters,
+    Dictionary<string, int>? name_ParamCountDict,
     Dictionary<string, string>? aliasDict)
 {
-    private readonly FrozenDictionary<string, int> _optionOrFlagParameters = optionOrFlagParameters?.ToFrozenDictionary() ?? FrozenDictionary<string, int>.Empty;
+    private readonly FrozenDictionary<string, int> _optionOrFlagParameters = name_ParamCountDict?.ToFrozenDictionary() ?? FrozenDictionary<string, int>.Empty;
     private readonly FrozenDictionary<string, string> _aliasDict = aliasDict?.ToFrozenDictionary() ?? FrozenDictionary<string, string>.Empty;
 
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -22,7 +20,7 @@ public sealed class ParameterSet(
         // slice
         // from cache
         // flag
-        AllocOptList<ArgIndex> list = [];
+        AllocOptList<ArgIndex> list = new();
         string[] unescapeds = new string[rest.CountOfEscapes];
         int unescapeCount = 0;
 
@@ -95,7 +93,7 @@ public sealed class ParameterSet(
     public ArgsProvider Parse(ReadOnlySpan<string> args)
     {
         Dictionary<string, ArgIndex> dict = [];
-        AllocOptList<ArgIndex> list = [];
+        AllocOptList<ArgIndex> list = new();
 
         for (int i = 0; i < args.Length; i++) {
             var arg = args[i];

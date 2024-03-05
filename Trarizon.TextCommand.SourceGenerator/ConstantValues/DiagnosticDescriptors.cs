@@ -59,9 +59,9 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public readonly static DiagnosticDescriptor CannotFindExplicitParser_1 = new(
+    public readonly static DiagnosticDescriptor CannotFindExplicitParser_0MemberName = new(
         "TCMD0008",
-        nameof(CannotFindExplicitParser_1),
+        nameof(CannotFindExplicitParser_0MemberName),
         @"Cannot find explicit parser field, property, or method named ""{0}"" in command type",
         Literals.Namespace,
         DiagnosticSeverity.Error,
@@ -142,7 +142,7 @@ internal static class DiagnosticDescriptors
     public readonly static DiagnosticDescriptor ValueOrMultiValueAfterRestValueWillAlwaysDefault = new(
         "TCMD0017",
         nameof(ValueOrMultiValueAfterRestValueWillAlwaysDefault),
-        "'Value' or 'MultiValue' after a 'RestValue'(MultiValue with MaxCount <= 0) will alway default",
+        "'Value' or 'MultiValue' after a 'RestValue'(MultiValue with MaxCount <= 0) will never have value",
         Literals.Namespace,
         DiagnosticSeverity.Warning,
         true);
@@ -175,6 +175,48 @@ internal static class DiagnosticDescriptors
         "TCMD0021",
         nameof(ParsedArgumentMaybeNull),
         "Parsed argument may be null while parameter is not null",
+        Literals.Namespace,
+        DiagnosticSeverity.Warning,
+        true);
+
+    public readonly static DiagnosticDescriptor CannotFindErrorHandlerMethod_0MethodName = new(
+        "TCMD0022",
+        nameof(CannotFindErrorHandlerMethod_0MethodName),
+        "Cannot find error handler method {0}",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor ErrorHandlerInvalid = new(
+        "TCMD0023",
+        nameof(ErrorHandlerInvalid),
+        "The return type of ErrorHandler should be assignable to execution's return type, " +
+        "and the parameters of ErrorHandler should be ((in) ArgResultErrors, [string]), 2nd parameter is " +
+        "the name of method where error occurs",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor CustomTypeParserShouldBeValueType = new(
+        "TCMD0024",
+        nameof(CustomTypeParserShouldBeValueType),
+        "Custom type parser should be value type, because we use default(Parser) as parser",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor DoNotSpecifyBothParserAndParserType=new(
+        "TCMD0025",
+        nameof(DoNotSpecifyBothParserAndParserType),
+        "Do not specify both Parser and ParserType at same time",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor ValueCountOverflow = new(
+        "TCMD0026",
+        nameof(ValueCountOverflow),
+        "Total count of Value parameter is over int.MaxValue, this value will never have value",
         Literals.Namespace,
         DiagnosticSeverity.Warning,
         true);

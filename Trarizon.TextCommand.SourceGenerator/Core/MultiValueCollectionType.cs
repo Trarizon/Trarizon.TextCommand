@@ -1,7 +1,7 @@
 ﻿namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal enum MultiValueCollectionType
 {
-    Invalid,
+    Invalid = 0,
     ReadOnlySpan,
     Span,
     Array,

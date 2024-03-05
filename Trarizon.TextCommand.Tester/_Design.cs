@@ -10,12 +10,16 @@ using TRtn = string;
 
 namespace Trarizon.TextCommand.Tester;
 
-internal class _Design
-{
-    // TODO: 接下来写生成器，argprovider重写了，parameterSet参数小改
 
-    //[Execution("/ghoti")]
-    public string? Run(string customInput) => default;
+static class PSet
+{
+    public static readonly ParameterSet Set = new(default, default);
+}
+
+internal partial class _Design
+{
+    [Execution("/ghoti", ErrorHandler = nameof(ErrorHandler))]
+    public partial string? Run(string customInput);
 
     //[Execution("/ghoti", ErrorHandler = "")]
     private TRtn MaunallyRun(string input)
@@ -28,16 +32,16 @@ internal class _Design
                 var provider_a = default(ArgsProvider);
             __B_Label:
                 // var str = "--opt";
-                ArgParsingErrors.Builder builder = default;
+                var builder = new ArgParsingErrors.Builder();
 
-                var optRes = provider_a.GetOption<string, DelegateParser<string>>("param", new(Par));
+                var optRes = provider_a.GetOption<string, DelegateParser<string>>("param", new(ParseMethod));
                 builder.AddWhenError(optRes, "param", ArgResultKind.ParameterNotSet);
 
                 var anoRes = provider_a.GetValuesUnmanaged<int, ParsableParser<int>>(0, default, stackalloc ArgResult<int>[2]);
                 builder.AddWhenError(anoRes, "ano", ArgResultKind.ParameterNotSet);
 
                 if (builder.HasError)
-                    return ErrorHandler(builder.Build(provider_a, "Method"));
+                    return ErrorHandler(builder.Build(provider_a), "Method");
                 else
                     return Method(optRes.Value, anoRes.Values);
             case ["/ghoti", "b", .. var rest1]:
@@ -56,7 +60,7 @@ internal class _Design
         TRtn Method(string? str, ReadOnlySpan<int> span) => default!;
     }
 
-    private TRtn ErrorHandler(in ArgParsingErrors errors)
+    private static TRtn ErrorHandler(in ArgParsingErrors errors, string methodName)
     {
         return default!;
     }
@@ -69,7 +73,7 @@ internal class _Design
         return default!;
     }
 
-    // Default setting
+    // 默认选项
     [Executor("default", "settings")]
     [Executor("multi", "marked")]
     public TRtn DefaultSetting(bool flag, string? str, Option option, int number, int? nullNumber)
@@ -82,52 +86,48 @@ internal class _Design
         return default!;
     }
 
+    // 显式标记名字
+    // void返回值
     [Executor("explicit", "parameter", "type")]
-    public TRtn ExplicitParameterType([Flag("f")] bool flag, [Option("nf")] bool nonFlag, [MultiValue(2)] Span<Option> options,
-        [Value(Required = true)] string str, [Option] int number, [MultiValue(3)] Span<int?> ints,
-        [MultiValue] ReadOnlySpan<string> rest)
+    public TRtn ExplicitBasicParameterType(
+        // bool
+        [Flag("f")] bool flag, [Option("nf")] bool nonFlag,
+        // value option
+        [Value(Required = true)] string str, [Option] int number, [Option] Option option,
+        // multivalue stackalloc
+        [MultiValue(2)] Span<Option> stackallocOpt,
+        // multivalue ref type span
+        [MultiValue(3)] Span<int?> nullableInts, [MultiValue(2)] ReadOnlySpan<string> stringSpan,
+        // multivalue other type
+        [MultiValue(2)] int[] intArray, [MultiValue(3)] List<int> intList, [MultiValue(3)] IEnumerable<int> intEnumerable,
+        // multivalue rest values
+        [MultiValue] int[] rest,
+        [MultiValue(1)] int[] unreachable)
     {
         Print(flag);
         Print(nonFlag);
-        foreach (var opt in options)
-            Print(opt);
         Print(str);
         Print(number);
-        // Print(rest.AsEnumerable());
+        Print(option);
+        Print(stackallocOpt.ToArray());
+        Print(nullableInts.ToArray());
+        Print(stringSpan.ToArray());
+        Print(intArray);
+        Print(intList);
+        Print(rest);
+        Print(unreachable);
         return default!;
     }
+
+    #region Parsers
 
     private static BinaryFlagParser<string> _strFlagParser = new("success", "failed");
-    private static BinaryFlagParser<int> _intFlagParser = new(1, -1);
     private static CustomParser _customParser = default;
-    public static bool Par(InputArg input, out string output)
-    {
-        output = input.ToString().Reverse().ToArray().AsSpan().ToString();
-        return true;
-    }
 
-    [Executor("custom")]
-    public TRtn Custom(
-        [Flag(Parser = nameof(_strFlagParser))] string? strFlag,
-        [Flag(Parser = nameof(_intFlagParser))] int? intParser,
-        [Option(Parser = nameof(_customParser), Required = true)] string? custom,
-        [Option(Parser = nameof(Par), Required = true)] string methodParser)
+    private readonly struct CustomParser : IArgFlagParser<int>, IArgParser<string>
     {
-        Print(strFlag);
-        Print(custom);
-        Print(methodParser);
-        return default!;
-    }
-
-    public enum Option
-    {
-        A,
-        B,
-    }
-
-    readonly struct CustomParser : IArgParser<string?>
-    {
-        public readonly bool TryParse(InputArg input, [MaybeNullWhen(false)] out string result)
+        public int Parse(bool flag) => flag ? 1 : 0;
+        public bool TryParse(InputArg input, [MaybeNullWhen(false)] out string result)
         {
             // Repeat string twice
             var inputSpan = input.RawInputSpan;
@@ -137,6 +137,46 @@ internal class _Design
             result = new(span);
             return true;
         }
+    }
+
+    private static int ParseIntFlag(bool input)
+    {
+        return input.ToString().Length;
+    }
+    public static bool ParseMethod(InputArg input, out string output)
+    {
+        output = input.ToString().Reverse().ToArray().AsSpan().ToString();
+        return true;
+    }
+
+    #endregion
+
+    // 自定义其他参数
+    [Executor("custom")]
+    public TRtn Custom(
+        // flag
+        [Flag(Parser = nameof(_strFlagParser))] string? strFlag,
+        [Flag(Parser = nameof(ParseIntFlag))] int? intParser,
+        [Flag(ParserType = typeof(CustomParser))] int? flagTypeParser,
+        // option value
+        [Option(Parser = nameof(_customParser), Required = true)] string? customParser,
+        [Value(ParserType = typeof(CustomParser), Required = true)] string typeParser,
+        // multivalue
+        [MultiValue(Parser = nameof(_customParser))] string?[] multiValue)
+    {
+        Print(strFlag);
+        Print(intParser);
+        Print(flagTypeParser);
+        Print(customParser);
+        Print(typeParser);
+        Print(multiValue);
+        return default!;
+    }
+
+    public enum Option
+    {
+        A,
+        B,
     }
 
     private static void Print<T>(T value, [CallerArgumentExpression(nameof(value))] string? arg = null)

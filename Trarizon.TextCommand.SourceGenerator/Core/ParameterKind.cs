@@ -1,7 +1,7 @@
 ﻿namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal enum ParameterKind
 {
-    Invalid,
+    Invalid = 0,
     Flag,
     Option,
     Value,

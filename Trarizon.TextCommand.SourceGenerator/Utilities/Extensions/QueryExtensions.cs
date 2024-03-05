@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
-internal static class EnumerableExtensions
+internal static class QueryExtensions
 {
     public static bool TryFirst<T>(this ImmutableArray<T> source, Func<T, bool> predicate, [MaybeNullWhen(false)] out T value)
     {
@@ -20,11 +21,6 @@ internal static class EnumerableExtensions
         value = default;
         return false;
     }
-
-    public static IEnumerable<T> EmptyIfNull<T>(this IEnumerable<T>? source) => source ?? [];
-
-    public static bool TrySingle<T>(this IEnumerable<T> source, Func<T, bool> predicate, [MaybeNullWhen(false)] out T value, T? defaultValue = default!)
-        => source.TryPredicateSingleInternal(predicate, out value, defaultValue, false);
 
     public static bool TrySingleOrNone<T>(this IEnumerable<T> source, Func<T, bool> predicate, [MaybeNullWhen(false)] out T value, T? defaultValue = default!)
         => source.TryPredicateSingleInternal(predicate, out value, defaultValue, true);
@@ -59,4 +55,36 @@ internal static class EnumerableExtensions
         }
     }
 
+    public static bool TryAt(this string source, int index, out char value)
+    {
+        if (index < 0 || index >= source.Length) {
+            value = default;
+            return false;
+        }
+
+        value = source[index];
+        return true;
+    }
+
+    public static IEnumerable<TResult> WhereSelect<T, TResult>(this IEnumerable<T> source, Func<T, Optional<TResult>> filter)
+    {
+        foreach (var item in source) {
+            if (filter(item).TryGetValue(out var val)) {
+                yield return val;
+            }
+        }
+    }
+
+    public static IEnumerable<TResult> SelectNonException<T, TResult>(this IEnumerable<T> source, Func<T, TResult> select)
+    {
+        foreach (var item in source) {
+            TResult val;
+            try {
+                val = select(item);
+            } catch (Exception) {
+                continue;
+            }
+            yield return val;
+        }
+    }
 }

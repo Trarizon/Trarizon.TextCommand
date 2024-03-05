@@ -5,11 +5,8 @@ using System.Linq;
 using System.Text;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
-
-//using Trarizon.TextCommand.SourceGenerator.Core.OldModels;
-using Trarizon.TextCommand.SourceGenerator.Core.Providers;
+using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
-using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator;
 [Generator(LanguageNames.CSharp)]
@@ -20,11 +17,11 @@ public class ExecutionGenerator : IIncrementalGenerator
         var langVersionResult = context.ParseOptionsProvider.Select((options, token) =>
         {
             if (options is CSharpParseOptions csOption && csOption.LanguageVersion >= LanguageVersion.CSharp12) {
-                return Filter.Success;
+                return null;
             }
-            return Filter.CreateDiagnostic(Diagnostic.Create(
+            return Diagnostic.Create(
                 DiagnosticDescriptors.RequiresLangVersionCSharp12,
-                null));
+                null);
         });
 
         var filter = context.SyntaxProvider.ForAttributeWithMetadataName(
@@ -34,38 +31,52 @@ public class ExecutionGenerator : IIncrementalGenerator
             {
                 token.ThrowIfCancellationRequested();
 
-                return Filter.Select(new CommandModel(context), c => c.SelectExecution())
-                .Predicate(e => e.ValidateParameter_SetInputParameterType())
-                .Predicate(e => e.ValidateReturnType())
-                .Predicate(e => e.ValidateCommandName())
-                .Predicate(e => e.ValidateExecutorsCommandPrefixes())
-                .PredicateMany(e => e.Executors,
-                    e => Filter.Create(e)
-                    .Predicate(e => e.ValidateStaticKeyword())
-                    .Predicate(e => e.ValidateReturnType())
-                    .PredicateMany(e => e.Parameters,
-                        p => Filter.Create(p)
-                        .Predicate(p => p.ValidateSingleAttribute_SetParameterKind())
-                        .Predicate(p => p.ValidateParameterData_SetParameterData())
-                        .CloseIfHasError()
-                        .Predicate(p => p.ValidateRequiredParameterNullableAnnotation()))
-                    .Predicate(e => e.ValidateValueParametersAfterRestValues())
-                    .Predicate(e => e.ValidateOptionKeys()))
-                .CloseIfHasError();
+                var res = new DiagnosticContext<CommandModel>(new CommandModel(context));
+                var executor = res
+                     .Select(c => c.ExecutionModel)
+                     .Validate(e => e.ValidateParameter())
+                     .Validate(e => e.ValidateReturnType())
+                     .Validate(e => e.ValidateCommandName())
+                     .Validate(e => e.ValidateErrorHandler())
+                     .Validate(e => e.ValidateExecutorsCommandPrefixes())
+                     .SelectMany(e => e.Executors)
+                     .Validate(e => e.ValidateStaticKeyword())
+                     .Validate(e => e.ValidateReturnType())
+                     .Validate(e => e.ValidateCommandPrefixes());
+                executor
+                     .SelectMany(e => e.Parameters)
+                     .Validate(p => p.ValidateSingleAttribute())
+                     .Validate(p => p.ValidateParameterData())
+                     .Validate(p => p.ValidateRequiredParameterNullableAnnotation());
+                executor
+                    .Validate(e => e.ValidateOptionKeys())
+                    .Validate(e => e.ValidateValueParametersCount());
+
+                return res;
             });
 
-        context.RegisterFilteredSourceOutput(filter, (context, model) =>
+        context.RegisterSourceOutput(langVersionResult, (context, source) =>
         {
-            var provider = new ExecutionProvider(model);
+            if (source is not null) {
+                context.ReportDiagnostic(source);
+            }
+        });
 
-            var compilationUnit = SyntaxFactory.CompilationUnit(
-                default,
-                default,
-                default,
-                SyntaxFactory.List(new[] {
-                    provider.Command.ClonePartialTypeDeclaration()
-                        .WithLeadingTrivia(
-                            SyntaxFactory.TriviaList(
+        context.RegisterSourceOutput(filter, (context, diagContext) =>
+        {
+            foreach (var diag in diagContext.Diagnostics) {
+                context.ReportDiagnostic(diag);
+            }
+
+            foreach (var cmd in diagContext.Values) {
+                var provider = new CommandProvider(cmd);
+                var compilation = SyntaxFactory.CompilationUnit(
+                    default,
+                    default,
+                    default,
+                    SyntaxFactory.List(new[] {
+                        provider.PartialTypeDeclaration()
+                            .WithLeadingTrivia(
                                 SyntaxFactory.Trivia(
                                     SyntaxFactory.NullableDirectiveTrivia(
                                         SyntaxFactory.Token(SyntaxKind.EnableKeyword), true)),
@@ -77,13 +88,14 @@ public class ExecutionGenerator : IIncrementalGenerator
                                             SyntaxFactory.IdentifierName(Constants.LabelNotBeenReferenced_ErrorCode),
                                             SyntaxFactory.IdentifierName(Constants.PossibleNullReferenceArgumentForParameter_ErrorCode),
                                         }),
-                                        true)))),
-                    provider.ParameterSets_ClassDeclaration(),
-                }));
+                                        true))),
+                        provider.ParameterSetsTypeDeclaration(),
+                    }));
 
-            context.AddSource(
-                $"{provider.Command.Symbol.ToDisplayString().Replace('<', '{').Replace('>', '}')}.TextCommand.g.cs",
-                compilationUnit.NormalizeWhitespace().GetText(Encoding.UTF8));
+                context.AddSource(
+                    $"{provider.Model.Symbol.ToDisplayString().Replace('<', '}').Replace('>', '}')}.g.cs",
+                    compilation.NormalizeWhitespace().GetText(Encoding.UTF8));
+            }
         });
     }
 }

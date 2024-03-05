@@ -15,6 +15,7 @@ internal static class Constants
     public const string CollectionsMarshal_TypeName = "System.Runtime.InteropServices.CollectionsMarshal";
 
     public const string AsSpan_Identifier = "AsSpan";
+    public const string Empty_Identifier = "Empty";
 
     public const string Dictionary_TypeName = "System.Collections.Generic.Dictionary";
     public const string GeneratedCodeAttribute_TypeName = "System.CodeDom.Compiler.GeneratedCodeAttribute";

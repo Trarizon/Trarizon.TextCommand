@@ -38,4 +38,6 @@ internal readonly struct Result<T, TError> where TError : class
 
     public Result<TResult, TError> SelectWrapped<TResult>(Func<T, Result<TResult, TError>> selector)
         => Success ? selector(_value) : new(_error);
+
+    public (T? Value, TError? error) ToTuple() => (_value, _error);
 }

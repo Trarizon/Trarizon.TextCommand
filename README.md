@@ -24,7 +24,7 @@ partial class Command
         [Flag("f")] bool flag,
         [Option("op")] string? option,
         [Value] int value,
-        [Values(5)] ReadOnlySpan<int> values)
+        [MultiValue(5)] ReadOnlySpan<int> values)
         => throw null!;
 }
 ```

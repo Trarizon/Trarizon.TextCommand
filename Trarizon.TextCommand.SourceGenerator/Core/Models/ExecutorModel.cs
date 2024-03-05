@@ -5,14 +5,15 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
-using Trarizon.TextCommand.SourceGenerator.Core.Models.Parameters;
+using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
-using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models;
-internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationSyntax syntax, IMethodSymbol symbol, IReadOnlyList<AttributeData> attributes)
+internal sealed class ExecutorModel(ExecutionModel execution, IEnumerable<AttributeData> attributeDatas)
 {
+    public SemanticModel SemanticModel => Execution.SemanticModel;
+
     public ExecutionModel Execution { get; } = execution;
 
     private ImmutableArray<ParameterModel> _parameters;
@@ -20,134 +21,143 @@ internal sealed class ExecutorModel(ExecutionModel execution, MethodDeclarationS
     {
         get {
             if (_parameters.IsDefault) {
-                _parameters = Syntax.ParameterList.Parameters
-                    .Select(p => new ParameterModel(this, p, Execution.Command.SemanticModel.GetDeclaredSymbol(p)!))
-                    .ToImmutableArray();
+                _parameters = Syntax.ParameterList.Parameters.Select(p
+                    => new ParameterModel(this) {
+                        Syntax = p,
+                        Symbol = SemanticModel.GetDeclaredSymbol(p)!,
+                    }).ToImmutableArray();
             }
             return _parameters;
         }
     }
 
-    public MethodDeclarationSyntax Syntax { get; } = syntax;
-
-    public IMethodSymbol Symbol { get; } = symbol;
-
-    private readonly IReadOnlyList<AttributeData> _attributes = attributes;
+    public required MethodDeclarationSyntax Syntax { get; init; }
+    public required IMethodSymbol Symbol { get; init; }
 
     // Data
 
-    private string[][]? _commandPrefixes;
-    public string[][] CommandPrefixes => _commandPrefixes ??= _attributes.Select(attr => attr.GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? []).ToArray();
+    private ImmutableArray<string[]> _commandPrefixes;
+    public ImmutableArray<string[]> CommandPrefixes
+    {
+        get {
+            if (_commandPrefixes.IsDefault) {
+                _commandPrefixes = attributeDatas
+                    .Select(attr => attr.GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? [])
+                    .ToImmutableArray();
+            }
+            return _commandPrefixes;
+        }
+    }
 
-    public Filter ValidateStaticKeyword()
+    // Validation
+
+    public Diagnostic? ValidateStaticKeyword()
     {
         if (Execution.Symbol.IsStatic && !Symbol.IsStatic) {
-            return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+            return DiagnosticFactory.Create(
                 DiagnosticDescriptors.ExecutorShouldBeStaticIfExecutionIs,
-                Syntax.Identifier));
+                Syntax.Identifier);
         }
-        return Filter.Success;
+        return null;
     }
 
-    public Filter ValidateReturnType()
+    public Diagnostic? ValidateReturnType()
     {
         if (Execution.Symbol.ReturnsVoid)
-            return Filter.Success;
+            return null;
 
-        if (Execution.Command.SemanticModel.Compilation.ClassifyCommonConversion(
-            Symbol.ReturnType,
-            Execution.Symbol.ReturnType).IsImplicit) {
-            return Filter.Success;
+        if (SemanticModel.Compilation.ClassifyCommonConversion(
+            Symbol.ReturnType, Execution.Symbol.ReturnType)
+            .IsImplicit
+            ) {
+            return null;
         }
 
-        return Filter.CreateDiagnostic(DiagnosticFactory.Create(
+        return DiagnosticFactory.Create(
             DiagnosticDescriptors.ExecutorsReturnTypeShouldAssignableToExecutionsReturnType,
-            Syntax.ReturnType));
+            Syntax.ReturnType);
     }
 
-    public Filter ValidateCommandPrefixes()
+    public Diagnostic? ValidateCommandPrefixes()
     {
-        foreach (var prefixes in CommandPrefixes) {
-            foreach (var prefix in prefixes) {
-                if (!ValidationHelper.IsValidCommandPrefix(prefix))
-                    return Filter.CreateDiagnostic(DiagnosticFactory.Create(
-                        DiagnosticDescriptors.CommandPrefixCannotContainsSpaceOrLeadingWithMinus,
-                        Syntax.Identifier));
-            }
-        }
+        bool isAllValid = CommandPrefixes
+              .SelectMany(prefixes => prefixes)
+              .All(ValidationHelper.IsValidCommandPrefix);
 
-        return Filter.Success;
+        if (isAllValid)
+            return null;
+
+        return DiagnosticFactory.Create(
+            DiagnosticDescriptors.CommandPrefixCannotContainsSpaceOrLeadingWithMinus,
+            Syntax.Identifier);
     }
 
-    public Filter ValidateValueParametersAfterRestValues()
+    public IEnumerable<Diagnostic> ValidateOptionKeys()
     {
-        var parameters = Parameters;
-        bool hasRestValues = false;
-
-        List<Diagnostic> errors = [];
-        for (int i = 0; i < parameters.Length; i++) {
-            var p = parameters[i];
-            if (hasRestValues) {
-                if (p.ParameterKind is ParameterKind.Value or ParameterKind.MultiValue)
-                    errors.Add(DiagnosticFactory.Create(
-                        DiagnosticDescriptors.ValueOrMultiValueAfterRestValueWillAlwaysDefault,
-                        p.Syntax));
-            }
-            else if (p.ParameterData is MultiValueParameterData { IsRest: true })
-                hasRestValues = true;
-        }
-
-        if (errors.Count > 0)
-            return Filter.CreateDiagnostic(errors);
-        else
-            return Filter.Success;
-    }
-
-    public Filter ValidateOptionKeys()
-    {
-        Dictionary<string, INamedParameterData> aliases = new(Parameters.Length);
-        Dictionary<string, INamedParameterData> names = new(Parameters.Length);
-
-        List<INamedParameterData>? warnedAliases = null;
-        List<INamedParameterData>? warnedNames = null;
+        var aliases = new Dictionary<string, bool>(Parameters.Length);
+        var names = new Dictionary<string, bool>(Parameters.Length);
 
         foreach (var namedParameter in Parameters.OfType<INamedParameterData>()) {
             if (namedParameter.Alias is { } alias) {
                 if (aliases.ContainsKey(alias)) {
-                    warnedAliases ??= new(2) { aliases[alias] };
-                    warnedAliases.Add(namedParameter);
+                    aliases[alias] = true;
+                    yield return DiagnosticFactory.Create(
+                        DiagnosticDescriptors.NamedParameterAliasRepeat,
+                        namedParameter.Model.Syntax);
                 }
                 else {
-                    aliases.Add(alias, namedParameter);
+                    aliases.Add(alias, false);
                 }
             }
 
             var name = namedParameter.Name;
             if (names.ContainsKey(name)) {
-                warnedNames ??= new(2) { names[name] };
-                warnedNames.Add(namedParameter);
+                names[name] = true;
+                yield return DiagnosticFactory.Create(
+                    DiagnosticDescriptors.NamedParameterNameRepeat,
+                    namedParameter.Model.Syntax);
             }
             else {
-                names.Add(name, namedParameter);
+                names.Add(name, false);
             }
         }
+    }
 
-        if (warnedAliases is null && warnedNames is null)
-            return Filter.Success;
+    /// <summary>
+    /// Requires Parameters set
+    /// </summary>
+    /// <returns></returns>
+    public IEnumerable<Diagnostic> ValidateValueParametersCount()
+    {
+        using var enumerator = Parameters.Select(p => p.ParameterData).OfType<IValueParameterData>().GetEnumerator();
 
-        Diagnostic[] diagnostics = new Diagnostic[warnedAliases?.Count ?? 0 + warnedNames?.Count ?? 0];
-        int index = 0;
-        foreach (var parameter in warnedAliases.EmptyIfNull()) {
-            diagnostics[index++] = DiagnosticFactory.Create(
-                DiagnosticDescriptors.NamedParameterAliasRepeat,
+        DiagnosticDescriptor? descriptor;
+
+        int count = 0;
+        while (enumerator.MoveNext()) {
+            var parameter = enumerator.Current;
+            parameter.Index = count;
+
+            if (parameter.IsRest) { // Start from next, rest values are unreachable
+                descriptor = DiagnosticDescriptors.ValueOrMultiValueAfterRestValueWillAlwaysDefault;
+                goto Unreachable;
+            }
+            count = unchecked(count + parameter.MaxCount);
+
+            if (count < 0) { // Overflow
+                descriptor = DiagnosticDescriptors.ValueCountOverflow;
+                goto Unreachable;
+            }
+        }
+        yield break;
+
+    Unreachable:
+        while (enumerator.MoveNext()) {
+            var parameter = enumerator.Current;
+            parameter.Index = -1;
+            yield return DiagnosticFactory.Create(
+                descriptor,
                 parameter.Model.Syntax);
         }
-        foreach (var parameter in warnedNames.EmptyIfNull()) {
-            diagnostics[index++] = DiagnosticFactory.Create(
-                DiagnosticDescriptors.NamedParameterNameRepeat,
-                parameter.Model.Syntax);
-        }
-
-        return Filter.CreateDiagnostic(diagnostics);
     }
 }

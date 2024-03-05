@@ -2,8 +2,8 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
-using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 internal static class CodeFactory
@@ -26,17 +26,17 @@ internal static class CodeFactory
 
     public static TypeDeclarationSyntax CloneContainingTypeDeclarations(TypeDeclarationSyntax sourceSyntax,
         SyntaxList<MemberDeclarationSyntax> members)
-        {
-            TypeDeclarationSyntax type = ClonePartialDeclaration(sourceSyntax, default, default, members);
+    {
+        TypeDeclarationSyntax type = ClonePartialDeclaration(sourceSyntax, default, default, members);
 
-            while (sourceSyntax.GetParent<TypeDeclarationSyntax>() is { } sourceParent) {
-                sourceSyntax = sourceParent;
-                type = ClonePartialDeclaration(sourceSyntax, default, default,
-                    SyntaxFactory.SingletonList<MemberDeclarationSyntax>(type));
-            }
-
-            return type;
+        while (sourceSyntax.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault() is { } sourceParent) {
+            sourceSyntax = sourceParent;
+            type = ClonePartialDeclaration(sourceSyntax, default, default,
+                SyntaxFactory.SingletonList<MemberDeclarationSyntax>(type));
         }
+
+        return type;
+    }
 
     public static TypeDeclarationSyntax ClonePartialDeclaration(TypeDeclarationSyntax source,
         SyntaxList<AttributeListSyntax> attributeLists,
