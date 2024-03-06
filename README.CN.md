@@ -72,7 +72,7 @@ file static class ParsingContextProvider
 
 ## 简要规范
 
-- 单个类型内只能有一个`Execution`，`Execution`参数为单个参数，可以为`string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
+- 单个类型内只能有一个`Execution`，`Execution`参数为单个参数，可以为`string`, `ReadOnlySpan<char>`
     - 当参数为`string`或`ReadOnlySpan<char>`时会以空白字符进行分割后解析
 - 使用`""`转义`"`
 - 可以在一个方法上标记多个`[Executor]`

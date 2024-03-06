@@ -11,6 +11,7 @@ internal static class EnumHelper
     {
         return symbol switch {
             ITypeSymbol { SpecialType: SpecialType.System_String } => InputParameterType.String,
+            ITypeSymbol when symbol.MatchDisplayString(Constants.ReadOnlySpan_Char_TypeName) => InputParameterType.String,
             _ => InputParameterType.Invalid,
         };
     }

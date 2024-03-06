@@ -74,7 +74,7 @@ You can set custom parser by set properties on attribute.
 
 ### Rule
 
-- Only single `Execution` method in a type, which accept single parameter in `string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
+- Only single `Execution` method in a type, which accept single parameter in `string`, `ReadOnlySpan<char>`
     - If input is `string` or `ReadOnlySpan<char>`, the input will be split with white spaces.
 - Use `""` escape `"`
 - You can mark multiple `[Executor]` on a method
