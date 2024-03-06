@@ -6,7 +6,7 @@ For CLI-like input parsing, written with source generator.
 
 ## Use
 
-(An example [here](./Trarizon.TextCommand.Tester/_Design.cs))
+(My test examples [here](./Trarizon.TextCommand.Tester/_Design.cs))
 or [here in another repo](https://github.com/Trarizon/DeemoToolkit/blob/master/Trarizon.Toolkit.Deemo.Commands/Functions/ChartHandler.Execution.cs)
 
 For Type:
@@ -38,24 +38,35 @@ partial class Command
 {
     public partial bool Run(string input)
     {
-        switch (input.SplitByWhiteSpaces()) {
+        switch (input.SplitByWhiteSpaces())
+        {
             case ["/cmd", "foo", "bar", ..]:
                 return this.FooBar();
             case ["/cmd", "ghoti", .. var rest]:
-                var provider = ParameterSets.Ghoti.Parse(rest);
-                return Ghoti(
-                    provider.GetFlag<bool, BooleanFlagParser>("--flag", parser: default),
-                    provider.GetOption<string, ParsableParser<string>>("--option", parser: default, false),
-                    provider.GetValue<int, ParsableParser<int>>(0, parser: default, null),
-                    provider.GetValues<int, ParsableParser<int>>(0, stackalloc int[5], parser: default, "values", false));
+                var provider = ParsingContextProvider.Ghoti.Parse(rest);
+                var errorBuilder = new();
+
+                var arg0 = provider.GetFlag<bool, FlagParser>("--flag", parser: default);
+                errorBuilder.AddWhenError(arg0);
+                var arg1 = provider.GetOption<string, Parser>("--option", parser: default);
+                errorBuilder.AddWhenError(arg1);
+                var arg2 = provider.GetValue<int, Parser>(0, parser: default);
+                errorBuilder.AddWhenError(arg2);
+                var arg3 = provider.GetValues<int, Parser>(0, parser: default, stackalloc[5]));
+                errorBuilder.AddWhenError(arg3);
+
+                if (errorBuilder.HasError)
+                    return errorBuilder.DefaultErrorHandler();
+                else
+                    return Ghoti(arg0, arg1, arg2, arg3);
         }
         return default;
     }
 }
 
-file static class ParameterSets
+file static class ParsingContextProvider
 {
-    public static readonly ParameterSet Ghoti = new();
+    public static readonly ParsingContext Ghoti = new();
 }
 ```
 
@@ -63,12 +74,12 @@ You can set custom parser by set properties on attribute.
 
 ### Rule
 
-- Current a type can only contains one `Execution`, multi-execution may be supported in the future.
-- `Execution` is a single-parameter method, the parameter type can be `string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`.
-    - When input is `string` or `ReadOnlySpan<char>`, the input will be split with white spaces.
-- Use `""` to escape `"` in raw string.
-
+- Only single `Execution` method in a type, which accept single parameter in `string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
+    - If input is `string` or `ReadOnlySpan<char>`, the input will be split with white spaces.
+- Use `""` escape `"`
 - You can mark multiple `[Executor]` on a method
+- Custom parser is allowed. Default parser are provided for common types, see [Parsing](#Parsing)
+- Custom error handler is allowes. See [ErrorHandler](#ErrorHandler)
 
 ## API
 
@@ -83,18 +94,32 @@ Attribute|Comments
 
 Attribute params|Comments
 :-:|:--
-`Parser`<br/>`ParserType`|Use one of these. Parser of parameter, See rules [below](#parser-rules)
+`ErrorHandler`|Custom error handling. See [ErrorHandler](#ErrorHandler)
+`Parser`<br/>`ParserType`|Use one of these. Parser of parameter. See [Parsing](#Parsing)
 `Alias`|*Constructor param.* Alias of parameter, use with prefix `-`
 `Name`|Name of parameer, default is the name of parameter
 `Required`|Default is `false`. Exceptions threw when not existing if `true`
 `MaxCount`|*Constructor param.* Max value count in `MultiValue`, all rest `Value`s if non-positive
 
-### Parser Rules
+### Parsing
 
-Custom parsers should be *field*, *property* or *method* in current type. Or any value type implements required interfaces.
+#### Default Parsers
 
-For `flag`, parser implements `IArgFlagParser<T>`; for others, implements `IArgParser<T>`.
-Method parser should be implicit converted to `ArgParsingDelegate` or `ArgFlagParsingDelegate`
+- `bool` is `flag` by default, using `BooleanFlagParser`
+- `ISpanParsable<T>` use `ParsableParser<T>` default
+- `enum` types use `EnumParser<TEnum>` default
+- For `Nullable<T>`, if there's default or provided parser for `T`, use `NullableParser<T, TParser>` to wrap
+- For any type `T`, if there's provided parser for `T2`, and `T2` can implicit convert into `T`, use `Conversion<T2, T, TParser>` to wrap
+- For custom method parsers, use `DelegateParser<T>` or `DelagateFlagParser<T>` to wrap
+- For custom type parser `TParser`, use `default(TParser)`
+
+### Custom parser
+
+Custom parsers should be *field*, *property* or *method* in current type.
+Or any value type implements required interfaces.
+
+- For `flag`, parser type implements `IArgFlagParser<T>`, method parser should match `T Parse(bool)`
+- For others, parser type implements `IArgParser<T>`, method parser should match `bool TryParse(InputArg, out T)`
 
 Build-in parser:
 - `ParsableParser<T>` : Parse `ISpanParsable<T>` 
@@ -103,9 +128,12 @@ Build-in parser:
 - `BinaryFlagParser<T>` : Parse `Flag` to one of specified values.
 - `DelegateParser<T>` : Wrap a parser delegate
 - `DelegateFlagParser<T>` : Wrap a parser delegate
-- `NullableParser<TParser, T>` : Wrap parser for `Nullable<T>`
+- `Wrapped.NullableParser<T, TParser>` : Wrap parser for `Nullable<T>`
+- `Wrapped.ConversionParser<T, TResult, TParser>`: Convert result of parser into another type 
 
-### Error Handling
+### ErrorHandler
+
+By default, we use `ArgResultErrors.Builder.DefaultErrorHandler()`
 
 Custom error handler should be *method* in current type, and match following rules:
 - Return type of current type should be void or implicit converted to return type of execution method.

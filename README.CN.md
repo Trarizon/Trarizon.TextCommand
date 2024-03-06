@@ -5,7 +5,7 @@
 **该库仍在设计与编写中，使用时请注意**
 
 ## 基本使用
-使用例可见[Design.cs]((./Trarizon.TextCommand.Tester/_Design.cs))
+本人测试时使用的样例可见[Design.cs]((./Trarizon.TextCommand.Tester/_Design.cs))
 或我在[另一个仓库](https://github.com/Trarizon/DeemoToolkit/blob/master/Trarizon.Toolkit.Deemo.Commands/Functions/ChartHandler.Execution.cs)用到的
 
 对于类型
@@ -36,37 +36,48 @@ partial class Command
 {
     public partial bool Run(string input)
     {
-        switch (input.SplitByWhiteSpaces()) {
+        switch (input.SplitByWhiteSpaces())
+        {
             case ["/cmd", "foo", "bar", ..]:
                 return this.FooBar();
             case ["/cmd", "ghoti", .. var rest]:
-                var provider = ParameterSets.Ghoti.Parse(rest);
-                return Ghoti(
-                    provider.GetFlag<bool, BooleanFlagParser>("--flag", parser: default),
-                    provider.GetOption<string, ParsableParser<string>>("--option", parser: default, false),
-                    provider.GetValue<int, ParsableParser<int>>(0, parser: default, null),
-                    provider.GetValues<int, ParsableParser<int>>(0, stackalloc int[5], parser: default, "values", false));
+                var provider = ParsingContextProvider.Ghoti.Parse(rest);
+                var errorBuilder = new();
+
+                var arg0 = provider.GetFlag<bool, FlagParser>("--flag", parser: default);
+                errorBuilder.AddWhenError(arg0);
+                var arg1 = provider.GetOption<string, Parser>("--option", parser: default);
+                errorBuilder.AddWhenError(arg1);
+                var arg2 = provider.GetValue<int, Parser>(0, parser: default);
+                errorBuilder.AddWhenError(arg2);
+                var arg3 = provider.GetValues<int, Parser>(0, parser: default, stackalloc[5]));
+                errorBuilder.AddWhenError(arg3);
+
+                if (errorBuilder.HasError)
+                    return errorBuilder.DefaultErrorHandler();
+                else
+                    return Ghoti(arg0, arg1, arg2, arg3);
         }
         return default;
     }
 }
 
-file static class ParameterSets
+file static class ParsingContextProvider
 {
-    public static readonly ParameterSet Ghoti = new();
+    public static readonly ParsingContext Ghoti = new();
 }
 ```
 
 通过参数上的Attribute成员可以自定义解析器，设成员为必需等
 
-### 规范
+## 简要规范
 
-- 当前一个类型内只能有一个`Execution`，以后可能允许多个
-- `Execution`参数为单个参数，可以为`string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
+- 单个类型内只能有一个`Execution`，`Execution`参数为单个参数，可以为`string`, `ReadOnlySpan<char>`, `Span<string>`, `ReadOnlySpan<string>`, `string[]`, `List<string>`
     - 当参数为`string`或`ReadOnlySpan<char>`时会以空白字符进行分割后解析
 - 使用`""`转义`"`
-
 - 可以在一个方法上标记多个`[Executor]`
+- 可自定义Parser，对基本类型提供了默认parser，见下文[Parsing](#Parsing)
+- 可自定义ErrorHandler，见下文[ErrorHandler](#ErrorHandler)
 
 ## API
 
@@ -83,28 +94,46 @@ Attribute参数中提供了部分设置用于自定义，
 
 参数|注释
 :-:|:--
-`Parser`<br/>`ParserType`|二选一。参数的解析器，详细见下文[Parser规范](#Parser规范)
+`ErrorHandler`|自定义Error处理，详细见[下文](#Error处理)
+`Parser`<br/>`ParserType`|二选一。参数的解析器，详细见[下文](#Parsing)
 `Alias`|**构造函数参数**，参数别名，即用单个`-`指定的参数
 `Name`|参数名，默认使用方法定义的参数名
 `Required`|默认`false`，若为`true`，则解析时不存在该参数会抛异常
 `MaxCount`|**构造函数参数**，`MultiValue`所含的参数的最大数量。非正数时会解析余下所有`Value`，此时会截断后续所有`Value`和`MultiValue`
 
-### Parser规范
+### Parsing
 
-自定义Parser应为类型内部的**字段**、**属性**或**方法**。或任意实现了要求接口的值类型
+#### 默认Parser
 
-对于`Flag`，parser需实现`IArgFlagParser<T>`；对于其他参数，需实现`IArgParser<T>`
+- `bool`默认作为flag，使用`BooleanFlagParser`
+- `ISpanParsable<T>`默认使用`ParsableParser<T>`
+- `enum`类型默认使用`EnumParser<TEnum>`
+- 对于`Nullable<T>`，当有对`T`的Parser时，使用`NullableParser<T, TParser>`包装
+- 对于任意类型`T`，如果提供了对`T2`的Parser且`T2`可隐式转换到`T`时，使用`ConversionParser<>`包装
+- 对于自定义MethodParser，使用`DelegateParser<T>`或`DelegateFlagParser<T>`包装
 
-该库提供了数个parser作为默认行为：
+#### 自定义Parser
+
+自定义Parser应为类型内部的**字段**、**属性**或**方法**。
+或任意实现了要求接口的**值类型**
+
+- 对于`Flag`，parser类型需实现`IArgFlagParser<T>`，方法应符合签名`T Parse(bool)`
+- 对于其他参数，需实现`IArgParser<T>`，方法应符合签名`bool TryParse(InputArg, out T)`
+- 其中`T`可隐式转换为对应的参数类型
+
+该库内置了数个parser：
 - `ParsableParser<T>` : 解析实现了`ISpanParsable<T>`的类型
 - `EnumParser<T>` : 解析enum类型
 - `BooleanFlagParser` : 解析bool类型为`Flag`参数
 - `BinaryFlagParser<T>` : 将bool类型解析为指定的两个值
 - `DelegateParser<T>` : 包装一个方法进行解析
 - `DelegateFlagParser<T>` : 包装一个方法进行解析
-- `NullableParser<TParser, T>` : 提供了`Nullable<T>`解析的包装
+- `Wrapped.NullableParser<T, TParser>` : 提供了`Nullable<T>`解析的包装
+- `Wrapped.ConversionParser<T, TResult, TParser>`：提供对parse结果的转换
 
-### Error处理
+### ErrorHandler
+
+默认情况下，使用`ArgResultErrors.Builder.DefaultErrorHandler()`
 
 自定义ErrorHandler应为类型内部的**方法**，并符合以下要求：
 - 返回值为void或可隐式转换为Execution的返回值
