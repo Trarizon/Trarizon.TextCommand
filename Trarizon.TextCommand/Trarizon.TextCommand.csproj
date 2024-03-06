@@ -15,7 +15,7 @@
 		<PackageProjectUrl>https://github.com/Trarizon/Trarizon.TextCommand</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Trarizon/Trarizon.TextCommand</RepositoryUrl>
 		<Description>A tool for CLI-like input parsing, written with source generator</Description>
-		<AssemblyVersion>0.1.0.1</AssemblyVersion>
+		<AssemblyVersion>0.1.0.2</AssemblyVersion>
 		<Version>$(AssemblyVersion)</Version>
 		<FileVersion>$(AssemblyVersion)</FileVersion>
 		<PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
