@@ -54,8 +54,6 @@ internal partial class _Design
                     | provider2.GetFlag<Option, BinaryFlagParser<Option>>("b", default);
                 break;
         }
-        int? i = 1;
-        A? a = i;
         return default!;
         TRtn Method(string? str, ReadOnlySpan<int> span) => default!;
     }
@@ -68,7 +66,7 @@ internal partial class _Design
             Print(err.RawInput);
             Print(err.RawInputSpan.ToString());
             Print(err.ParameterName);
-            Print(err.ParsedType);
+            Print(err.ResultType);
         }
         return default!;
     }
@@ -103,25 +101,32 @@ internal partial class _Design
         return default!;
     }
 
-    public struct A
+    public struct A<T>
     {
-        private int _val;
-        public static implicit operator A(int a) => new() { _val = a };
+        private T _val;
+        public static implicit operator A<T>(T a) => new() { _val = a };
         public override readonly string ToString() => $"A {{{_val}}}";
+    }
+
+    bool TryParseTuple(InputArg input, out A<(int, int)> res)
+    {
+        res = default;
+        return true;
     }
 
     [Executor("implicit-conversion")]
     public TRtn ImplicitConversion(
+        [Option(Parser = nameof(TryParseTuple))] A<(int A, int B)> tuple,
         int? nullable,
         string? nullableString,
-        [Option(ParserType = typeof(ParsableParser<int>))] A intToA,
+        [Option(ParserType = typeof(ParsableParser<int>))] A<int> intToA,
         [Option(ParserType = typeof(ParsableParser<int>))] long intToLong,
-        [Option(ParserType = typeof(ParsableParser<int>))] A? intToNullableA,
+        [Option(ParserType = typeof(ParsableParser<int>))] A<int>? intToNullableA,
         [MultiValue(1)] int?[] nullableArr,
         [MultiValue(1)] string?[] nullableStringArr,
-        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A[] intToAArr,
+        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A<int>[] intToAArr,
         [MultiValue(1, ParserType = typeof(ParsableParser<int>))] long[] intToLongArr,
-        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A?[] intToNullableAArr)
+        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A<int>?[] intToNullableAArr)
     {
         Print(nullable);
         Print(nullableString);

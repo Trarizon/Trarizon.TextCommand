@@ -94,9 +94,9 @@ public readonly ref struct ArgParsingErrors
         public readonly ArgResultKind ErrorKind => _error._rawInfo._kind;
 
         /// <summary>
-        /// The type parser returns
+        /// The result type
         /// </summary>
-        public readonly Type ParsedType => _error._parsedType;
+        public readonly Type ResultType => _error._resultType;
 
         /// <summary>
         /// Command parameter, this is not the parameter in executor method signature
@@ -153,10 +153,10 @@ public readonly ref struct ArgParsingErrors
         [MemberNotNullWhen(true, nameof(_errors))]
         public readonly bool HasError => _errors.Count > 0;
 
-        private void AddWhenErrorInternal(ArgRawResultInfo rawResultInfo, Type parsedType, string parameterName, ArgResultKind minErrorLevel)
+        private void AddWhenErrorInternal(ArgRawResultInfo rawResultInfo, Type resultType, string parameterName, ArgResultKind minErrorLevel)
         {
             if (rawResultInfo._kind >= minErrorLevel) {
-                _errors.Add(new ArgParsingError(rawResultInfo, parsedType, parameterName));
+                _errors.Add(new ArgParsingError(rawResultInfo, resultType, parameterName));
             }
         }
 
@@ -253,7 +253,7 @@ public readonly ref struct ArgParsingErrors
                         ValueNotSetException.Throw(err._parameterName);
                         break;
                     case ArgResultKind.ParsingFailed:
-                        ParseException.Throw(err._parameterName, err._parsedType);
+                        ParseException.Throw(err._parameterName, err._resultType);
                         break;
                 }
             }

@@ -24,7 +24,7 @@ internal static class SymbolExtensions
     {
         if (type.NullableAnnotation is not NullableAnnotation.Annotated)
             return type;
-        if(type.IsValueType)
+        if (type.IsValueType)
             return ((INamedTypeSymbol)type).TypeArguments[0]; // Value type annot use .WithNullableAnnotation
         return type.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
     }

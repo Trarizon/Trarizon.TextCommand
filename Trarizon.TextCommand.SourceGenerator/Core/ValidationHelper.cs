@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Operations;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
@@ -81,7 +82,6 @@ internal static class ValidationHelper
                 parsedType = method.ReturnType;
                 return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
-            goto Failed;
         }
 
         if (method is {
@@ -96,7 +96,6 @@ internal static class ValidationHelper
             return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
         }
 
-    Failed:
         parsedType = default;
         nullableClassTypeMayAssignToNotNullable = default;
         return false;
@@ -104,7 +103,7 @@ internal static class ValidationHelper
 
     public static bool IsValidErrorHandler(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol executionReturnType)
     {
-        if (!(method.ReturnsVoid || IsTypeAssignable(semanticModel, method.ReturnType, executionReturnType, out _)))
+        if (!(method.ReturnsVoid || semanticModel.Compilation.ClassifyCommonConversion(method.ReturnType, executionReturnType).IsImplicit))
             return false;
 
         switch (method.Parameters) {

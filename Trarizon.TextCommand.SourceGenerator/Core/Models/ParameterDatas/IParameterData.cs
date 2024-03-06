@@ -23,7 +23,12 @@ internal static class IParameterDataExtensions
     {
         var resultType = self.ResultTypeSymbol;
         var parsedType = self.ParsedTypeSymbol;
-        if (SymbolEqualityComparer.Default.Equals(resultType, parsedType)) {
+
+        // Same type
+        // Tuple type cannot use SymbolEqualityComparer to check, so we use this,
+        // and check if the conversion is identity 
+        var conversion = self.Model.SemanticModel.Compilation.ClassifyCommonConversion(parsedType, resultType);
+        if (conversion.IsIdentity) {
             return ParserWrapperKind.None;
         }
 
