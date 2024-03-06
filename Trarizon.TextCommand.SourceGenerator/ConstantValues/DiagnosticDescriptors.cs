@@ -46,7 +46,7 @@ internal static class DiagnosticDescriptors
     public readonly static DiagnosticDescriptor MarkSingleParameterAttributes = new(
         "TCMD0006",
         nameof(MarkSingleParameterAttributes),
-        "Only single parameter attribute could be marked on aa parameter",
+        "Only single parameter attribute could be marked on a parameter",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);

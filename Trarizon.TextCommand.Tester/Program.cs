@@ -9,24 +9,30 @@ Console.WriteLine("Hello, World!");
 var design = new _Design();
 
 design.Run("/ghoti no-param");
+Console.WriteLine();
+design.Run("/ghoti multi mark no param");
+Console.WriteLine();
 design.Run("/ghoti default settings --flag --option a --number 114");
-design.Run(@"/ghoti explicit parameter type -f A -nf true B ""string with space and """" escape """" "" 1 2 3 5 4 7 8");
-design.Run(@"/ghoti custom --custom value --strFlag --methodParser ""from method""");
-
-Unm<int>();
-Unm<int?>();
-Unm<A>();
-Unm<B>();
-
-
-void Unm<T>() where T : unmanaged { }
-
-struct A
-{
-    int a;
-    int b;
-}
-
-struct B {
-    int? a;
-}
+Console.WriteLine();
+design.Run("/ghoti multi marked --flag --str string --option a --nullNumber 114");
+Console.WriteLine();
+design.Run(@"/ghoti explicit parameter type -f str A --non-flag true B 1  2 3 ""string with space and """" escape """" "" ""str2"" 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
+Console.WriteLine();
+design.Run("""
+    /ghoti custom
+    --custom customParserVal
+    --strFlag
+    --intFlag
+    --customParser custom
+    type
+    v1 v2 v3 v4
+    """);
+Console.WriteLine();
+design.Run("""
+    /ghoti custom
+    --custom customParserVal
+    --strFlag
+    --intFlag
+    type
+    v1 v2 v3 v4
+    """);

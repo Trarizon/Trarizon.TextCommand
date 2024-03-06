@@ -132,8 +132,20 @@ internal class ParameterProvider
 
     public IEnumerable<StatementSyntax> ArgumentLocalExtraStatments()
     {
+        if (ErrorHandlingExtraStatement().TryGetValue(out var errHan)) {
+            yield return errHan;
+        }
+    }
+
+    private Optional<StatementSyntax> ErrorHandlingExtraStatement()
+    {
+        // Flag Getter returns raw bool value
         if (ParameterData is FlagDataProvider) {
-            yield break;
+            return default;
+        }
+        // Unreachable value doesn't need to check error
+        if (ParameterData is IValueDataProvider { Data.IsUnreachable: true }) {
+            return default;
         }
 
         // 目前情况，除了Flag以外的都实现IRequiredProvider，也就是说下面的if必定判true，
@@ -142,15 +154,15 @@ internal class ParameterProvider
         string argResultKind;
         if (ParameterData is IRequiredParameterDataProvider requiredParameter) {
             argResultKind = requiredParameter.Data.Required
-                ? Literals.ArgResultKind_ParsingFailed_FieldName
-                : Literals.ArgResultKind_ParameterNotSet_FieldName;
+                ? Literals.ArgResultKind_ParameterNotSet_FieldName
+                : Literals.ArgResultKind_ParsingFailed_FieldName;
         }
         else {
-            argResultKind = Literals.ArgResultKind_ParameterNotSet_FieldName;
+            argResultKind = Literals.ArgResultKind_ParsingFailed_FieldName;
         }
 
         // errorBuilder.AddWhenError()
-        yield return SyntaxFactory.ExpressionStatement(
+        return SyntaxFactory.ExpressionStatement(
             SyntaxProvider.SimpleMethodInvocation(
                 SyntaxFactory.IdentifierName(Executor.ErrorsBuilder_VarIdentifier()),
                 SyntaxFactory.IdentifierName(Literals.ArgParsingErrorsBuilder_AddWhenError_MethodIdentifier),

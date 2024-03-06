@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Attributes;
 using Trarizon.TextCommand.Attributes.Parameters;
@@ -62,6 +63,14 @@ internal partial class _Design
 
     private static TRtn ErrorHandler(in ArgParsingErrors errors, string methodName)
     {
+        Console.WriteLine($"Errors in {methodName}");
+        foreach (var err in errors) {
+            Print(err.ErrorKind);
+            Print(err.RawInput);
+            Print(err.RawInputSpan.ToString());
+            Print(err.ParameterName);
+            Print(err.ParsedType);
+        }
         return default!;
     }
 
@@ -76,7 +85,9 @@ internal partial class _Design
     // 默认选项
     [Executor("default", "settings")]
     [Executor("multi", "marked")]
-    public TRtn DefaultSetting(bool flag, string? str, Option option, int number, int? nullNumber)
+    public TRtn DefaultSetting(
+        bool flag, string? str,
+        Option option, int number, int? nullNumber)
     {
         Print(flag);
         Print(str);
@@ -87,11 +98,10 @@ internal partial class _Design
     }
 
     // 显式标记名字
-    // void返回值
     [Executor("explicit", "parameter", "type")]
     public TRtn ExplicitBasicParameterType(
         // bool
-        [Flag("f")] bool flag, [Option("nf")] bool nonFlag,
+        [Flag("f")] bool flag, [Option(Name = "non-flag")] bool nonFlag,
         // value option
         [Value(Required = true)] string str, [Option] int number, [Option] Option option,
         // multivalue stackalloc
@@ -109,13 +119,13 @@ internal partial class _Design
         Print(str);
         Print(number);
         Print(option);
-        Print(stackallocOpt.ToArray());
-        Print(nullableInts.ToArray());
-        Print(stringSpan.ToArray());
-        Print(intArray);
-        Print(intList);
-        Print(rest);
-        Print(unreachable);
+        PrintArr(stackallocOpt.ToArray());
+        PrintArr(nullableInts.ToArray());
+        PrintArr(stringSpan.ToArray());
+        PrintArr(intArray);
+        PrintArr(intList);
+        PrintArr(rest);
+        PrintArr(unreachable);
         return default!;
     }
 
@@ -156,7 +166,7 @@ internal partial class _Design
     public TRtn Custom(
         // flag
         [Flag(Parser = nameof(_strFlagParser))] string? strFlag,
-        [Flag(Parser = nameof(ParseIntFlag))] int? intParser,
+        [Flag(Parser = nameof(ParseIntFlag))] int intFlag,
         [Flag(ParserType = typeof(CustomParser))] int? flagTypeParser,
         // option value
         [Option(Parser = nameof(_customParser), Required = true)] string? customParser,
@@ -165,11 +175,11 @@ internal partial class _Design
         [MultiValue(Parser = nameof(_customParser))] string?[] multiValue)
     {
         Print(strFlag);
-        Print(intParser);
+        Print(intFlag);
         Print(flagTypeParser);
         Print(customParser);
         Print(typeParser);
-        Print(multiValue);
+        PrintArr(multiValue);
         return default!;
     }
 
@@ -184,8 +194,8 @@ internal partial class _Design
         Console.WriteLine($"{arg}: {value}");
     }
 
-    private static void Print<T>(IEnumerable<T> value, [CallerArgumentExpression(nameof(value))] string? arg = null)
+    private static void PrintArr<T>(IEnumerable<T> values, [CallerArgumentExpression(nameof(values))] string? arg = null)
     {
-        Console.WriteLine($"{arg}: [{string.Join(',', value)}]");
+        Console.WriteLine($"{arg}: [{string.Join(", ", values)}]");
     }
 }

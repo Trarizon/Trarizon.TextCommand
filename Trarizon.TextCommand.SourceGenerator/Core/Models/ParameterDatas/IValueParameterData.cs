@@ -4,4 +4,5 @@ internal interface IValueParameterData : IParameterData
     int MaxCount { get; }
     int Index { get; set; }
     bool IsRest { get; }
+    bool IsUnreachable { get; }
 }

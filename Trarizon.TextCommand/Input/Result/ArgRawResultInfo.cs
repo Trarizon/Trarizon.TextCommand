@@ -6,11 +6,8 @@ public readonly struct ArgRawResultInfo
     internal readonly ArgIndex _argIndex;
     internal readonly ArgResultKind _kind;
 
-    /// <param name="index">index</param>
-    /// <param name="kind">No <see cref="ArgResultKind.ParameterNotSet"/></param>
     internal ArgRawResultInfo(ArgIndex index, ArgResultKind kind)
     {
-        Debug.Assert(kind == ArgResultKind.ParameterNotSet);
         _argIndex = index;
         _kind = kind;
     }

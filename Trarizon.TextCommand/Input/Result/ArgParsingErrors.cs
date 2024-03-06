@@ -39,6 +39,8 @@ public readonly ref struct ArgParsingErrors
         }
     }
 
+    public Enumerator GetEnumerator() => new(this);
+
     public ref struct ErrorData
     {
         private InputArg _input;
@@ -78,10 +80,10 @@ public readonly ref struct ArgParsingErrors
         private readonly ArgParsingErrors _errors;
         private int _index;
 
-        internal Enumerator(in ArgParsingErrors errors)
+        internal Enumerator(scoped in ArgParsingErrors errors)
         {
             _errors = errors;
-            _index = 0;
+            _index = -1;
         }
 
         /// <summary>
@@ -111,7 +113,7 @@ public readonly ref struct ArgParsingErrors
     [EditorBrowsable(EditorBrowsableState.Never)]
     public ref struct Builder()
     {
-        private AllocOptList<ArgParsingError> _errors = [];
+        private AllocOptList<ArgParsingError> _errors = new();
 
         [MemberNotNullWhen(true, nameof(_errors))]
         public readonly bool HasError => _errors.Count > 0;

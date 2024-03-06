@@ -9,7 +9,7 @@ using Trarizon.TextCommand.SourceGenerator.Utilities;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
 /// <param name="index">if &lt 0, means this value is after RestValues, thus always empty</param>
-internal class MultiValueDataProvider(MultiValueParameterData data, ParameterProvider parameter) : IParameterDataProvider, IRequiredParameterDataProvider
+internal class MultiValueDataProvider(MultiValueParameterData data, ParameterProvider parameter) : IParameterDataProvider, IRequiredParameterDataProvider, IValueDataProvider
 {
     public MultiValueParameterData Data { get; } = data;
 
@@ -17,6 +17,7 @@ internal class MultiValueDataProvider(MultiValueParameterData data, ParameterPro
 
     IParameterData IParameterDataProvider.Data => Data;
     IRequiredParameterData IRequiredParameterDataProvider.Data => Data;
+    IValueParameterData IValueDataProvider.Data => Data;
 
     public ProviderMethodInfoContext ProviderMethodInfo
     {

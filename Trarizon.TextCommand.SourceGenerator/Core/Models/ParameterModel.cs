@@ -60,7 +60,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
 
     public Diagnostic? ValidateParameterData()
     {
-        Debug.Assert(_attribute is null || ParameterKind != ParameterKind.Invalid);
+        // Debug.Assert(_attribute is null || ParameterKind != ParameterKind.Invalid);
 
         var (parameter, diagnostic) = _attribute is null
             ? GetImplicitParserParameterData().ToTuple()
