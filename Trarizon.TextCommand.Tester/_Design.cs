@@ -116,7 +116,7 @@ internal partial class _Design
 
     [Executor("implicit-conversion")]
     public TRtn ImplicitConversion(
-        [Option(Parser = nameof(TryParseTuple))] A<(int A, int B)> tuple,
+        [Option(Parser = nameof(TryParseTuple))] A<(int A, int B)>? tuple,
         int? nullable,
         string? nullableString,
         [Option(ParserType = typeof(ParsableParser<int>))] A<int> intToA,

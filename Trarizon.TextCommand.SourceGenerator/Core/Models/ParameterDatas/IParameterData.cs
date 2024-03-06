@@ -33,7 +33,7 @@ internal static class IParameterDataExtensions
         }
 
         if (resultType.IsNullableValueType(out var underlying)) {
-            if (SymbolEqualityComparer.Default.Equals(underlying, parsedType))
+            if (self.Model.SemanticModel.Compilation.ClassifyCommonConversion(underlying, parsedType).IsIdentity)
                 return ParserWrapperKind.Nullable;
             else
                 return ParserWrapperKind.Nullable | ParserWrapperKind.ImplicitConversion;
