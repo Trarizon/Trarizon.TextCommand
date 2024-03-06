@@ -1,6 +1,10 @@
-﻿using System.Diagnostics;
-
-namespace Trarizon.TextCommand.Input.Result;
+﻿namespace Trarizon.TextCommand.Input.Result;
+/// <summary>
+/// The raw info of result
+/// </summary>
+/// <remarks>
+/// This struct is only use for stackalloc array on public
+/// </remarks>
 public readonly struct ArgRawResultInfo
 {
     internal readonly ArgIndex _argIndex;

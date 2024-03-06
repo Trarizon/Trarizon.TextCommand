@@ -47,7 +47,7 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
                 Syntax.Identifier);
         }
 
-        InputParameterType = parameterType.GetInputParameterType();
+        InputParameterType = EnumHelper.GetInputParameterType(parameterType);
 
         return null;
     }

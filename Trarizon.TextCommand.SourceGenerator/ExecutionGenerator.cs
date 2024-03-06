@@ -87,6 +87,7 @@ public class ExecutionGenerator : IIncrementalGenerator
                                             SyntaxFactory.IdentifierName(Constants.PartialMethodDeclarationHaveSignatureDifferences_ErrorCode),
                                             SyntaxFactory.IdentifierName(Constants.LabelNotBeenReferenced_ErrorCode),
                                             SyntaxFactory.IdentifierName(Constants.PossibleNullReferenceArgumentForParameter_ErrorCode),
+                                            SyntaxFactory.IdentifierName(Constants.ReferenceTypeNullableAnnotationNotMatch_ErrorCode),
                                         }),
                                         true))),
                         provider.ParameterSetsTypeDeclaration(),

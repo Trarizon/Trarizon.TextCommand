@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
 internal sealed class MultiValueParameterData(ParameterModel model) : IParameterData, IRequiredParameterData, IValueParameterData
@@ -7,7 +8,20 @@ internal sealed class MultiValueParameterData(ParameterModel model) : IParameter
 
     public required ParserInfoProvider ParserInfo { get; init; }
 
-    public required ITypeSymbol ParsedTypeSymbol { get; init; }
+    private ITypeSymbol? _resultTypeSymbol;
+    public required ITypeSymbol ResultTypeSymbol
+    {
+        get => _resultTypeSymbol ?? Model.Symbol.Type;
+        init => _resultTypeSymbol = value;
+    }
+
+    private ITypeSymbol? _parsedTypeSymbol;
+    public ITypeSymbol ParsedTypeSymbol
+    {
+        // For implicit parser, ParsedType will not has nullable annotation
+        get => _parsedTypeSymbol ??= ResultTypeSymbol.RemoveNullableAnnotation();
+        init => _parsedTypeSymbol = value;
+    }
 
     public bool Required { get; init; }
 

@@ -1,8 +1,4 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Trarizon.TextCommand.SourceGenerator.Utilities;
-
-namespace Trarizon.TextCommand.SourceGenerator.ConstantValues;
+﻿namespace Trarizon.TextCommand.SourceGenerator.ConstantValues;
 internal static class Literals
 {
     public const string Namespace = "Trarizon.TextCommand";
@@ -35,11 +31,11 @@ internal static class Literals
 
     // Input
 
-    public const string ParameterSet_TypeName = $"{Namespace}.Input.ParameterSet";
+    public const string ParsingContext_TypeName = $"{Namespace}.Input.ParsingContext";
     public const string StringInputMatcher_TypeName = $"{Namespace}.Input.StringInputMatcher";
     public const string InputArg_TypeName = $"{Namespace}.Input.InputArg";
 
-    public const string ParameterSet_Parse_MethodIdentifier = "Parse";
+    public const string ParsingContext_Parse_MethodIdentifier = "Parse";
     public const string ArgsProvider_GetFlag_MethodIdentifier = "GetFlag";
     public const string ArgsProvider_GetOption_MethodIdentifier = "GetOption";
     public const string ArgsProvider_GetValue_MethodIdentifier = "GetValue";
@@ -74,16 +70,20 @@ internal static class Literals
     public const string BooleanFlagParser_TypeName = $"{Namespace}.Parsers.BooleanFlagParser";
     public const string EnumParser_TypeName = $"{Namespace}.Parsers.EnumParser";
     public const string ParsableParser_TypeName = $"{Namespace}.Parsers.ParsableParser";
-    public const string NullableParser_TypeName = $"{Namespace}.Parsers.NullableParser";
     public const string DelegateParser_TypeName = $"{Namespace}.Parsers.DelegateParser";
     public const string DelegateFlagParser_TypeName = $"{Namespace}.Parsers.DelegateFlagParser";
+
+    // Parsers.Wrappers
+
+    public const string NullableParser_TypeName = $"{Namespace}.Parsers.Wrapped.NullableParser";
+    public const string ConversionParser_TypeName = $"{Namespace}.Parsers.Wrapped.ConversionParser";
 
     // Vars
 
     public const string StringInputMatcher_VarIdentifier = "__matcher";
-    public const string ParameterSets_TypeIdentifier = "__ParameterSets";
+    public const string ParsingContextProvider_TypeIdentifier = "__ParsingContextProvider";
     public const string Input_ParameterIdentifier = "input";
-    public const int StackAllocThreshold = 1024;
+    public const int StackAllocThreshold = 128; // As this lib is mainly design for parsing manually input, we don't need a large threshold
 
     public const string Prefix_Alias = "-";
     public const string Prefix = "--";

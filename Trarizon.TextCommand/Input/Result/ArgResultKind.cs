@@ -6,7 +6,16 @@
 /// </summary>
 public enum ArgResultKind
 {
-	NoError = 0,
-	ParameterNotSet,
-	ParsingFailed,
+    /// <summary>
+    /// Parsig succeed
+    /// </summary>
+    NoError = 0,
+    /// <summary>
+    /// Parameter is not set
+    /// </summary>
+    ParameterNotSet = NoError + 1,
+    /// <summary>
+    /// Failed to parsing input to a specific type
+    /// </summary>
+    ParsingFailed = ParameterNotSet + 1,
 }

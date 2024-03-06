@@ -37,7 +37,7 @@ internal sealed class CommandProvider
             SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.FileKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)),
-            SyntaxFactory.Identifier(Literals.ParameterSets_TypeIdentifier),
+            SyntaxFactory.Identifier(Literals.ParsingContextProvider_TypeIdentifier),
             typeParameterList: null,
             baseList: null,
             constraintClauses: default,

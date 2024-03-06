@@ -4,6 +4,9 @@ using Trarizon.TextCommand.Exceptions;
 using Trarizon.TextCommand.Utilities;
 
 namespace Trarizon.TextCommand.Input.Result;
+/// <summary>
+/// A collection of errors on parsing
+/// </summary>
 public readonly ref struct ArgParsingErrors
 {
     // Source when string input
@@ -23,8 +26,14 @@ public readonly ref struct ArgParsingErrors
         _errors = errors;
     }
 
+    /// <summary>
+    /// Count of errors
+    /// </summary>
     public int Count => _errors.Length;
 
+    /// <summary>
+    /// Get error by index
+    /// </summary>
     public ErrorData this[int index]
     {
         get {
@@ -39,8 +48,14 @@ public readonly ref struct ArgParsingErrors
         }
     }
 
+    /// <summary>
+    /// Get enumerator
+    /// </summary>
     public Enumerator GetEnumerator() => new(this);
 
+    /// <summary>
+    /// Data context of an error
+    /// </summary>
     public ref struct ErrorData
     {
         private InputArg _input;
@@ -58,12 +73,29 @@ public readonly ref struct ArgParsingErrors
             _error = ref error;
         }
 
+        /// <summary>
+        /// Raw input of this argument
+        /// </summary>
+        public readonly InputArg RawInputArg => _input;
+
+        /// <summary>
+        /// Raw string input of this argument
+        /// </summary>
         public string RawInput => _input.RawInput;
 
+        /// <summary>
+        /// Raw span input of this argument
+        /// </summary>
         public readonly ReadOnlySpan<char> RawInputSpan => _input.RawInputSpan;
 
+        /// <summary>
+        /// Error kind
+        /// </summary>
         public readonly ArgResultKind ErrorKind => _error._rawInfo._kind;
 
+        /// <summary>
+        /// The type parser returns
+        /// </summary>
         public readonly Type ParsedType => _error._parsedType;
 
         /// <summary>
@@ -115,6 +147,9 @@ public readonly ref struct ArgParsingErrors
     {
         private AllocOptList<ArgParsingError> _errors = new();
 
+        /// <summary>
+        /// Indicate if the current Builder contains any error
+        /// </summary>
         [MemberNotNullWhen(true, nameof(_errors))]
         public readonly bool HasError => _errors.Count > 0;
 
@@ -125,11 +160,33 @@ public readonly ref struct ArgParsingErrors
             }
         }
 
+        /// <summary>
+        /// Add when result contains error
+        /// </summary>
+        /// <typeparam name="T">The type parser returns</typeparam>
+        /// <param name="result">result struct</param>
+        /// <param name="parameterName">Command parameter name</param>
+        /// <param name="minErrorLevel">
+        /// The min level to occur error,
+        /// if <paramref name="result"/> contains error that has same or higher error level,
+        /// the error is added.
+        /// </param>
         public void AddWhenError<T>(ArgResult<T> result, string parameterName, ArgResultKind minErrorLevel)
         {
             AddWhenErrorInternal(result._rawResultInfo, typeof(T), parameterName, minErrorLevel);
         }
 
+        /// <summary>
+        /// Add when result contains errors
+        /// </summary>
+        /// <typeparam name="T">The type parser returns</typeparam>
+        /// <param name="results">result struct</param>
+        /// <param name="parameterName">Command parameter name</param>
+        /// <param name="minErrorLevel">
+        /// The min level to occur error,
+        /// if <paramref name="results"/> contains error that has same or higher error level,
+        /// the error is added.
+        /// </param>
         public void AddWhenError<T>(scoped ArgResultsArray<T> results, string parameterName, ArgResultKind minErrorLevel)
         {
             foreach (var info in results.RawInfos) {
@@ -137,6 +194,17 @@ public readonly ref struct ArgParsingErrors
             }
         }
 
+        /// <summary>
+        /// Add when result contains errors
+        /// </summary>
+        /// <typeparam name="T">The type parser returns</typeparam>
+        /// <param name="results">result struct</param>
+        /// <param name="parameterName">Command parameter name</param>
+        /// <param name="minErrorLevel">
+        /// The min level to occur error,
+        /// if <paramref name="results"/> contains error that has same or higher error level,
+        /// the error is added.
+        /// </param>
         public void AddWhenError<T>(scoped ArgResultsList<T> results, string parameterName, ArgResultKind minErrorLevel)
         {
             foreach (var info in results.RawInfos) {
@@ -144,6 +212,17 @@ public readonly ref struct ArgParsingErrors
             }
         }
 
+        /// <summary>
+        /// Add when result contains errors
+        /// </summary>
+        /// <typeparam name="T">The type parser returns</typeparam>
+        /// <param name="results">result struct</param>
+        /// <param name="parameterName">Command parameter name</param>
+        /// <param name="minErrorLevel">
+        /// The min level to occur error,
+        /// if <paramref name="results"/> contains error that has same or higher error level,
+        /// the error is added.
+        /// </param>
         public void AddWhenError<T>(scoped ArgResultsUnmanaged<T> results, string parameterName, ArgResultKind minErrorLevel) where T : unmanaged
         {
             foreach (var info in results.RawInfos) {
@@ -151,9 +230,20 @@ public readonly ref struct ArgParsingErrors
             }
         }
 
+        /// <summary>
+        /// Build the <see cref="ArgParsingErrors"/>
+        /// </summary>
+        /// <param name="provider">The provider creating ArgResults</param>
+        /// <returns></returns>
         public readonly ArgParsingErrors Build(in ArgsProvider provider)
             => new(provider._sourceInput, provider._sourceArray, _errors.AsSpan());
 
+        /// <summary>
+        /// The default error handler
+        /// </summary>
+        /// <remarks>
+        /// This handler throw exception with first error.
+        /// </remarks>
         public readonly void DefaultErrorHandler()
         {
             if (HasError) {

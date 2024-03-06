@@ -110,7 +110,7 @@ internal static class DiagnosticDescriptors
     public readonly static DiagnosticDescriptor CustomFlagParsingMethodMatchArgFlagParsingDelegate = new(
         "TCMD0013",
         nameof(CustomFlagParsingMethodMatchArgFlagParsingDelegate),
-        $"Custom flag parsing method shoule match ArgFlagParsingDelegate",
+        $"Custom flag parsing method should match ArgFlagParsingDelegate",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);

@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
@@ -29,13 +30,16 @@ internal class ParameterProvider
             OptionParameterData option => new OptionDataProvider(option, this),
             ValueParameterData value => new ValueDataProvider(value, this),
             MultiValueParameterData multiVal => new MultiValueDataProvider(multiVal, this),
-            _ => throw new InvalidOperationException(),
+            null or _ => throw new InvalidOperationException(),
         };
         Executor = executor;
 
     }
 
     public string Argument_VarIdentifier() => $"__arg_{Model.Symbol.Name}_{Executor.Model.Symbol.Name}";
+
+    private TypeSyntax? _resultTypeSyntax;
+    public TypeSyntax ResultTypeSyntax => _resultTypeSyntax ??= SyntaxFactory.IdentifierName(ParameterData.Data.ResultTypeSymbol.ToDisplayString(SymbolDisplayFormats.FullQualifiedFormatIncludeNullableRefTypeModifier));
 
     private TypeSyntax? _parsedTypeSyntax;
     public TypeSyntax ParsedTypeSyntax => _parsedTypeSyntax ??= SyntaxFactory.IdentifierName(ParameterData.Data.ParsedTypeSymbol.ToDisplayString(SymbolDisplayFormats.FullQualifiedFormatIncludeNullableRefTypeModifier));
@@ -45,36 +49,8 @@ internal class ParameterProvider
     {
         get {
             if (_parserTypeSyntax is null) {
-                var parserInfo = ParameterData.Data.ParserInfo;
-                switch (parserInfo.Kind) {
-                    case ParserInfoProvider.ParserKind.Implicit:
-                        _parserTypeSyntax = SyntaxHelper.GetDefaultParserType(ParameterData.Data.ParsedTypeSymbol, parserInfo.ImplicitParameterKind);
-                        break;
-
-                    case ParserInfoProvider.ParserKind.FieldOrProperty:
-                        (var type, _) = parserInfo.FieldOrProperty;
-                        _parserTypeSyntax = SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                        break;
-
-                    case ParserInfoProvider.ParserKind.Method:
-                        var identifier = Model.ParameterKind == ParameterKind.Flag
-                            ? $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}"
-                            : $"{Constants.Global}::{Literals.DelegateParser_TypeName}";
-                        _parserTypeSyntax = SyntaxFactory.GenericName(
-                            SyntaxFactory.Identifier(identifier),
-                            SyntaxFactory.TypeArgumentList(
-                                SyntaxFactory.SingletonSeparatedList(
-                                    ParsedTypeSyntax)));
-                        break;
-
-                    case ParserInfoProvider.ParserKind.Struct:
-                        _parserTypeSyntax = SyntaxFactory.IdentifierName(parserInfo.Struct.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                        break;
-                    default:
-                        throw new InvalidOperationException();
-                }
+                InitializeParserSyntax();
             }
-
             return _parserTypeSyntax;
         }
     }
@@ -84,32 +60,52 @@ internal class ParameterProvider
     {
         get {
             if (_parserArgExpressionSyntax is null) {
-                var parserInfo = ParameterData.Data.ParserInfo;
-                switch (parserInfo.Kind) {
-                    case ParserInfoProvider.ParserKind.Implicit:
-                    case ParserInfoProvider.ParserKind.Struct:
-                        _parserArgExpressionSyntax = SyntaxFactory.DefaultExpression(ParserTypeSyntax);
-                        break;
-
-                    case ParserInfoProvider.ParserKind.FieldOrProperty:
-                        (_, var member) = parserInfo.FieldOrProperty;
-                        _parserArgExpressionSyntax = SyntaxProvider.SiblingMemberAccessExpression(member);
-                        break;
-
-                    case ParserInfoProvider.ParserKind.Method:
-                        _parserArgExpressionSyntax = SyntaxFactory.ObjectCreationExpression(
-                                ParserTypeSyntax,
-                                SyntaxProvider.ArgumentList(
-                                    SyntaxProvider.SiblingMemberAccessExpression(parserInfo.Method)),
-                                default);
-                        break;
-                    default:
-                        throw new InvalidOperationException();
-                }
+                InitializeParserSyntax();
             }
-
             return _parserArgExpressionSyntax;
         }
+    }
+
+    [MemberNotNull(nameof(_parserTypeSyntax), nameof(_parserArgExpressionSyntax))]
+    private void InitializeParserSyntax()
+    {
+        var parserInfo = ParameterData.Data.ParserInfo;
+        switch (parserInfo.Kind) {
+            case ParserInfoProvider.ParserKind.Implicit:
+                _parserTypeSyntax = SyntaxHelper.GetNonWrappedDefaultParserTypeSyntax(ParameterData.Data);
+                _parserArgExpressionSyntax = SyntaxFactory.DefaultExpression(ParserTypeSyntax);
+                break;
+
+            case ParserInfoProvider.ParserKind.FieldOrProperty:
+                (var type, var member) = parserInfo.FieldOrProperty;
+                _parserTypeSyntax = SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                _parserArgExpressionSyntax = SyntaxProvider.SiblingMemberAccessExpression(member);
+                break;
+
+            case ParserInfoProvider.ParserKind.Method:
+                var identifier = Model.ParameterKind == ParameterKind.Flag
+                    ? $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}"
+                    : $"{Constants.Global}::{Literals.DelegateParser_TypeName}";
+                _parserTypeSyntax = SyntaxFactory.GenericName(
+                    SyntaxFactory.Identifier(identifier),
+                    SyntaxFactory.TypeArgumentList(
+                        SyntaxFactory.SingletonSeparatedList(
+                            ParsedTypeSyntax)));
+                _parserArgExpressionSyntax = SyntaxFactory.ObjectCreationExpression(
+                     ParserTypeSyntax,
+                     SyntaxProvider.ArgumentList(
+                         SyntaxProvider.SiblingMemberAccessExpression(parserInfo.Method)),
+                     default);
+                break;
+
+            case ParserInfoProvider.ParserKind.Struct:
+                _parserTypeSyntax = SyntaxFactory.IdentifierName(parserInfo.Struct.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                _parserArgExpressionSyntax = SyntaxFactory.DefaultExpression(ParserTypeSyntax);
+                break;
+            default:
+                throw new InvalidOperationException();
+        }
+        (_parserTypeSyntax, _parserArgExpressionSyntax) = SyntaxHelper.WrapParserTypeSyntax(_parserTypeSyntax, _parserArgExpressionSyntax, ParameterData.Data);
     }
 
     public LocalDeclarationStatementSyntax ArgumentLocalDeclaration()
@@ -124,7 +120,7 @@ internal class ParameterProvider
                     SyntaxFactory.Identifier(context.GetterMethodIdentifier),
                     SyntaxFactory.TypeArgumentList(
                         SyntaxFactory.SeparatedList(new[] {
-                            ParsedTypeSyntax,
+                            ResultTypeSyntax,
                             ParserTypeSyntax,
                         }))),
                 context.ArgExpressions));

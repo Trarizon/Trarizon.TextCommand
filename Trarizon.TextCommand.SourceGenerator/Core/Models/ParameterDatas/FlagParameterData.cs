@@ -8,24 +8,26 @@ internal sealed class FlagParameterData(ParameterModel model) : IParameterData, 
 
     public required ParserInfoProvider ParserInfo { get; init; }
 
-    private ITypeSymbol? _parsedTypeSymbol;
-    public ITypeSymbol ParsedTypeSymbol
+    private ITypeSymbol? _resultTypeSymbol;
+    public ITypeSymbol ResultTypeSymbol 
     {
         get {
-            if (_parsedTypeSymbol is null) {
-                _parsedTypeSymbol = Model.Symbol.Type;
+            if (_resultTypeSymbol is null) {
+                _resultTypeSymbol = Model.Symbol.Type;
                 // Remove nullable annotation of reference type for implicit parser
-                if (_parsedTypeSymbol is {
+                if (_resultTypeSymbol is {
                     IsValueType: false,
                     NullableAnnotation: NullableAnnotation.Annotated
                 }) {
-                    _parsedTypeSymbol = _parsedTypeSymbol.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+                    _resultTypeSymbol = _resultTypeSymbol.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
                 }
             }
-            return _parsedTypeSymbol;
+            return _resultTypeSymbol;
         }
-        init => _parsedTypeSymbol = value;
+        init => _resultTypeSymbol = value;
     }
+
+    public ITypeSymbol ParsedTypeSymbol => ResultTypeSymbol;
 
     // Attribute data
 

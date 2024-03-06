@@ -184,8 +184,8 @@ internal class ExecutorProvider
     private StatementSyntax ArgsProviderLocalVarStatement(bool declartion, int? restIdentifiersuffix = null)
     {
         var invocation = SyntaxProvider.SimpleMethodInvocation(
-            SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParameterSets_TypeIdentifier}.{ParameterSet_FieldIdentifier()}"),
-            SyntaxFactory.IdentifierName(Literals.ParameterSet_Parse_MethodIdentifier),
+            SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParsingContextProvider_TypeIdentifier}.{ParameterSet_FieldIdentifier()}"),
+            SyntaxFactory.IdentifierName(Literals.ParsingContext_Parse_MethodIdentifier),
             SyntaxFactory.IdentifierName(RestArgs_VarIdentifier(restIdentifiersuffix)));
 
         if (declartion) {
@@ -271,7 +271,7 @@ internal class ExecutorProvider
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword),
                 SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)),
             SyntaxFactory.VariableDeclaration(
-                SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParameterSet_TypeName}"),
+                SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParsingContext_TypeName}"),
                 SyntaxFactory.SingletonSeparatedList(
                     SyntaxFactory.VariableDeclarator(
                         SyntaxFactory.Identifier(ParameterSet_FieldIdentifier()),

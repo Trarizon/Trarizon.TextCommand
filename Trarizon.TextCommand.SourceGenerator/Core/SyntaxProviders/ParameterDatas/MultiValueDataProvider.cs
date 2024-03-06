@@ -26,8 +26,8 @@ internal class MultiValueDataProvider(MultiValueParameterData data, ParameterPro
             int flag = Data.CollectionType switch {
                 MultiValueCollectionType.ReadOnlySpan or
                 MultiValueCollectionType.Span
-                    => Data.MaxCount <= Literals.StackAllocThreshold && Data.ParsedTypeSymbol.IsUnmanagedType
-                    && Data.ParsedTypeSymbol.NullableAnnotation is NullableAnnotation.NotAnnotated // Tell me why struct? cannot pass into unmanaged type param ???
+                    => Data.MaxCount <= Literals.StackAllocThreshold && Data.ResultTypeSymbol.IsUnmanagedType
+                    && Data.ResultTypeSymbol.NullableAnnotation is NullableAnnotation.NotAnnotated // Nullable<T> cannot pass into unmanaged type param
                         ? BySpan : ByArray,
                 MultiValueCollectionType.ReadOnlySpan or
                 MultiValueCollectionType.Span or
@@ -45,7 +45,7 @@ internal class MultiValueDataProvider(MultiValueParameterData data, ParameterPro
                         SyntaxFactory.Identifier($"{Constants.Global}::{Literals.ArgResult_TypeName}"),
                         SyntaxFactory.TypeArgumentList(
                             SyntaxFactory.SingletonSeparatedList(
-                                Parameter.ParsedTypeSyntax)))),
+                                Parameter.ResultTypeSyntax)))),
                 ByArray => (Literals.ArgsProvider_GetValuesArray_MethodIdentifier,
                     SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ArgRawResultInfo_TypeName}")),
                 ByList => (Literals.ArgsProvider_GetValuesList_MethodIdentifier,

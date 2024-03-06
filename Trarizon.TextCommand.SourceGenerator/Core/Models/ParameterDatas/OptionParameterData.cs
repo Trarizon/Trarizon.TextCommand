@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics.CodeAnalysis;
+using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
 internal sealed class OptionParameterData(ParameterModel model) : IParameterData, INamedParameterData, IRequiredParameterData
@@ -8,22 +9,18 @@ internal sealed class OptionParameterData(ParameterModel model) : IParameterData
 
     public required ParserInfoProvider ParserInfo { get; init; }
 
+    private ITypeSymbol? _resultTypeSymbol;
+    public ITypeSymbol ResultTypeSymbol
+    {
+        get => _resultTypeSymbol ?? Model.Symbol.Type;
+        init => _resultTypeSymbol = value;
+    }
+
     private ITypeSymbol? _parsedTypeSymbol;
     public ITypeSymbol ParsedTypeSymbol
     {
-        get {
-            if (_parsedTypeSymbol is null) {
-                _parsedTypeSymbol = Model.Symbol.Type;
-                // Remove nullable annotation of reference type for implicit parser
-                if (_parsedTypeSymbol is {
-                    IsValueType: false,
-                    NullableAnnotation: NullableAnnotation.Annotated
-                }) {
-                    _parsedTypeSymbol = _parsedTypeSymbol.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
-                }
-            }
-            return _parsedTypeSymbol;
-        }
+        // For implicit parser, ParsedType will not has nullable annotation
+        get => _parsedTypeSymbol ??= ResultTypeSymbol.RemoveNullableAnnotation();
         init => _parsedTypeSymbol = value;
     }
 

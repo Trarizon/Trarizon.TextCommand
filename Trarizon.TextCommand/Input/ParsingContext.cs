@@ -4,15 +4,26 @@ using System.Diagnostics;
 using Trarizon.TextCommand.Utilities;
 
 namespace Trarizon.TextCommand.Input;
-public sealed class ParameterSet(
+/// <summary>
+/// The parameter set helper for parse raw input into typed args
+/// </summary>
+/// <param name="name_ParamCountDict">
+/// name-paramCount dictionary, contains all named parameters;<br/>
+/// key is command parameter name, value is the extra arg count the parameter requires(flag 0, option 1)
+/// </param>
+/// <param name="aliasDict"></param>
+public sealed class ParsingContext(
     // 数字表示该值需要的参数数量，目前只需要1和0，
     // 1表示option，0表示flag
     Dictionary<string, int>? name_ParamCountDict,
     Dictionary<string, string>? aliasDict)
 {
-    private readonly FrozenDictionary<string, int> _optionOrFlagParameters = name_ParamCountDict?.ToFrozenDictionary() ?? FrozenDictionary<string, int>.Empty;
+    private readonly FrozenDictionary<string, int> _name_ParamCountDict = name_ParamCountDict?.ToFrozenDictionary() ?? FrozenDictionary<string, int>.Empty;
     private readonly FrozenDictionary<string, string> _aliasDict = aliasDict?.ToFrozenDictionary() ?? FrozenDictionary<string, string>.Empty;
 
+    /// <summary>
+    /// Parse string
+    /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public ArgsProvider Parse(in StringInputRest rest)
     {
@@ -57,7 +68,7 @@ public sealed class ParameterSet(
                         continue;
                 }
 
-                if (_optionOrFlagParameters.TryGetValue(strArg, out var isOption)) {
+                if (_name_ParamCountDict.TryGetValue(strArg, out var isOption)) {
                     // Flag
                     if (isOption == 0) {
                         dict.Add(strArg, ArgIndex.Flag);
@@ -90,6 +101,9 @@ public sealed class ParameterSet(
         return new(rest.Source, unescapeds, dict, list.AsSpan());
     }
 
+    /// <summary>
+    /// Parse string span
+    /// </summary>
     public ArgsProvider Parse(ReadOnlySpan<string> args)
     {
         Dictionary<string, ArgIndex> dict = [];
@@ -111,7 +125,7 @@ public sealed class ParameterSet(
                     break;
             }
 
-            if (_optionOrFlagParameters.TryGetValue(arg, out var isOption)) {
+            if (_name_ParamCountDict.TryGetValue(arg, out var isOption)) {
                 if (isOption == 0)
                     dict.Add(arg, default);
                 else if (++i < args.Length)

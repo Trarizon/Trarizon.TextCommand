@@ -1,6 +1,10 @@
 ﻿using System.ComponentModel;
 
 namespace Trarizon.TextCommand.Input.Result;
+/// <summary>
+/// Parsing result contains single Value
+/// </summary>
+/// <typeparam name="T">Type of the value</typeparam>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public readonly struct ArgResult<T>
 {

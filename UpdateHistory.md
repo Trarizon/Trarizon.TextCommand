@@ -2,8 +2,8 @@
 
 ## 0.1.0
 
-- [Breaking] Method signature of `ArgProvider.Get`s changed.
-- [Breaking] Changed format of keys in parameter set
+- [Breaking] Rename `CLParameterAttribute` to `ParameterAttribute`, `ParameterSet` to `ParsingContext`
+- [Breaking] If you haven't use any member with [EditorBrowsable(Never)], just re-build is ok
 - Add Error handling
 - Refactor generator
 

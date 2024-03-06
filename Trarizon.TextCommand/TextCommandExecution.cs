@@ -2,8 +2,14 @@
 using Trarizon.TextCommand.Utilities;
 
 namespace Trarizon.TextCommand;
+/// <summary>
+/// Utilities
+/// </summary>
 public static class TextCommandExecution
 {
+    /// <summary>
+    /// Split input into <see cref="string"/><c>[]</c> as args
+    /// </summary>
     public static string[] SplitAsArgs(this string input)
     {
         var rest = new StringInputMatcher(input)[..];

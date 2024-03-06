@@ -1,5 +1,4 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal readonly struct ParserInfoProvider

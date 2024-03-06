@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Attributes;
 using Trarizon.TextCommand.Attributes.Parameters;
@@ -14,7 +13,7 @@ namespace Trarizon.TextCommand.Tester;
 
 static class PSet
 {
-    public static readonly ParameterSet Set = new(default, default);
+    public static readonly ParsingContext Set = new(default, default);
 }
 
 internal partial class _Design
@@ -55,9 +54,9 @@ internal partial class _Design
                     | provider2.GetFlag<Option, BinaryFlagParser<Option>>("b", default);
                 break;
         }
-
+        int? i = 1;
+        A? a = i;
         return default!;
-
         TRtn Method(string? str, ReadOnlySpan<int> span) => default!;
     }
 
@@ -82,6 +81,13 @@ internal partial class _Design
         return default!;
     }
 
+    [Executor("value-only")]
+    public TRtn ValueOnly([Value] int a)
+    {
+        Print(a);
+        return default!;
+    }
+
     // 默认选项
     [Executor("default", "settings")]
     [Executor("multi", "marked")]
@@ -94,6 +100,39 @@ internal partial class _Design
         Print(option);
         Print(number);
         Print(nullNumber);
+        return default!;
+    }
+
+    public struct A
+    {
+        private int _val;
+        public static implicit operator A(int a) => new() { _val = a };
+        public override readonly string ToString() => $"A {{{_val}}}";
+    }
+
+    [Executor("implicit-conversion")]
+    public TRtn ImplicitConversion(
+        int? nullable,
+        string? nullableString,
+        [Option(ParserType = typeof(ParsableParser<int>))] A intToA,
+        [Option(ParserType = typeof(ParsableParser<int>))] long intToLong,
+        [Option(ParserType = typeof(ParsableParser<int>))] A? intToNullableA,
+        [MultiValue(1)] int?[] nullableArr,
+        [MultiValue(1)] string?[] nullableStringArr,
+        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A[] intToAArr,
+        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] long[] intToLongArr,
+        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A?[] intToNullableAArr)
+    {
+        Print(nullable);
+        Print(nullableString);
+        Print(intToA);
+        Print(intToLong);
+        Print(intToNullableA);
+        PrintArr(nullableArr);
+        PrintArr(nullableStringArr);
+        PrintArr(intToAArr);
+        PrintArr(intToLongArr);
+        PrintArr(intToNullableAArr);
         return default!;
     }
 

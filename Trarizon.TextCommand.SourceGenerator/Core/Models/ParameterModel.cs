@@ -45,7 +45,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
     public Diagnostic? ValidateSingleAttribute()
     {
         bool isSingleAttr = Symbol.GetAttributes()
-            .Select(attr => (attr, attr.GetParameterKind()))
+            .Select(attr => (attr, EnumHelper.GetParameterKind(attr)))
             .TrySingleOrNone(attr => attr.Item2 != ParameterKind.Invalid, out var res);
 
         if (isSingleAttr) {
@@ -116,12 +116,12 @@ internal sealed class ParameterModel(ExecutorModel executor)
         {
             switch (ParameterKind) {
                 case ParameterKind.Flag: {
-                    if (ValidateParser(Symbol.Type, true, out var parsedType, out bool nullableNotMatched) is { } err) {
+                    if (ValidateParser(parserInfo, Symbol.Type, true, out var parsedType, out bool nullableNotMatched) is { } err) {
                         return (null, err);
                     }
                     return (new FlagParameterData(this) {
                         ParserInfo = parserInfo,
-                        ParsedTypeSymbol = parsedType,
+                        ResultTypeSymbol = parsedType,
                         Alias = _attribute.GetConstructorArgument<string>(Literals.FlagAttribute_Alias_CtorParameterIndex),
 #pragma warning disable CS8601
                         Name = _attribute.GetNamedArgument<string>(Literals.FlagAttribute_Name_PropertyIdentifier),
@@ -130,7 +130,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                 }
 
                 case ParameterKind.Option: {
-                    if (ValidateParser(Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
+                    if (ValidateParser(parserInfo, Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
                         return (null, err);
                     }
                     return (new OptionParameterData(this) {
@@ -145,7 +145,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                 }
 
                 case ParameterKind.Value: {
-                    if (ValidateParser(Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
+                    if (ValidateParser(parserInfo, Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
                         return (null, err);
                     }
                     return (new ValueParameterData(this) {
@@ -163,13 +163,14 @@ internal sealed class ParameterModel(ExecutorModel executor)
                             Syntax));
                     }
 
-                    if (ValidateParser(elementType, false, out var parsedType, out var nullableNotMatched) is { } err) {
+                    if (ValidateParser(parserInfo, elementType, false, out var parsedType, out var nullableNotMatched) is { } err) {
                         return (null, err);
                     }
 
                     return (new MultiValueParameterData(this) {
                         CollectionType = collectionType,
                         ParserInfo = parserInfo,
+                        ResultTypeSymbol = elementType,
                         ParsedTypeSymbol = parsedType,
                         MaxCount = _attribute.GetConstructorArgument<int>(Literals.MultiValueAttribute_MaxCount_CtorParameterIndex),
                         Required = _attribute.GetNamedArgument<bool>(Literals.ValueAttribute_Required_PropertyIdentifier),
@@ -185,60 +186,60 @@ internal sealed class ParameterModel(ExecutorModel executor)
                     DiagnosticDescriptors.ParsedArgumentMaybeNull,
                     Syntax);
 
-            Diagnostic? ValidateParser(ITypeSymbol assignedType, bool isFlag, /* NullIfReturnNotNull */ out ITypeSymbol parsedType, out bool nullableNotMatched)
-            {
-                switch (parserInfo.Kind) {
-                    case ParserInfoProvider.ParserKind.FieldOrProperty:
-                        if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.FieldOrProperty.Type, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
-                            return DiagnosticFactory.Create(isFlag
-                                ? DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser
-                                : DiagnosticDescriptors.CustomParserShouldImplsIArgParser,
-                                Syntax);
-                        }
-                        break;
-                    case ParserInfoProvider.ParserKind.Method:
-                        if (!ValidationHelper.IsValidMethodParser(SemanticModel, parserInfo.Method, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
-                            return DiagnosticFactory.Create(isFlag
-                                ? DiagnosticDescriptors.CustomFlagParsingMethodMatchArgFlagParsingDelegate
-                                : DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate,
-                                Syntax);
-                        }
-                        break;
-                    case ParserInfoProvider.ParserKind.Struct:
-                        if (!parserInfo.Struct.IsValueType) {
-                            parsedType = default!;
-                            nullableNotMatched = default;
-                            return DiagnosticFactory.Create(
-                                DiagnosticDescriptors.CustomTypeParserShouldBeValueType,
-                                Syntax);
-                        }
-                        if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.Struct, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
-                            return DiagnosticFactory.Create(isFlag
-                                ? DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser
-                                : DiagnosticDescriptors.CustomParserShouldImplsIArgParser,
-                                Syntax);
-                        }
-                        break;
-                    default: // Invalid or Implicit
-                        throw new InvalidOperationException();
-                }
-                return null;
+        }
+
+        Diagnostic? ValidateParser(in ParserInfoProvider parserInfo, ITypeSymbol assignedType, bool isFlag, /* NullIfReturnNotNull */ out ITypeSymbol parsedType, out bool nullableNotMatched)
+        {
+            switch (parserInfo.Kind) {
+                case ParserInfoProvider.ParserKind.FieldOrProperty:
+                    if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.FieldOrProperty.Type, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                        return DiagnosticFactory.Create(isFlag
+                            ? DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser
+                            : DiagnosticDescriptors.CustomParserShouldImplsIArgParser,
+                            Syntax);
+                    }
+                    break;
+                case ParserInfoProvider.ParserKind.Method:
+                    if (!ValidationHelper.IsValidMethodParser(SemanticModel, parserInfo.Method, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                        return DiagnosticFactory.Create(isFlag
+                            ? DiagnosticDescriptors.CustomFlagParsingMethodMatchArgFlagParsingDelegate
+                            : DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate,
+                            Syntax);
+                    }
+                    break;
+                case ParserInfoProvider.ParserKind.Struct:
+                    if (!parserInfo.Struct.IsValueType) {
+                        parsedType = default!;
+                        nullableNotMatched = default;
+                        return DiagnosticFactory.Create(
+                            DiagnosticDescriptors.CustomTypeParserShouldBeValueType,
+                            Syntax);
+                    }
+                    if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.Struct, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                        return DiagnosticFactory.Create(isFlag
+                            ? DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser
+                            : DiagnosticDescriptors.CustomParserShouldImplsIArgParser,
+                            Syntax);
+                    }
+                    break;
+                default: // Invalid or Implicit
+                    throw new InvalidOperationException();
             }
+            return null;
         }
 
         Result<IParameterData, Diagnostic> GetImplicitParserParameterData()
         {
             switch (ParameterKind) {
+                // Not marked with attribute
                 case ParameterKind.Invalid: {
-                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+                    var implicitParameterKind = EnumHelper.GetImplicitParameterKind(Symbol.Type);
                     return implicitParameterKind switch {
                         ImplicitParameterKind.Boolean => new FlagParameterData(this) {
                             ParserInfo = new ParserInfoProvider(implicitParameterKind),
                         },
                         ImplicitParameterKind.SpanParsable or
-                        ImplicitParameterKind.Enum or
-                        ImplicitParameterKind.NullableSpanParsable or
-                        ImplicitParameterKind.NullableEnum => new OptionParameterData(this) {
+                        ImplicitParameterKind.Enum => new OptionParameterData(this) {
                             ParserInfo = new ParserInfoProvider(implicitParameterKind),
                         },
                         _ => DiagnosticFactory.Create(
@@ -249,7 +250,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
 
                 // In non-invalid case, _attribute is not null
                 case ParameterKind.Flag: {
-                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+                    var implicitParameterKind = EnumHelper.GetImplicitParameterKind(Symbol.Type);
                     return implicitParameterKind switch {
                         ImplicitParameterKind.Boolean => new FlagParameterData(this) {
                             ParserInfo = new ParserInfoProvider(implicitParameterKind),
@@ -263,7 +264,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                 }
 
                 case ParameterKind.Option: {
-                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+                    var implicitParameterKind = EnumHelper.GetImplicitParameterKind(Symbol.Type);
                     if (implicitParameterKind is ImplicitParameterKind.Invalid) {
                         return DiagnosticFactory.Create(
                             DiagnosticDescriptors.ParameterNoImplicitParser,
@@ -281,7 +282,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                 }
 
                 case ParameterKind.Value: {
-                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(Symbol.Type);
+                    var implicitParameterKind = EnumHelper.GetImplicitParameterKind(Symbol.Type);
                     if (implicitParameterKind is ImplicitParameterKind.Invalid) {
                         return DiagnosticFactory.Create(
                             DiagnosticDescriptors.ParameterNoImplicitParser,
@@ -304,7 +305,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                             Syntax);
                     }
 
-                    var implicitParameterKind = ValidationHelper.ValidateImplicitParameterKind(elementType);
+                    var implicitParameterKind = EnumHelper.GetImplicitParameterKind(elementType);
                     if (implicitParameterKind is ImplicitParameterKind.Invalid) {
                         return DiagnosticFactory.Create(
                             DiagnosticDescriptors.ParameterNoImplicitParser,
@@ -315,7 +316,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                         implicitParameterKind = ImplicitParameterKind.SpanParsable;
                     return new MultiValueParameterData(this) {
                         ParserInfo = new ParserInfoProvider(implicitParameterKind),
-                        ParsedTypeSymbol = elementType,
+                        ResultTypeSymbol = elementType,
                         MaxCount = _attribute!.GetConstructorArgument<int>(Literals.MultiValueAttribute_MaxCount_CtorParameterIndex),
                         Required = _attribute!.GetNamedArgument<bool>(Literals.MultiValueAttribute_Required_PropertyIdentifier),
                         CollectionType = collectionType,

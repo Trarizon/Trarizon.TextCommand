@@ -23,6 +23,7 @@ internal static class Constants
     public const string PartialMethodDeclarationHaveSignatureDifferences_ErrorCode = "CS8826";
     public const string LabelNotBeenReferenced_ErrorCode = "CS0164";
     public const string PossibleNullReferenceArgumentForParameter_ErrorCode = "CS8604";
+    public const string ReferenceTypeNullableAnnotationNotMatch_ErrorCode = "CS8631";
 
     public const string Global = "global";
 }

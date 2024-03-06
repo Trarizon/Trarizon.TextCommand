@@ -16,7 +16,26 @@ design.Run("/ghoti default settings --flag --option a --number 114");
 Console.WriteLine();
 design.Run("/ghoti multi marked --flag --str string --option a --nullNumber 114");
 Console.WriteLine();
-design.Run(@"/ghoti explicit parameter type -f str A --non-flag true B 1  2 3 ""string with space and """" escape """" "" ""str2"" 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16");
+design.Run("""
+    /ghoti implicit-conversion
+    1 str 2 3 4
+    --nullable 1
+    --nullableString str
+    --intToA 2
+    --intToLong 3
+    --intToNullableA 4
+    """);
+Console.WriteLine();
+design.Run("/ghoti implicit-conversion");
+Console.WriteLine();
+design.Run("""
+    /ghoti explicit parameter type 
+    -f str A 
+    --non-flag true B 
+    1  2 3 
+    "string with space and "" escape "" " "str2" 
+    1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+    """);
 Console.WriteLine();
 design.Run("""
     /ghoti custom

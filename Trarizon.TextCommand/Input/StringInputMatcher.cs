@@ -20,8 +20,13 @@ public ref struct StringInputMatcher
     private readonly List<string> _calledCache = [];
 #endif
 
-    // Every time call the getter will create a string
-    // So this is for one-time use
+    /// <summary>
+    /// Get string split by index
+    /// </summary>
+    /// <remarks>
+    /// Every time call the getter will create a string
+    /// So this is for one-time use (exactly for compiler generating list pattern)
+    /// </remarks>
     public ReadOnlySpan<char> this[int index]
     {
         get {
@@ -55,11 +60,22 @@ public ref struct StringInputMatcher
         }
     }
 
-    // Get the rest part of string
+    /// <summary>
+    /// Get string splits by range
+    /// </summary>
+    /// <remarks>
+    /// Exactly for compiler generating list pattern again, to get rest values
+    /// </remarks>
     public readonly StringInputRest this[Range range] => new(_input, _indexes[range], _countOfEscaped);
 
+    /// <summary>
+    /// Count of input argument
+    /// </summary>
     public readonly int Length => _indexes.Length;
 
+    /// <summary>
+    /// Create
+    /// </summary>
     public StringInputMatcher(ReadOnlySpan<char> input)
     {
         _input = input;

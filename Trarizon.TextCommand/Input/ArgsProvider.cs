@@ -119,5 +119,10 @@ public readonly ref partial struct ArgsProvider
     /// this method is for stackalloc unmanaged type span
     /// </summary>
     public int GetAvailableArrayLength(int startIndex, int exceptedLength)
-        => int.Min(exceptedLength, _valueList.Length - startIndex);
+    {
+        var length = _valueList.Length;
+        if (startIndex >= length)
+            return 0;
+        return int.Min(exceptedLength, length - startIndex);
+    }
 }
