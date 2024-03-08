@@ -156,7 +156,8 @@ internal partial class _Design
         [MultiValue(2)] int[] intArray, [MultiValue(3)] List<int> intList, [MultiValue(3)] IEnumerable<int> intEnumerable,
         // multivalue rest values
         [MultiValue] int[] rest,
-        [MultiValue(1)] int[] unreachable)
+        [MultiValue(1)] int[] unreachable,
+        [Value] string? unreachableValue)
     {
         Print(flag);
         Print(nonFlag);
@@ -170,6 +171,7 @@ internal partial class _Design
         PrintArr(intList);
         PrintArr(rest);
         PrintArr(unreachable);
+        Print(unreachableValue);
         return default!;
     }
 

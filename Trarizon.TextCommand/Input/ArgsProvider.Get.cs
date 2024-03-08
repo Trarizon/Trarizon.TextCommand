@@ -2,6 +2,7 @@
 using Trarizon.TextCommand.Input.Result;
 using Trarizon.TextCommand.Parsers;
 using Trarizon.TextCommand.Attributes.Parameters;
+using System.ComponentModel;
 
 namespace Trarizon.TextCommand.Input;
 partial struct ArgsProvider
@@ -14,14 +15,13 @@ partial struct ArgsProvider
     /// <param name="key">The option name, should match <see cref="OptionAttribute.Name"/></param>
     /// <param name="parser">Parser</param>
     /// <returns>A <see cref="ArgResult{T}"/> contains result</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public ArgResult<T> GetOption<T, TParser>(string key, TParser parser) where TParser : IArgParser<T>
     {
-        var nullableIndex = GetRawOption(key);
         // Not set
-        if (nullableIndex is null)
+        if (!TryGetRawOption(key, out var index))
             return ArgResult<T>.ParameterNotSet();
 
-        var index = nullableIndex.GetValueOrDefault();
         // Parsing failed
         if (!TryParseArg<T, TParser>(index, parser, out var result))
             return ArgResult<T>.ParsingFailed(index);
@@ -38,6 +38,7 @@ partial struct ArgsProvider
     /// <param name="key">The flag name, should match <see cref="FlagAttribute.Name"/></param>
     /// <param name="parser">Parser</param>
     /// <returns>The result value</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public T GetFlag<T, TParser>(string key, TParser parser) where TParser : IArgFlagParser<T>
     {
         return parser.Parse(GetRawFlag(key));
@@ -50,14 +51,18 @@ partial struct ArgsProvider
     /// <typeparam name="TParser">Parser</typeparam>
     /// <param name="startIndex">the start index in all value arguments</param>
     /// <param name="parser">Parser</param>
-    /// <param name="allocatedSpace">Ahead-alloc space for result</param>
+    /// <param name="allocatedSpace">
+    /// Ahead-alloc space for result,
+    /// size of this parameter is equals to the length of returned span
+    /// </param>
     /// <returns>A <see cref="ArgResultsUnmanaged{T}"/> contains result</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public ArgResultsUnmanaged<T> GetValuesUnmanaged<T, TParser>(int startIndex, TParser parser, Span<ArgResult<T>> allocatedSpace) where T : unmanaged where TParser : IArgParser<T>
     {
+        if (allocatedSpace.Length == 0)
+            return ArgResultsUnmanaged<T>.Empty;
+
         var indices = GetRawValuesIndices(startIndex, allocatedSpace.Length);
-        // Not set
-        if (indices.Length == 0)
-            return default;
 
         var rtn = new ArgResultsUnmanaged<T>(allocatedSpace);
         ParseArgs(indices, parser, rtn.Values, rtn.RawInfos);
@@ -72,14 +77,18 @@ partial struct ArgsProvider
     /// <typeparam name="TParser">Parser</typeparam>
     /// <param name="startIndex">the start index in all value arguments</param>
     /// <param name="parser">Parser</param>
-    /// <param name="allocatedSpace">Ahead-alloc space for extra result infos</param>
+    /// <param name="allocatedSpace">
+    /// Ahead-alloc space for extra result infos,
+    /// size of this parameter is equals to the length of returned array
+    /// </param>
     /// <returns>A <see cref="ArgResultsArray{T}"/> contains result</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public ArgResultsArray<T> GetValuesArray<T, TParser>(int startIndex, TParser parser, Span<ArgRawResultInfo> allocatedSpace) where TParser : IArgParser<T>
     {
+        if (allocatedSpace.Length == 0)
+            return ArgResultsArray<T>.Empty;
+
         var indices = GetRawValuesIndices(startIndex, allocatedSpace.Length);
-        // Not set
-        if (indices.Length == 0)
-            return default;
 
         var rtn = new ArgResultsArray<T>(allocatedSpace);
         ParseArgs<T, TParser>(indices, parser, rtn.Values, rtn.RawInfos);
@@ -94,14 +103,18 @@ partial struct ArgsProvider
     /// <typeparam name="TParser">Parser</typeparam>
     /// <param name="startIndex">the start index in all value arguments</param>
     /// <param name="parser">Parser</param>
-    /// <param name="allocatedSpace">Ahead-alloc space for extra result infos</param>
+    /// <param name="allocatedSpace">
+    /// Ahead-alloc space for extra result infos,
+    /// size of this parameter is equals to the length of returned list
+    /// </param>
     /// <returns>A <see cref="ArgResultsList{T}"/> contains result</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public ArgResultsList<T> GetValuesList<T, TParser>(int startIndex, TParser parser, Span<ArgRawResultInfo> allocatedSpace) where TParser : IArgParser<T>
     {
+        if (allocatedSpace.Length > 0)
+            return ArgResultsList<T>.Empty;
+
         var indices = GetRawValuesIndices(startIndex, allocatedSpace.Length);
-        // Not set
-        if (indices.Length == 0)
-            return default;
 
         var rtn = new ArgResultsList<T>(allocatedSpace);
         ParseArgs(indices, parser, CollectionsMarshal.AsSpan(rtn.Values), rtn.RawInfos);
@@ -117,14 +130,13 @@ partial struct ArgsProvider
     /// <param name="index">the start index in all value arguments</param>
     /// <param name="parser">Parser</param>
     /// <returns>A <see cref="ArgResult{T}"/> contains result</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public ArgResult<T> GetValue<T, TParser>(int index, TParser parser) where TParser : IArgParser<T>
     {
-        var argIndices = GetRawValuesIndices(index, 1);
         // Not set
-        if (argIndices.Length == 0)
+        if (!TryGetRawValueIndex(index, out var argIndex))
             return ArgResult<T>.ParameterNotSet();
 
-        var argIndex = argIndices[0];
         // Parsing failed
         if (!TryParseArg<T, TParser>(argIndex, parser, out var result))
             return ArgResult<T>.ParsingFailed(argIndex);

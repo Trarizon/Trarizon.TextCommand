@@ -1,5 +1,10 @@
 # Update History
 
+## 0.1.1
+- [Breaking] Changed parameter name of `ArgsProvider.GetAvailableArrayLength()`
+- Mark public members of `ArgsProvider` as `EditorBrowsableState.Never`
+- Removed unnecessary check in `ArgsProvider`, caller(generated code) should confirm the input is valid
+
 ## 0.1.0
 
 - [Breaking] Rename `CLParameterAttribute` to `ParameterAttribute`, `ParameterSet` to `ParsingContext`

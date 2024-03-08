@@ -79,16 +79,15 @@ public readonly ref partial struct ArgsProvider
     }
 
     /// <returns><see cref="ArgIndex.Flag"/> as <see langword="false"/></returns>
-    private ArgIndex? GetRawOption(string key)
+    private bool TryGetRawOption(string key, out ArgIndex argIndex)
     {
-        if (_optionDict.TryGetValue(key, out var index)) {
-            // ParameterSet.Parse guarantees ArgIndexKind is available
-            Debug.Assert(index.Kind != ArgIndexKind.Flag);
-            return index;
+        if (_optionDict.TryGetValue(key, out argIndex)) {
+            // ParsingContext.Parse guarantees ArgIndexKind is available
+            Debug.Assert(argIndex.Kind != ArgIndexKind.Flag);
+            return true;
         }
-        else {
-            return null;
-        }
+
+        return false;
     }
 
     private bool GetRawFlag(string key)
@@ -102,27 +101,35 @@ public readonly ref partial struct ArgsProvider
         }
     }
 
-    private ReadOnlySpan<ArgIndex> GetRawValuesIndices(int index, int count)
+    private bool TryGetRawValueIndex(int index,out ArgIndex argIndex)
     {
         if (index < _valueList.Length) {
-            var end = index + count;
-            Debug.Assert(end <= _valueList.Length);
-            return _valueList[index..end];
+            argIndex = _valueList[index];
+            return true;
         }
-        else {
-            return default;
-        }
+        argIndex = default;
+        return false;
+    }
+
+    private ReadOnlySpan<ArgIndex> GetRawValuesIndices(int index, int count)
+    {
+        Debug.Assert(index < _valueList.Length && count > 0);
+
+        var end = index + count;
+        Debug.Assert(end <= _valueList.Length);
+        return _valueList[index..end];
     }
 
     /// <summary>
     /// Get the available length of Values parameter,
     /// this method is for stackalloc unmanaged type span
     /// </summary>
-    public int GetAvailableArrayLength(int startIndex, int exceptedLength)
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public int GetAvailableArrayLength(int startIndex, int maxLength)
     {
         var length = _valueList.Length;
         if (startIndex >= length)
             return 0;
-        return int.Min(exceptedLength, length - startIndex);
+        return int.Min(maxLength, length - startIndex);
     }
 }

@@ -47,6 +47,7 @@ design.Run("""
     v1 v2 v3 v4
     """);
 Console.WriteLine();
+Console.WriteLine("_err");
 design.Run("""
     /ghoti custom
     --custom customParserVal
