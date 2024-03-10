@@ -18,8 +18,13 @@ public readonly struct ConversionParser<T, TResult, TParser>(TParser parser, Fun
     /// <inheritdoc />
     public bool TryParse(InputArg input, [MaybeNullWhen(false)] out TResult result)
     {
-        bool rtn = parser.TryParse(input, out var res);
-        result = convert(res);
-        return rtn;
+        if (parser.TryParse(input, out var res)) {
+            result = convert(res);
+            return true;
+        }
+        else {
+            result = default;
+            return false;
+        }
     }
 }

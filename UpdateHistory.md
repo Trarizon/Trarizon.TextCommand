@@ -4,6 +4,7 @@
 - [Breaking] Changed parameter name of `ArgsProvider.GetAvailableArrayLength()`
 - Mark public members of `ArgsProvider` as `EditorBrowsableState.Never`
 - Removed unnecessary check in `ArgsProvider`, caller(generated code) should confirm the input is valid
+- Optimize in `ConversionParser`
 
 ## 0.1.0
 
