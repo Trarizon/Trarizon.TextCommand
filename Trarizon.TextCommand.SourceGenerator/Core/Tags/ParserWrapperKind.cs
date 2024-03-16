@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Trarizon.TextCommand.SourceGenerator.Core;
+namespace Trarizon.TextCommand.SourceGenerator.Core.Tags;
 [Flags]
 internal enum ParserWrapperKind
 {

@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
+using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Toolkit;
@@ -109,6 +110,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                     DiagnosticDescriptors.CannotFindExplicitParser_0MemberName,
                     Syntax,
                     memberParserAttrArg));
+
             return GetExplicitParserParameterData(memberParserInfo);
         }
 
@@ -116,7 +118,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
         {
             switch (ParameterKind) {
                 case ParameterKind.Flag: {
-                    if (ValidateParser(parserInfo, Symbol.Type, true, out var parsedType, out bool nullableNotMatched) is { } err) {
+                    if (ValidateParser(ref parserInfo, Symbol.Type, true, out var parsedType, out bool nullableNotMatched) is { } err) {
                         return (null, err);
                     }
                     return (new FlagParameterData(this) {
@@ -130,7 +132,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                 }
 
                 case ParameterKind.Option: {
-                    if (ValidateParser(parserInfo, Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
+                    if (ValidateParser(ref parserInfo, Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
                         return (null, err);
                     }
                     return (new OptionParameterData(this) {
@@ -145,7 +147,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                 }
 
                 case ParameterKind.Value: {
-                    if (ValidateParser(parserInfo, Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
+                    if (ValidateParser(ref parserInfo, Symbol.Type, false, out var parsedType, out var nullableNotMatched) is { } err) {
                         return (null, err);
                     }
                     return (new ValueParameterData(this) {
@@ -163,7 +165,7 @@ internal sealed class ParameterModel(ExecutorModel executor)
                             Syntax));
                     }
 
-                    if (ValidateParser(parserInfo, elementType, false, out var parsedType, out var nullableNotMatched) is { } err) {
+                    if (ValidateParser(ref parserInfo, elementType, false, out var parsedType, out var nullableNotMatched) is { } err) {
                         return (null, err);
                     }
 
@@ -188,11 +190,11 @@ internal sealed class ParameterModel(ExecutorModel executor)
 
         }
 
-        Diagnostic? ValidateParser(in ParserInfoProvider parserInfo, ITypeSymbol assignedType, bool isFlag, /* NullIfReturnNotNull */ out ITypeSymbol parsedType, out bool nullableNotMatched)
+        Diagnostic? ValidateParser(ref ParserInfoProvider parserInfo, ITypeSymbol assignedType, bool isFlag, /* NullIfReturnNotNull */ out ITypeSymbol parsedType, out bool nullableNotMatched)
         {
             switch (parserInfo.Kind) {
                 case ParserInfoProvider.ParserKind.FieldOrProperty:
-                    if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.FieldOrProperty.Type, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                    if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.MemberTypeSymbol, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
                         return DiagnosticFactory.Create(isFlag
                             ? DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser
                             : DiagnosticDescriptors.CustomParserShouldImplsIArgParser,
@@ -200,22 +202,23 @@ internal sealed class ParameterModel(ExecutorModel executor)
                     }
                     break;
                 case ParserInfoProvider.ParserKind.Method:
-                    if (!ValidationHelper.IsValidMethodParser(SemanticModel, parserInfo.Method, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                    if (!ValidationHelper.IsValidMethodParser(SemanticModel, parserInfo.MethodMemberSymbol, assignedType, isFlag, out parsedType!, out var inputKind, out nullableNotMatched)) {
                         return DiagnosticFactory.Create(isFlag
                             ? DiagnosticDescriptors.CustomFlagParsingMethodMatchArgFlagParsingDelegate
                             : DiagnosticDescriptors.CustomParsingMethodMatchArgParsingDelegate,
                             Syntax);
                     }
+                    parserInfo.MethodParserInputKind = inputKind;
                     break;
                 case ParserInfoProvider.ParserKind.Struct:
-                    if (!parserInfo.Struct.IsValueType) {
+                    if (!parserInfo.StructSymbol.IsValueType) {
                         parsedType = default!;
                         nullableNotMatched = default;
                         return DiagnosticFactory.Create(
                             DiagnosticDescriptors.CustomTypeParserShouldBeValueType,
                             Syntax);
                     }
-                    if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.Struct, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
+                    if (!ValidationHelper.IsValidParserType(SemanticModel, parserInfo.StructSymbol, assignedType, isFlag, out parsedType!, out nullableNotMatched)) {
                         return DiagnosticFactory.Create(isFlag
                             ? DiagnosticDescriptors.CustomFlagParserShouldImplsIArgsFlagParser
                             : DiagnosticDescriptors.CustomParserShouldImplsIArgParser,

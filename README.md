@@ -119,7 +119,7 @@ Custom parsers should be *field*, *property* or *method* in current type.
 Or any value type implements required interfaces.
 
 - For `flag`, parser type implements `IArgFlagParser<T>`, method parser should match `T Parse(bool)`
-- For others, parser type implements `IArgParser<T>`, method parser should match `bool TryParse(InputArg, out T)`
+- For others, parser type implements `IArgParser<T>`, method parser should match `bool TryParse(InputArg|string|ReadOnlySpan<char>, out T)`
 
 Build-in parser:
 - `ParsableParser<T>` : Parse `ISpanParsable<T>` 

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
+using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 

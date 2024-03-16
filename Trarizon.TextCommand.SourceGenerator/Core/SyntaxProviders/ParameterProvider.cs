@@ -8,6 +8,7 @@ using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
 using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
+using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders;
@@ -77,15 +78,23 @@ internal class ParameterProvider
                 break;
 
             case ParserInfoProvider.ParserKind.FieldOrProperty:
-                (var type, var member) = parserInfo.FieldOrProperty;
-                _parserTypeSyntax = SyntaxFactory.IdentifierName(type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                _parserArgExpressionSyntax = SyntaxProvider.SiblingMemberAccessExpression(member);
+                _parserTypeSyntax = SyntaxFactory.IdentifierName(parserInfo.MemberTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                _parserArgExpressionSyntax = SyntaxProvider.SiblingMemberAccessExpression(parserInfo.MemberSymbol);
                 break;
 
             case ParserInfoProvider.ParserKind.Method:
-                var identifier = Model.ParameterKind == ParameterKind.Flag
-                    ? $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}"
-                    : $"{Constants.Global}::{Literals.DelegateParser_TypeName}";
+                string? identifier;
+                if (Model.ParameterKind == ParameterKind.Flag)
+                    identifier = $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}";
+                else {
+                    identifier = parserInfo.MethodParserInputKind switch {
+                        MethodParserInputKind.InputArg => $"{Constants.Global}::{Literals.DelegateParser_TypeName}",
+                        MethodParserInputKind.String => $"{Constants.Global}::{Literals.DelegateStringParser_TypeName}",
+                        MethodParserInputKind.ReadOnlySpanChar => $"{Constants.Global}::{Literals.DelegateSpanParser_TypeName}",
+                        _ => throw new InvalidOperationException(),
+                    };
+                }
+
                 _parserTypeSyntax = SyntaxFactory.GenericName(
                     SyntaxFactory.Identifier(identifier),
                     SyntaxFactory.TypeArgumentList(
@@ -94,12 +103,12 @@ internal class ParameterProvider
                 _parserArgExpressionSyntax = SyntaxFactory.ObjectCreationExpression(
                      ParserTypeSyntax,
                      SyntaxProvider.ArgumentList(
-                         SyntaxProvider.SiblingMemberAccessExpression(parserInfo.Method)),
+                         SyntaxProvider.SiblingMemberAccessExpression(parserInfo.MethodMemberSymbol)),
                      default);
                 break;
 
             case ParserInfoProvider.ParserKind.Struct:
-                _parserTypeSyntax = SyntaxFactory.IdentifierName(parserInfo.Struct.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                _parserTypeSyntax = SyntaxFactory.IdentifierName(parserInfo.StructSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
                 _parserArgExpressionSyntax = SyntaxFactory.DefaultExpression(ParserTypeSyntax);
                 break;
             default:

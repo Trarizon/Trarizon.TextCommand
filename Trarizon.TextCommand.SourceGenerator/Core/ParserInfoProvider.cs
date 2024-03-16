@@ -1,18 +1,58 @@
 ﻿using Microsoft.CodeAnalysis;
+using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core;
-internal readonly struct ParserInfoProvider
+internal struct ParserInfoProvider
 {
     public static readonly ParserInfoProvider Invalid = default;
 
     public ParserKind Kind { get; }
 
-    public ImplicitParameterKind ImplicitParameterKind { get; }
+    private ITypeSymbol? _memberTypeSymbol;
+    private ISymbol? _memberSymbol;
+    private int _enum;
 
-    private readonly (ITypeSymbol, ISymbol) _member;
-    public (ITypeSymbol Type, ISymbol Member) FieldOrProperty => _member;
-    public IMethodSymbol Method => (IMethodSymbol)_member.Item2;
-    public ITypeSymbol Struct => (ITypeSymbol)_member.Item2;
+    public readonly ImplicitParameterKind ImplicitParameterKind
+    {
+        get => (ImplicitParameterKind)_enum;
+        private init => _enum = (int)value;
+    }
+
+    /// <summary>
+    /// Type of field or property
+    /// </summary>
+    public ITypeSymbol MemberTypeSymbol
+    {
+        readonly get => _memberTypeSymbol!;
+        private init => _memberTypeSymbol = value;
+    }
+
+    /// <summary>
+    /// Symbol of field or property (or method)
+    /// </summary>
+    public ISymbol MemberSymbol
+    {
+        readonly get => _memberSymbol!;
+        private init => _memberSymbol = value;
+    }
+
+    public IMethodSymbol MethodMemberSymbol
+    {
+        readonly get => (IMethodSymbol)_memberSymbol!;
+        private init => _memberSymbol = value;
+    }
+
+    public MethodParserInputKind MethodParserInputKind
+    {
+        readonly get => (MethodParserInputKind)_enum;
+        set => _enum = (int)value;
+    }
+
+    public ITypeSymbol StructSymbol
+    {
+        readonly get => _memberTypeSymbol!;
+        private init => _memberTypeSymbol = value;
+    }
 
     public ParserInfoProvider(ImplicitParameterKind implicitParameterKind)
     {
@@ -23,19 +63,20 @@ internal readonly struct ParserInfoProvider
     public ParserInfoProvider(ITypeSymbol fieldOrPropertyType, ISymbol fieldOrPropertyMember)
     {
         Kind = ParserKind.FieldOrProperty;
-        _member = (fieldOrPropertyType, fieldOrPropertyMember);
+        MemberSymbol = fieldOrPropertyMember;
+        MemberTypeSymbol = fieldOrPropertyType;
     }
 
     public ParserInfoProvider(IMethodSymbol method)
     {
         Kind = ParserKind.Method;
-        _member.Item2 = method;
+        MethodMemberSymbol = method;
     }
 
     public ParserInfoProvider(ITypeSymbol structType)
     {
         Kind = ParserKind.Struct;
-        _member.Item2 = structType;
+        StructSymbol = structType;
     }
 
     public enum ParserKind

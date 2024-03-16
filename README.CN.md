@@ -118,7 +118,7 @@ Attribute参数中提供了部分设置用于自定义，
 或任意实现了要求接口的**值类型**
 
 - 对于`Flag`，parser类型需实现`IArgFlagParser<T>`，方法应符合签名`T Parse(bool)`
-- 对于其他参数，需实现`IArgParser<T>`，方法应符合签名`bool TryParse(InputArg, out T)`
+- 对于其他参数，需实现`IArgParser<T>`，方法应符合签名`bool TryParse(InputArg|string|ReadOnlySpan<char>, out T)`
 - 其中`T`可隐式转换为对应的参数类型
 
 该库内置了数个parser：

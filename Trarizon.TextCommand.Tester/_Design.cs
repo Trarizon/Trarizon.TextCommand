@@ -113,10 +113,22 @@ internal partial class _Design
         res = default;
         return true;
     }
+    bool TryParseSpanTuple(ReadOnlySpan<char> input,out A<(int,int)> res)
+    {
+        res = default;
+        return true;
+    }
+    bool TryParseStringTuple(string input,out A<(int,int)> res)
+    {
+        res = default;
+        return true;
+    }
 
     [Executor("implicit-conversion")]
     public TRtn ImplicitConversion(
         [Option(Parser = nameof(TryParseTuple))] A<(int A, int B)>? tuple,
+        [Option(Parser = nameof(TryParseSpanTuple))] A<(int A, int B)> spanTuple,
+        [Option(Parser = nameof(TryParseStringTuple))] A<(int A, int B)>? stringTuple,
         int? nullable,
         string? nullableString,
         [Option(ParserType = typeof(ParsableParser<int>))] A<int> intToA,

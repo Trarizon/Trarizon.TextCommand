@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.Operations;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
+using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
@@ -74,12 +75,13 @@ internal static class ValidationHelper
     }
 
     public static bool IsValidMethodParser(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol assignedType, bool isFlag,
-        [NotNullWhen(true)] out ITypeSymbol? parsedType, out bool nullableClassTypeMayAssignToNotNullable)
+        [NotNullWhen(true)] out ITypeSymbol? parsedType, out MethodParserInputKind inputKind, out bool nullableClassTypeMayAssignToNotNullable)
     {
         if (isFlag) {
             // Match delegate signature
             if (method is { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] }) {
                 parsedType = method.ReturnType;
+                inputKind = MethodParserInputKind.Invalid;
                 return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
         }
@@ -91,13 +93,26 @@ internal static class ValidationHelper
                 { Type: var inputParameterType },
                 { RefKind: RefKind.Out, Type: var resultParameterType, }
             ]
-        } && inputParameterType.MatchDisplayString(Literals.InputArg_TypeName)) {
-            parsedType = resultParameterType;
-            return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+        }) {
+            if (inputParameterType.SpecialType is SpecialType.System_String)
+                inputKind = MethodParserInputKind.String;
+            else {
+                inputKind = inputParameterType.ToDisplayString() switch {
+                    Constants.ReadOnlySpan_Char_TypeName => MethodParserInputKind.ReadOnlySpanChar,
+                    Literals.InputArg_TypeName => MethodParserInputKind.InputArg,
+                    _ => MethodParserInputKind.Invalid,
+                };
+            }
+
+            if (inputKind is not MethodParserInputKind.Invalid) {
+                parsedType = resultParameterType;
+                return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+            }
         }
 
         parsedType = default;
         nullableClassTypeMayAssignToNotNullable = default;
+        inputKind = default;
         return false;
     }
 

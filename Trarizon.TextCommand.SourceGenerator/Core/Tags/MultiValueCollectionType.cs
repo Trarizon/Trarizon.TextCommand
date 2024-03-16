@@ -1,4 +1,4 @@
-﻿namespace Trarizon.TextCommand.SourceGenerator.Core;
+﻿namespace Trarizon.TextCommand.SourceGenerator.Core.Tags;
 internal enum MultiValueCollectionType
 {
     Invalid = 0,

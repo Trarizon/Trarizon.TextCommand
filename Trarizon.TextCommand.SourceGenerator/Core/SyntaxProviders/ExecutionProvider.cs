@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
+using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
