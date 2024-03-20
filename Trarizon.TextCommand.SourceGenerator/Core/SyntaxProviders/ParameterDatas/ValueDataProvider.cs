@@ -1,21 +1,24 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Collections.Immutable;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
+using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
 /// <param name="index">if &lt 0, means this value is after RestValues, thus always empty</param>
-internal class ValueDataProvider(ValueParameterData data, ParameterProvider parameter) : IParameterDataProvider, IRequiredParameterDataProvider, IValueDataProvider
+internal class ValueDataProvider(ValueParameterData data, InputParameterProvider parameter) : IInputParameterDataProvider, IRequiredParameterDataProvider, IValueDataProvider
 {
     public ValueParameterData Data { get; } = data;
 
-    public ParameterProvider Parameter { get; } = parameter;
+    public InputParameterProvider Parameter { get; } = parameter;
 
     IRequiredParameterData IRequiredParameterDataProvider.Data => Data;
-    IParameterData IParameterDataProvider.Data => Data;
+    IInputParameterData IInputParameterDataProvider.Data => Data;
     IValueParameterData IValueDataProvider.Data => Data;
+    IParameterData IParameterDataProvider.Data => Data;
+
+    IParameterProvider IParameterDataProvider.Parameter => Parameter;
 
     public ProviderMethodInfoContext ProviderMethodInfo => new(
         Literals.ArgsProvider_GetValue_MethodIdentifier,
@@ -24,7 +27,8 @@ internal class ValueDataProvider(ValueParameterData data, ParameterProvider para
             Parameter.ParserArgExpressionSyntax
         ]);
 
-    public ExpressionSyntax GetResultValueAccessExpression()
+
+    public ExpressionSyntax ResultValueAccessExpression()
         => SyntaxFactory.MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
             SyntaxFactory.IdentifierName(Parameter.Argument_VarIdentifier()),

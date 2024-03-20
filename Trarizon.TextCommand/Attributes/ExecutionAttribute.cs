@@ -3,7 +3,7 @@
 /// Execution entrance of the command
 /// </summary>
 /// <param name="commandName">Command prefix</param>
-[AttributeUsage(AttributeTargets.Method)]
+[AttributeUsage(AttributeTargets.Method, Inherited = true)]
 public sealed class ExecutionAttribute(string? commandName = null) : Attribute
 {
     /// <summary>

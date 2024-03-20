@@ -5,9 +5,7 @@ namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDat
 internal interface IParameterDataProvider
 {
     IParameterData Data { get; }
-    ParameterProvider Parameter { get; }
+    IParameterProvider Parameter { get; }
 
-    ProviderMethodInfoContext ProviderMethodInfo { get; }
-
-    ExpressionSyntax GetResultValueAccessExpression();
+    ExpressionSyntax ResultValueAccessExpression();
 }

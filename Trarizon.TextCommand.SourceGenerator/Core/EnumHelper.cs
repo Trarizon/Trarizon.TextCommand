@@ -24,6 +24,7 @@ internal static class EnumHelper
             Literals.OptionAttribute_TypeName => ParameterKind.Option,
             Literals.ValueAttribute_TypeName => ParameterKind.Value,
             Literals.MultiValueAttribute_TypeName => ParameterKind.MultiValue,
+            Literals.ContextParameterAttribute_TypeName => ParameterKind.Context,
             _ => ParameterKind.Invalid,
         };
     }

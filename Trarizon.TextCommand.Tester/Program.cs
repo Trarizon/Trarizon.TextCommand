@@ -12,6 +12,8 @@ design.Run("/ghoti no-param");
 Console.WriteLine();
 design.Run("/ghoti multi mark no param");
 Console.WriteLine();
+design.Run("/ghoti value-only 1", "1919810");
+Console.WriteLine();
 design.Run("/ghoti default settings --flag --option a --number 114");
 Console.WriteLine();
 design.Run("/ghoti multi marked --flag --str string --option a --nullNumber 114");

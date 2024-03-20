@@ -89,6 +89,7 @@ Attribute|注释
 `Option`|命名参数，根据参数名(`-o`/`--option`)返回对应的实参进行解析
 `Value`|位置参数，按照顺序解析未命名参数
 `MultiValue`|位置参数数组，解析多个位置参数
+`ContextParameter`|不经过parse获取Execution的参数，可以标记ref kind
 
 Attribute参数中提供了部分设置用于自定义，
 

@@ -1,5 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 internal static class AttributeDataExtensions
@@ -10,19 +12,16 @@ internal static class AttributeDataExtensions
         ? (T)first.Value.Value!
         : defaultValue;
 
-    public static T[]? GetNamedArguments<T>(this AttributeData attribute, string parameterName)
+    public static ImmutableArray<T> GetNamedArguments<T>(this AttributeData attribute, string parameterName)
     {
         if (attribute.NamedArguments.TryFirst(kv => kv.Key == parameterName, out var first)) {
             var constants = first.Value.Values;
             if (constants.Length == 0)
-                return [];
+                return ImmutableArray<T>.Empty;
 
-            var result = new T[constants.Length];
-            for (int i = 0; i < result.Length; i++)
-                result[i] = (T)constants[i].Value!;
-            return result;
+            return constants.Select(constant => (T)constant.Value!).ToImmutableArray();
         }
-        return null;
+        return default;
     }
 
     [return: NotNullIfNotNull(nameof(defaultValue))]
@@ -31,18 +30,15 @@ internal static class AttributeDataExtensions
         ? (T)args[index].Value!
         : defaultValue;
 
-    public static T[]? GetConstructorArguments<T>(this AttributeData attribute, int index)
+    public static ImmutableArray<T> GetConstructorArguments<T>(this AttributeData attribute, int index)
     {
         if (attribute.ConstructorArguments is var args && index >= 0 && index < args.Length) {
             var constants = args[index].Values;
             if (constants.Length == 0)
-                return [];
+                return ImmutableArray<T>.Empty;
 
-            var result = new T[constants.Length];
-            for (int i = 0; i < result.Length; i++)
-                result[i] = (T)constants[i].Value!;
-            return result;
+           return constants.Select(constant => (T)constant.Value!).ToImmutableArray();
         }
-        return null;
+        return default;
     }
 }

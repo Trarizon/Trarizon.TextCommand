@@ -94,7 +94,7 @@ public class ExecutionGenerator : IIncrementalGenerator
                     }));
 
                 context.AddSource(
-                    $"{provider.Model.Symbol.ToDisplayString().Replace('<', '}').Replace('>', '}')}.g.cs",
+                    provider.GeneratedFileName(),
                     compilation.NormalizeWhitespace().GetText(Encoding.UTF8));
             }
         });

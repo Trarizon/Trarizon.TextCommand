@@ -1,5 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -66,15 +65,6 @@ internal static class QueryExtensions
         return true;
     }
 
-    public static IEnumerable<TResult> WhereSelect<T, TResult>(this IEnumerable<T> source, Func<T, Optional<TResult>> filter)
-    {
-        foreach (var item in source) {
-            if (filter(item).TryGetValue(out var val)) {
-                yield return val;
-            }
-        }
-    }
-
     public static IEnumerable<TResult> SelectNonException<T, TResult>(this IEnumerable<T> source, Func<T, TResult> select)
     {
         foreach (var item in source) {
@@ -86,5 +76,25 @@ internal static class QueryExtensions
             }
             yield return val;
         }
+    }
+
+    public static ImmutableArray<T> EmptyIfDefault<T>(this ImmutableArray<T> source)
+    {
+        if (source.IsDefault)
+            return ImmutableArray<T>.Empty;
+        return source;
+    }
+
+    public static IEnumerable<T> OfNotNull<T>(this IEnumerable<T?> source) where T : class
+    {
+        foreach (var item in source) {
+            if (item is not null)
+                yield return item;
+        }
+    }
+
+    public static IEnumerable<T> SingletonCollection<T>(this T value)
+    {
+        yield return value;
     }
 }

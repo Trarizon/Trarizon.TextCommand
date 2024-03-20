@@ -8,8 +8,8 @@ using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
+using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
-using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders;
 internal class ExecutorProvider
@@ -18,7 +18,7 @@ internal class ExecutorProvider
 
     public ExecutionProvider Execution { get; }
 
-    public ImmutableArray<ParameterProvider> Parameters { get; }
+    public ImmutableArray<IParameterProvider> Parameters { get; }
 
     /// <remarks>
     /// May throw
@@ -29,9 +29,11 @@ internal class ExecutorProvider
         Execution = execution;
 
         Parameters = model.Parameters
-            .Select(parameter => new ParameterProvider(parameter, this))
+            .Select(parameter => ParameterProvider.Create(parameter, this))
             .ToImmutableArray();
     }
+
+    // Literals
 
     public string RestArgs_VarIdentifier(int? suffix) => $"__rest_{Model.Symbol.Name}{suffix}";
     public string ParameterSet_FieldIdentifier() => Model.Symbol.Name;
@@ -39,9 +41,11 @@ internal class ExecutorProvider
     public string ErrorsBuilder_VarIdentifier() => $"__builder_{Model.Symbol.Name}";
     public string MainExecutor_LabelIdentifier() => $"__MAIN_EXECUTOR_{Model.Symbol.Name}";
 
+    // Decls
+
     public IEnumerable<SwitchSectionSyntax> MatchingSwitchSections()
     {
-        if (Model.CommandPrefixes.Length > 1 && Parameters.Length > 0)
+        if (Model.CommandPrefixes.Count > 1 && Parameters.Length > 0)
             return MultiMatchingSwitchSections();
         else
             return [SingleMatchingSwitchSection()];
@@ -64,7 +68,7 @@ internal class ExecutorProvider
 
             // case [..]:
             //     goto __Label;
-            for (int i = 1; i < Model.CommandPrefixes.Length; i++) {
+            for (int i = 1; i < Model.CommandPrefixes.Count; i++) {
                 yield return SyntaxFactory.SwitchSection(
                     SyntaxFactory.SingletonList<SwitchLabelSyntax>(
                         SyntaxFactory.CasePatternSwitchLabel(
@@ -94,7 +98,7 @@ internal class ExecutorProvider
         }
     }
 
-    private IEnumerable<PatternSyntax> ListPatternSubPatterns(string[] executorCommandPrefixes, int? restIdentifierSuffix = default)
+    private IEnumerable<PatternSyntax> ListPatternSubPatterns(ImmutableArray<string> executorCommandPrefixes, int? restIdentifierSuffix = default)
     {
         // Execution part
         if (Execution.Model.CommandName is not null) {
@@ -132,7 +136,7 @@ internal class ExecutorProvider
                 MainExecutor_LabelIdentifier(),
                 ErrorsBuilderLocalVarStatement());
 
-            foreach (var parameter in Parameters) {
+            foreach (var parameter in Parameters.OfType<InputParameterProvider>()) {
                 // var args = provider.Get<>();
                 yield return parameter.ArgumentLocalDeclaration();
 
@@ -155,7 +159,8 @@ internal class ExecutorProvider
 
         var invocation = SyntaxFactory.InvocationExpression(
             SyntaxProvider.SiblingMemberAccessExpression(Model.Symbol),
-            SyntaxProvider.ArgumentList(Parameters.Select(p => p.ParameterData.GetResultValueAccessExpression())));
+            SyntaxFactory.ArgumentList(
+                SyntaxFactory.SeparatedList(Parameters.Select(p => p.ResultValueArgumentExpression()))));
 
         // return statements
         if (Execution.Model.Symbol.ReturnsVoid) {
@@ -236,10 +241,10 @@ internal class ExecutorProvider
                 SyntaxProvider.SiblingMemberAccessExpression(errorHandler),
                 SyntaxProvider.ArgumentList(
                     errorHandler.Parameters.Length switch {
-                    1 => [firstArgExpr],
-                    2 => [firstArgExpr, SyntaxProvider.LiteralStringExpression(Model.Symbol.Name)],
-                    _ => throw new InvalidOperationException(),
-                }));
+                        1 => [firstArgExpr],
+                        2 => [firstArgExpr, SyntaxProvider.LiteralStringExpression(Model.Symbol.Name)],
+                        _ => throw new InvalidOperationException(),
+                    }));
 
             if (errorHandler.ReturnsVoid) {
                 // ErrorHandler();
@@ -254,13 +259,14 @@ internal class ExecutorProvider
         }
     }
 
-    public Optional<FieldDeclarationSyntax> ParameterSetFieldDeclaration()
+    public FieldDeclarationSyntax? ParameterSetFieldDeclaration()
     {
         if (Parameters.Length == 0)
-            return default;
+            return null;
 
         var namedParameters = Parameters
-            .WhereSelect(p => WrapperUtils.OptionalNotNull(p.ParameterData as INamedParameterDataProvider))
+            .Select(p => p.ParameterData)
+            .OfType<INamedParameterDataProvider>()
             .ToList();
 
         return SyntaxFactory.FieldDeclaration(

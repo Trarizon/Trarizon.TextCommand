@@ -3,7 +3,7 @@ using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
-internal sealed class MultiValueParameterData(ParameterModel model) : IParameterData, IRequiredParameterData, IValueParameterData
+internal sealed class MultiValueParameterData(ParameterModel model) : IInputParameterData, IRequiredParameterData, IValueParameterData
 {
     public ParameterModel Model { get; } = model;
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using System;
 
 namespace Trarizon.TextCommand.SourceGenerator.ConstantValues;
 internal static class DiagnosticDescriptors
@@ -11,10 +12,10 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true);
 
-    public readonly static DiagnosticDescriptor ExecutionMethodOnlyHasOneParameter = new(
+    public readonly static DiagnosticDescriptor ExecutionMethodHasAtLeastOneParameter = new(
         "TCMD0002",
-        nameof(ExecutionMethodOnlyHasOneParameter),
-        "Execution method can have only one parameter, which is the input",
+        nameof(ExecutionMethodHasAtLeastOneParameter),
+        "Execution method has at least one parameter, and the first is the input",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);
@@ -35,9 +36,9 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public readonly static DiagnosticDescriptor ExecutorCommandPrefixRepeatOrTruncate_1 = new(
+    public readonly static DiagnosticDescriptor ExecutorCommandPrefixRepeatOrTruncate_0PrevExecutorName = new(
         "TCMD0005",
-        nameof(ExecutorsReturnTypeShouldAssignableToExecutionsReturnType),
+        nameof(ExecutorCommandPrefixRepeatOrTruncate_0PrevExecutorName),
         "Executor never called, command is matched by previous executor {0}",
         Literals.Namespace,
         DiagnosticSeverity.Error,
@@ -205,7 +206,7 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public readonly static DiagnosticDescriptor DoNotSpecifyBothParserAndParserType=new(
+    public readonly static DiagnosticDescriptor DoNotSpecifyBothParserAndParserType = new(
         "TCMD0025",
         nameof(DoNotSpecifyBothParserAndParserType),
         "Do not specify both Parser and ParserType at same time",
@@ -225,6 +226,30 @@ internal static class DiagnosticDescriptors
         "TCMD0027",
         nameof(ExecutionInputParameterInvalid),
         "Input type should be string or ReadOnlySpan<char>",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor ExecutorContextParameterNotFound_0ParameterName = new(
+        "TCMD0028",
+        nameof(ExecutorContextParameterNotFound_0ParameterName),
+        "Cannot find parameter {0} in execution method",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor CannotPassContextParameterForTypeDifference_0ExecutionParamType = new(
+        "TCMD0029",
+        nameof(CannotPassContextParameterForTypeDifference_0ExecutionParamType),
+        "Cannot pass context parameter, parameter type should be {0}",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor CannotPassContextParameterForRefKind = new(
+        "TCMD0030",
+        nameof(CannotPassContextParameterForRefKind),
+        "Cannot pass due to ref kind incompatible",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);

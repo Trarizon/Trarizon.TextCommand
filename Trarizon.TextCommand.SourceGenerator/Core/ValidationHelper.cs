@@ -65,7 +65,7 @@ internal static class ValidationHelper
                 && type.TypeArguments is [var typeArg]
             ) {
                 parsedType = typeArg;
-                return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+                return IsTypeImplicitAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
         }
 
@@ -82,7 +82,7 @@ internal static class ValidationHelper
             if (method is { Parameters: [{ Type.SpecialType: SpecialType.System_Boolean }] }) {
                 parsedType = method.ReturnType;
                 inputKind = MethodParserInputKind.Invalid;
-                return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+                return IsTypeImplicitAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
         }
 
@@ -106,7 +106,7 @@ internal static class ValidationHelper
 
             if (inputKind is not MethodParserInputKind.Invalid) {
                 parsedType = resultParameterType;
-                return IsTypeAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
+                return IsTypeImplicitAssignable(semanticModel, parsedType, assignedType, out nullableClassTypeMayAssignToNotNullable);
             }
         }
 
@@ -133,9 +133,9 @@ internal static class ValidationHelper
         return false;
     }
 
-    private static bool IsTypeAssignable(SemanticModel semanticModel, ITypeSymbol type, ITypeSymbol assignedType, out bool nullableClassTypeMayAssignToNotNullable)
+    public static bool IsTypeImplicitAssignable(SemanticModel semanticModel, ITypeSymbol type, ITypeSymbol targetType, out bool nullableClassTypeMayAssignToNotNullable)
     {
-        var conversion = semanticModel.Compilation.ClassifyCommonConversion(type, assignedType);
+        var conversion = semanticModel.Compilation.ClassifyCommonConversion(type, targetType);
 
         if (!conversion.IsImplicit) {
             nullableClassTypeMayAssignToNotNullable = default;
@@ -150,7 +150,19 @@ internal static class ValidationHelper
 
         nullableClassTypeMayAssignToNotNullable = conversion.IsIdentity &&
             type.NullableAnnotation == NullableAnnotation.Annotated &&
-            assignedType.NullableAnnotation == NullableAnnotation.NotAnnotated;
+            targetType.NullableAnnotation == NullableAnnotation.NotAnnotated;
         return true;
+    }
+
+    public static bool IsParameterRefKindPassable(RefKind from, RefKind to)
+    {
+        return (from, to) switch {
+            (RefKind.In, RefKind.In or RefKind.None or RefKind.RefReadOnlyParameter) => true,
+            (RefKind.None, RefKind.None or RefKind.Out or RefKind.Ref or RefKind.RefReadOnlyParameter or RefKind.In) => true,
+            (RefKind.Out, RefKind.Out) => true,
+            (RefKind.Ref, RefKind.Ref or RefKind.RefReadOnlyParameter or RefKind.In or RefKind.None or RefKind.Out) => true,
+            (RefKind.RefReadOnlyParameter, RefKind.RefReadOnlyParameter or RefKind.In or RefKind.None) => true,
+            _ => false,
+        };
     }
 }

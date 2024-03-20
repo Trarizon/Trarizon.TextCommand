@@ -11,7 +11,7 @@ using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal static class SyntaxHelper
 {
-    public static TypeSyntax GetNonWrappedDefaultParserTypeSyntax(IParameterData parameterData)
+    public static TypeSyntax GetNonWrappedDefaultParserTypeSyntax(IInputParameterData parameterData)
     {
         switch (parameterData.ParserInfo.ImplicitParameterKind) {
             case ImplicitParameterKind.Boolean:
@@ -33,7 +33,7 @@ internal static class SyntaxHelper
         }
     }
 
-    public static (TypeSyntax, ExpressionSyntax) WrapParserTypeSyntax(TypeSyntax innerParserSyntax, ExpressionSyntax argExpressionSyntax, IParameterData parameterData)
+    public static (TypeSyntax, ExpressionSyntax) WrapParserTypeSyntax(TypeSyntax innerParserSyntax, ExpressionSyntax argExpressionSyntax, IInputParameterData parameterData)
     {
         var kind = parameterData.GetParserWrapperKind();
 

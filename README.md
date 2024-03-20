@@ -90,7 +90,8 @@ Attribute|Comments
 `Flag`|Flag parameter, pass a `bool` value to parser accoding to input
 `Option`|Named option parameter,pass a `ReadOnlySpan<char>` value to parser
 `Value`|Positional parameter, parse all unmatched arguments in order
-`MultiValue`|Array of positional parameter, 
+`MultiValue`|Collection of positional parameters
+`ContextParameter`|Get the parameter passed to execution method, can be marked with ref keywords
 
 Attribute params|Comments
 :-:|:--

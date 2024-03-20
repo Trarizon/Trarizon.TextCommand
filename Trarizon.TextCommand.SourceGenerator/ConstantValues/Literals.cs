@@ -10,24 +10,26 @@ internal static class Literals
     public const string ExecutionAttribute_TypeName = $"{Namespace}.Attributes.ExecutionAttribute";
     public const string ExecutorAttribute_TypeName = $"{Namespace}.Attributes.ExecutorAttribute";
 
+    public const string ContextParameterAttribute_TypeName= $"{Namespace}.Attributes.Parameters.ContextParameterAttribute";
     public const string FlagAttribute_TypeName = $"{Namespace}.Attributes.Parameters.FlagAttribute";
     public const string OptionAttribute_TypeName = $"{Namespace}.Attributes.Parameters.OptionAttribute";
     public const string ValueAttribute_TypeName = $"{Namespace}.Attributes.Parameters.ValueAttribute";
     public const string MultiValueAttribute_TypeName = $"{Namespace}.Attributes.Parameters.MultiValueAttribute";
 
+
     public const int ExecutionAttribute_CommandName_CtorParameterIndex = 0;
     public const string ExecutionAttribute_ErrorHandler_PropertyIdentifier = "ErrorHandler";
     public const int ExecutorAttribute_CommandPrefixes_CtorParameterIndex = 0;
+
+    public const string ContextParameterAttribute_ParameterName_PropertyIdentifier = "ParameterName";
     public const string ParameterAttribute_Parser_PropertyIdentifier = "Parser";
     public const string ParameterAttribute_ParserType_PropertyIdentifier = "ParserType";
+    public const string IRequiredParameterAttribute_Required_PropertyIdentifier = "Required";
     public const int FlagAttribute_Alias_CtorParameterIndex = 0;
     public const string FlagAttribute_Name_PropertyIdentifier = "Name";
     public const int OptionAttribute_Alias_CtorParameterIndex = 0;
     public const string OptionAttribute_Name_PropertyIdentifier = "Name";
-    public const string OptionAttribute_Required_PropertyIdentifier = "Required";
-    public const string ValueAttribute_Required_PropertyIdentifier = "Required";
     public const int MultiValueAttribute_MaxCount_CtorParameterIndex = 0;
-    public const string MultiValueAttribute_Required_PropertyIdentifier = "Required";
 
     // Input
 

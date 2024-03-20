@@ -1,11 +1,14 @@
 # Update History
 
 ## 0.1.1
+
+- Add `ContextParameter`, thus you can pass extra parameters through execution to executor
 - [Breaking] Changed parameter name of `ArgsProvider.GetAvailableArrayLength()`
 - Mark public members of `ArgsProvider` as `EditorBrowsableState.Never`
 - Removed unnecessary check in `ArgsProvider`, caller(generated code) should confirm the input is valid
 - Optimize in `ConversionParser`
 - Support `ReadOnlySpan<char>` and `string` as method parser input
+- Make `[Execution]` and `[Executor]` inheritable
 
 ## 0.1.0
 

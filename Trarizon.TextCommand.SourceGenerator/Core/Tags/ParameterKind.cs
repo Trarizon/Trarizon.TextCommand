@@ -6,4 +6,5 @@ internal enum ParameterKind
     Option,
     Value,
     MultiValue,
+    Context,
 }

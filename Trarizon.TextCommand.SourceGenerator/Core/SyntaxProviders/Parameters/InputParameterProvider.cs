@@ -11,33 +11,30 @@ using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
 using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
-namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders;
-internal class ParameterProvider
+namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters;
+internal class InputParameterProvider : IParameterProvider
 {
     public ParameterModel Model { get; }
 
-    public IParameterDataProvider ParameterData { get; }
-
     public ExecutorProvider Executor { get; }
 
-    /// <remarks>
-    /// May throw
-    /// </remarks>
-    public ParameterProvider(ParameterModel model, ExecutorProvider executor)
+    public IInputParameterDataProvider ParameterData { get; }
+
+    IParameterDataProvider IParameterProvider.ParameterData => ParameterData;
+
+    public InputParameterProvider(ParameterModel model, ExecutorProvider executor)
     {
         Model = model;
-        ParameterData = model.ParameterData switch {
+        Executor = executor;
+        ParameterData = Model.ParameterData switch
+        {
             FlagParameterData flag => new FlagDataProvider(flag, this),
             OptionParameterData option => new OptionDataProvider(option, this),
             ValueParameterData value => new ValueDataProvider(value, this),
             MultiValueParameterData multiVal => new MultiValueDataProvider(multiVal, this),
-            null or _ => throw new InvalidOperationException(),
+            _ => throw new InvalidOperationException(),
         };
-        Executor = executor;
-
     }
-
-    public string Argument_VarIdentifier() => $"__arg_{Model.Symbol.Name}_{Executor.Model.Symbol.Name}";
 
     private TypeSyntax? _resultTypeSyntax;
     public TypeSyntax ResultTypeSyntax => _resultTypeSyntax ??= SyntaxFactory.IdentifierName(ParameterData.Data.ResultTypeSymbol.ToDisplayString(SymbolDisplayFormats.FullQualifiedFormatIncludeNullableRefTypeModifier));
@@ -48,8 +45,10 @@ internal class ParameterProvider
     private TypeSyntax? _parserTypeSyntax;
     public TypeSyntax ParserTypeSyntax
     {
-        get {
-            if (_parserTypeSyntax is null) {
+        get
+        {
+            if (_parserTypeSyntax is null)
+            {
                 InitializeParserSyntax();
             }
             return _parserTypeSyntax;
@@ -59,8 +58,10 @@ internal class ParameterProvider
     private ExpressionSyntax? _parserArgExpressionSyntax;
     public ExpressionSyntax ParserArgExpressionSyntax
     {
-        get {
-            if (_parserArgExpressionSyntax is null) {
+        get
+        {
+            if (_parserArgExpressionSyntax is null)
+            {
                 InitializeParserSyntax();
             }
             return _parserArgExpressionSyntax;
@@ -71,7 +72,8 @@ internal class ParameterProvider
     private void InitializeParserSyntax()
     {
         var parserInfo = ParameterData.Data.ParserInfo;
-        switch (parserInfo.Kind) {
+        switch (parserInfo.Kind)
+        {
             case ParserInfoProvider.ParserKind.Implicit:
                 _parserTypeSyntax = SyntaxHelper.GetNonWrappedDefaultParserTypeSyntax(ParameterData.Data);
                 _parserArgExpressionSyntax = SyntaxFactory.DefaultExpression(ParserTypeSyntax);
@@ -86,8 +88,10 @@ internal class ParameterProvider
                 string? identifier;
                 if (Model.ParameterKind == ParameterKind.Flag)
                     identifier = $"{Constants.Global}::{Literals.DelegateFlagParser_TypeName}";
-                else {
-                    identifier = parserInfo.MethodParserInputKind switch {
+                else
+                {
+                    identifier = parserInfo.MethodParserInputKind switch
+                    {
                         MethodParserInputKind.InputArg => $"{Constants.Global}::{Literals.DelegateParser_TypeName}",
                         MethodParserInputKind.String => $"{Constants.Global}::{Literals.DelegateStringParser_TypeName}",
                         MethodParserInputKind.ReadOnlySpanChar => $"{Constants.Global}::{Literals.DelegateSpanParser_TypeName}",
@@ -117,6 +121,8 @@ internal class ParameterProvider
         (_parserTypeSyntax, _parserArgExpressionSyntax) = SyntaxHelper.WrapParserTypeSyntax(_parserTypeSyntax, _parserArgExpressionSyntax, ParameterData.Data);
     }
 
+    public string Argument_VarIdentifier() => $"__arg_{Model.Symbol.Name}_{Executor.Model.Symbol.Name}";
+
     public LocalDeclarationStatementSyntax ArgumentLocalDeclaration()
     {
         var context = ParameterData.ProviderMethodInfo;
@@ -137,7 +143,8 @@ internal class ParameterProvider
 
     public IEnumerable<StatementSyntax> ArgumentLocalExtraStatments()
     {
-        if (ErrorHandlingExtraStatement().TryGetValue(out var errHan)) {
+        if (ErrorHandlingExtraStatement().TryGetValue(out var errHan))
+        {
             yield return errHan;
         }
     }
@@ -145,11 +152,13 @@ internal class ParameterProvider
     private Optional<StatementSyntax> ErrorHandlingExtraStatement()
     {
         // Flag Getter returns raw bool value
-        if (ParameterData is FlagDataProvider) {
+        if (ParameterData is FlagDataProvider)
+        {
             return default;
         }
         // Unreachable value doesn't need to check error
-        if (ParameterData is IValueDataProvider { Data.IsUnreachable: true }) {
+        if (ParameterData is IValueDataProvider { Data.IsUnreachable: true })
+        {
             return default;
         }
 
@@ -157,12 +166,14 @@ internal class ParameterProvider
         // 暂时没有想到interface怎么设计，所以就先这样了。不增加参数种类情况下这里没问题。
 
         string argResultKind;
-        if (ParameterData is IRequiredParameterDataProvider requiredParameter) {
+        if (ParameterData is IRequiredParameterDataProvider requiredParameter)
+        {
             argResultKind = requiredParameter.Data.Required
                 ? Literals.ArgResultKind_ParameterNotSet_FieldName
                 : Literals.ArgResultKind_ParsingFailed_FieldName;
         }
-        else {
+        else
+        {
             argResultKind = Literals.ArgResultKind_ParsingFailed_FieldName;
         }
 
@@ -177,5 +188,11 @@ internal class ParameterProvider
                     SyntaxKind.SimpleMemberAccessExpression,
                     SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ArgResultKind_TypeName}"),
                     SyntaxFactory.IdentifierName(argResultKind))));
+    }
+
+    public ArgumentSyntax ResultValueArgumentExpression()
+    {
+        return SyntaxFactory.Argument(
+            ParameterData.ResultValueAccessExpression());
     }
 }

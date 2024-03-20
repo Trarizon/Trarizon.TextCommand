@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Tags;
@@ -23,6 +24,9 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
 
     // Data
 
+    /// <summary>
+    /// Set by <see cref="ValidateParameter"/>
+    /// </summary>
     public InputParameterType InputParameterType { get; private set; }
 
     private Optional<string?> _commandName;
@@ -36,15 +40,18 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
         }
     }
 
+    /// <summary>
+    /// Set by <see cref="ValidateErrorHandler"/>
+    /// </summary>
     public IMethodSymbol? ErrorHandler { get; private set; }
 
     // Validations
 
     public Diagnostic? ValidateParameter()
     {
-        if (Symbol.Parameters is not [{ Type: var parameterType }]) {
+        if (Symbol.Parameters is not [{ Type: var parameterType }, ..]) {
             return DiagnosticFactory.Create(
-                DiagnosticDescriptors.ExecutionMethodOnlyHasOneParameter,
+                DiagnosticDescriptors.ExecutionMethodHasAtLeastOneParameter,
                 Syntax.Identifier);
         }
 
@@ -121,14 +128,14 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
                 var (latterExecutor, latterCmdPrefixes) = tmp[j];
                 if (RepeatOfTruncate(formerCmdPrefixes, latterCmdPrefixes)) {
                     yield return DiagnosticFactory.Create(
-                        DiagnosticDescriptors.ExecutorCommandPrefixRepeatOrTruncate_1,
+                        DiagnosticDescriptors.ExecutorCommandPrefixRepeatOrTruncate_0PrevExecutorName,
                         latterExecutor.Syntax.Identifier,
                         formerExecutor.Symbol.Name);
                 }
             }
         }
 
-        static bool RepeatOfTruncate(string[] former, string[] latter)
+        static bool RepeatOfTruncate(ImmutableArray<string> former, ImmutableArray<string> latter)
         {
             if (former.Length > latter.Length)
                 return false;

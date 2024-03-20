@@ -2,7 +2,7 @@
 using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
-internal interface INamedParameterDataProvider : IParameterDataProvider
+internal interface INamedParameterDataProvider : IInputParameterDataProvider
 {
     new INamedParameterData Data { get; }
 

@@ -24,6 +24,19 @@ internal static class SyntaxProvider
 
     #region SyntaxFactory Sugar
 
+    public static SyntaxToken RefKindToken(RefKind parameterRefKind)
+    {
+        return SyntaxFactory.Token(
+            parameterRefKind switch {
+                RefKind.None => SyntaxKind.None,
+                RefKind.Ref => SyntaxKind.RefKeyword,
+                RefKind.Out => SyntaxKind.OutKeyword,
+                RefKind.In => SyntaxKind.InKeyword,
+                RefKind.RefReadOnlyParameter => SyntaxKind.InKeyword,
+                _ => throw new System.InvalidOperationException(),
+            });
+    }
+
     public static MemberAccessExpressionSyntax SiblingMemberAccessExpression(ISymbol member)
     {
         return SyntaxFactory.MemberAccessExpression(
@@ -77,7 +90,7 @@ internal static class SyntaxProvider
             ArgumentList(args));
     }
 
-    public static ArgumentListSyntax ArgumentList( ExpressionSyntax arg)
+    public static ArgumentListSyntax ArgumentList(ExpressionSyntax arg)
         => SyntaxFactory.ArgumentList(
             SyntaxFactory.SingletonSeparatedList(
                SyntaxFactory.Argument(arg)));

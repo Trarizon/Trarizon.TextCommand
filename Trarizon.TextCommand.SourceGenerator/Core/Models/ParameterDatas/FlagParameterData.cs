@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
-internal sealed class FlagParameterData(ParameterModel model) : IParameterData, INamedParameterData
+internal sealed class FlagParameterData(ParameterModel model) : IInputParameterData, INamedParameterData
 {
     public ParameterModel Model { get; } = model;
 

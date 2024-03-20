@@ -17,6 +17,7 @@
 	- 返回值`void`或可隐式转换到Execution返回类型
 	- 第一个参数为`ArgResultErrors`，可标记为`in`
 	- 第二个参数可选，为`string`，表示发生错误时本应调用的Executor方法名
+- Execution的所有参数视为[Context parameter](#contextparameter)，可以标记任意refkind
 
 #### 执行
 
@@ -38,7 +39,13 @@
 - CommandPrefixes不能带有空白字符或leading `-`
 - 一个方法可以标记多个`[Executor]`表示不同命令指向同一个方法
 
-### Parameter
+### ContextParameter
+
+- 标记`[ContextParameter]`即为context parameter，这类参数不经过parse直接从Execution获取
+- 参数可以为`in` `ref` `out` `ref readonly`，只要execution中的参数可以直接传入
+- execution中的参数需要可隐式转换到context parameter
+
+### InputParameter
 
 - 一个参数只能有一个继承自`[CLParameter]`的attribute
 - 若参数没有默认Parser，则必需显式指定Parser

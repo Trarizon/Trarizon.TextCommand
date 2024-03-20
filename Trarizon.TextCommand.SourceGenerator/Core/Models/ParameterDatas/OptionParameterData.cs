@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
-internal sealed class OptionParameterData(ParameterModel model) : IParameterData, INamedParameterData, IRequiredParameterData
+internal sealed class OptionParameterData(ParameterModel model) : IInputParameterData, INamedParameterData, IRequiredParameterData
 {
     public ParameterModel Model { get; } = model;
 

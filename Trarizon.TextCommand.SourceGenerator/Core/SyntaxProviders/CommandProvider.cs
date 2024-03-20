@@ -20,6 +20,11 @@ internal sealed class CommandProvider
         Execution = new ExecutionProvider(model.ExecutionModel, this);
     }
 
+    // Decls
+
+    public string GeneratedFileName()
+        => $"{Model.Symbol.ToDisplayString().Replace('<', '}').Replace('>', '}')}.g.cs";
+
     public MemberDeclarationSyntax PartialTypeDeclaration()
     {
         return CodeFactory.CloneContainingTypeAndNamespaceDeclarations(
@@ -42,6 +47,8 @@ internal sealed class CommandProvider
             baseList: null,
             constraintClauses: default,
             SyntaxFactory.List<MemberDeclarationSyntax>(
-                Execution.Executors.WhereSelect(e => e.ParameterSetFieldDeclaration())));
+                Execution.Executors
+                    .Select(e => e.ParameterSetFieldDeclaration())
+                    .OfNotNull()));
     }
 }

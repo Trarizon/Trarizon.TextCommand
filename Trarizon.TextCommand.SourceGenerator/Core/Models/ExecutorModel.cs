@@ -36,18 +36,10 @@ internal sealed class ExecutorModel(ExecutionModel execution, IEnumerable<Attrib
 
     // Data
 
-    private ImmutableArray<string[]> _commandPrefixes;
-    public ImmutableArray<string[]> CommandPrefixes
-    {
-        get {
-            if (_commandPrefixes.IsDefault) {
-                _commandPrefixes = attributeDatas
-                    .Select(attr => attr.GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex) ?? [])
-                    .ToImmutableArray();
-            }
-            return _commandPrefixes;
-        }
-    }
+    private List<ImmutableArray<string>>? _commandPrefixes;
+    public IReadOnlyList<ImmutableArray<string>> CommandPrefixes => _commandPrefixes ??= attributeDatas
+        .Select(attr => attr.GetConstructorArguments<string>(Literals.ExecutorAttribute_CommandPrefixes_CtorParameterIndex).EmptyIfDefault())
+        .ToList();
 
     // Validation
 

@@ -1,4 +1,6 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Frozen;
+using System.Collections.Specialized;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Trarizon.TextCommand.Attributes;
@@ -11,7 +13,6 @@ using TRtn = string;
 
 namespace Trarizon.TextCommand.Tester;
 
-
 static class PSet
 {
     public static readonly ParsingContext Set = new(default, default);
@@ -20,7 +21,7 @@ static class PSet
 internal partial class _Design
 {
     [Execution("/ghoti", ErrorHandler = nameof(ErrorHandler))]
-    public partial string? Run(string customInput);
+    public partial string? Run(string customInput, in string b = "114",in string  c="514");
 
     //[Execution("/ghoti", ErrorHandler = "")]
     private TRtn MaunallyRun(string input)
@@ -93,12 +94,19 @@ internal partial class _Design
     {
         Console.WriteLine("NoParam");
         return default!;
+
     }
 
+    [Executor("context-param")]
     [Executor("value-only")]
-    public TRtn ValueOnly([Value] int a)
+    public TRtn ValueOnly(
+        [Value] int a,
+        [ContextParameter(ParameterName = "b")] in string fromExecution,
+        [ContextParameter] in string c)
     {
         Print(a);
+        Print(fromExecution);
+        Print(c);
         return default!;
     }
 
@@ -117,6 +125,8 @@ internal partial class _Design
         return default!;
     }
 
+    #region Convert
+
     public struct A<T>
     {
         private T _val;
@@ -124,21 +134,25 @@ internal partial class _Design
         public override readonly string ToString() => $"A {{{_val}}}";
     }
 
-    bool TryParseTuple(InputArg input, out A<(int, int)> res)
+    static bool TryParseTuple(InputArg input, out A<(int, int)> res)
     {
         res = default;
         return true;
     }
-    bool TryParseSpanTuple(ReadOnlySpan<char> input, out A<(int, int)> res)
+
+    static bool TryParseSpanTuple(ReadOnlySpan<char> input, out A<(int, int)> res)
     {
         res = default;
         return true;
     }
-    bool TryParseStringTuple(string input, out A<(int, int)> res)
+
+    static bool TryParseStringTuple(string input, out A<(int, int)> res)
     {
         res = default;
         return true;
     }
+
+    #endregion
 
     [Executor("implicit-conversion")]
     public TRtn ImplicitConversion(

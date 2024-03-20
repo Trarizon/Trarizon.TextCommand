@@ -2,7 +2,6 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
@@ -17,14 +16,21 @@ internal sealed class ExecutionProvider
 
     public CommandProvider Command { get; }
 
-    public ImmutableArray<ExecutorProvider> Executors { get; }
+    public IReadOnlyList<ExecutorProvider> Executors { get; }
 
     public ExecutionProvider(ExecutionModel model, CommandProvider command)
     {
         Model = model;
         Command = command;
-        Executors = model.Executors.SelectNonException(exec => new ExecutorProvider(exec, this)).ToImmutableArray();
+        Executors = model.Executors.SelectNonException(exec => new ExecutorProvider(exec, this)).ToList();
     }
+
+    // Literals
+
+    private string? _input_ParameterIdentifier;
+    public string Input_ParameterIdentifier() => _input_ParameterIdentifier ??= Model.Syntax.ParameterList.Parameters[0].Identifier.Text;
+
+    // Decls
 
     public MethodDeclarationSyntax MethodDeclaration()
     {
@@ -36,10 +42,7 @@ internal sealed class ExecutionProvider
             Model.Syntax.ExplicitInterfaceSpecifier,
             Model.Syntax.Identifier,
             Model.Syntax.TypeParameterList,
-            Model.Syntax.ParameterList.WithParameters(
-                SyntaxFactory.SingletonSeparatedList(
-                    Model.Syntax.ParameterList.Parameters[0].WithIdentifier(
-                        SyntaxFactory.Identifier(Literals.Input_ParameterIdentifier)))),
+            Model.Syntax.ParameterList,
             Model.Syntax.ConstraintClauses,
             SyntaxFactory.Block(
                 SyntaxFactory.List(
@@ -61,7 +64,7 @@ internal sealed class ExecutionProvider
                     SyntaxFactory.ObjectCreationExpression(
                         SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.StringInputMatcher_TypeName}"),
                         SyntaxProvider.ArgumentList(
-                            SyntaxFactory.IdentifierName(Literals.Input_ParameterIdentifier)),
+                            SyntaxFactory.IdentifierName(Input_ParameterIdentifier())),
                         default));
                 governing = SyntaxFactory.IdentifierName(Literals.StringInputMatcher_VarIdentifier);
                 break;

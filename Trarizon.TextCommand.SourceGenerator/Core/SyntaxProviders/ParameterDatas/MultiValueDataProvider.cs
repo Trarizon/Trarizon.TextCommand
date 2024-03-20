@@ -5,20 +5,24 @@ using System;
 using System.Diagnostics;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
+using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters;
 using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
 /// <param name="index">if &lt 0, means this value is after RestValues, thus always empty</param>
-internal class MultiValueDataProvider(MultiValueParameterData data, ParameterProvider parameter) : IParameterDataProvider, IRequiredParameterDataProvider, IValueDataProvider
+internal class MultiValueDataProvider(MultiValueParameterData data, InputParameterProvider parameter) : IInputParameterDataProvider, IRequiredParameterDataProvider, IValueDataProvider
 {
     public MultiValueParameterData Data { get; } = data;
 
-    public ParameterProvider Parameter { get; } = parameter;
+    public InputParameterProvider Parameter { get; } = parameter;
 
-    IParameterData IParameterDataProvider.Data => Data;
+    IInputParameterData IInputParameterDataProvider.Data => Data;
     IRequiredParameterData IRequiredParameterDataProvider.Data => Data;
     IValueParameterData IValueDataProvider.Data => Data;
+    IParameterData IParameterDataProvider.Data => Data;
+
+    IParameterProvider IParameterDataProvider.Parameter => Parameter;
 
     public ProviderMethodInfoContext ProviderMethodInfo
     {
@@ -88,7 +92,7 @@ internal class MultiValueDataProvider(MultiValueParameterData data, ParameterPro
             SyntaxProvider.LiteralInt32Expression(Data.MaxCount));
     }
 
-    public ExpressionSyntax GetResultValueAccessExpression()
+    public ExpressionSyntax ResultValueAccessExpression()
         => SyntaxFactory.MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
             SyntaxFactory.IdentifierName(Parameter.Argument_VarIdentifier()),
