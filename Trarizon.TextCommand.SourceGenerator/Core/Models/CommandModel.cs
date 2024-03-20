@@ -25,20 +25,20 @@ internal sealed class CommandModel(GeneratorAttributeSyntaxContext context)
     private INamedTypeSymbol? _symbol;
     public INamedTypeSymbol Symbol => _symbol ??= SemanticModel.GetDeclaredSymbol(Syntax)!;
 
-    public IEnumerable<ExecutorModel> GetExecutorModels(ExecutionModel execution)
+    public IEnumerable<ExecutorModel> GetExecutorModels()
     {
         foreach (var methodSyntax in Syntax.Members.OfType<MethodDeclarationSyntax>()) {
             var methodSymbol = SemanticModel.GetDeclaredSymbol(methodSyntax);
 
-            // Not well declared or not the executor
-            if (methodSymbol is null || SymbolEqualityComparer.Default.Equals(execution.Symbol, methodSymbol))
+            // Not well declared     or not the executor
+            if (methodSymbol is null || SymbolEqualityComparer.Default.Equals(ExecutionModel.Symbol, methodSymbol))
                 continue;
 
             var executorAttrs = methodSymbol.GetAttributes()
                 .Where(attr => attr.AttributeClass?.MatchDisplayString(Literals.ExecutorAttribute_TypeName) == true);
 
             if (executorAttrs.Any()) {
-                yield return new ExecutorModel(execution, executorAttrs) {
+                yield return new ExecutorModel(ExecutionModel, executorAttrs) {
                     Symbol = methodSymbol!,
                     Syntax = methodSyntax,
                 };

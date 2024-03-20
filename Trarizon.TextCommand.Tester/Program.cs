@@ -1,10 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Parsers;
 using Trarizon.TextCommand.Tester;
 
 Console.WriteLine("Hello, World!");
-
 
 var design = new _Design();
 

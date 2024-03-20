@@ -3,7 +3,7 @@ internal static class Literals
 {
     public const string Namespace = "Trarizon.TextCommand";
     public const string GeneratorNamespace = $"{Namespace}.SourceGenerator";
-    public const string Version = "0.0.2";
+    public const string Version = "0.1.0.2";
 
     // Attributes
 

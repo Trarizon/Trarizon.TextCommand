@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Trarizon.TextCommand.Attributes;
 using Trarizon.TextCommand.Attributes.Parameters;
 using Trarizon.TextCommand.Input;
@@ -49,14 +50,28 @@ internal partial class _Design
 
                 goto __B_Label;
             case ["multi-flag"]:
+                // Deprecate，多个bool请（
                 var provider2 = default(ArgsProvider)!;
-                var arg = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default)
-                    | provider2.GetFlag<Option, BinaryFlagParser<Option>>("b", default);
+
+                var arg1 = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default);
+                var arg2 = provider2.GetFlag<Option, BinaryFlagParser<Option>>("a", default);
+                var arg = CombineOption([arg1, arg2]);
                 break;
         }
         return default!;
         TRtn Method(string? str, ReadOnlySpan<int> span) => default!;
+
+        Option CombineOption(ReadOnlySpan<Option> options)
+        {
+            Option rtn = default;
+            foreach (var opt in options) {
+                rtn |= opt;
+            }
+            return rtn;
+        }
     }
+
+    enum MultiFlag { None, A, B }
 
     private static TRtn ErrorHandler(in ArgParsingErrors errors, string methodName)
     {
@@ -70,6 +85,7 @@ internal partial class _Design
         }
         return default!;
     }
+
 
     [Executor("multi", "mark", "no", "param")]
     [Executor("no-param")]
@@ -113,12 +129,12 @@ internal partial class _Design
         res = default;
         return true;
     }
-    bool TryParseSpanTuple(ReadOnlySpan<char> input,out A<(int,int)> res)
+    bool TryParseSpanTuple(ReadOnlySpan<char> input, out A<(int, int)> res)
     {
         res = default;
         return true;
     }
-    bool TryParseStringTuple(string input,out A<(int,int)> res)
+    bool TryParseStringTuple(string input, out A<(int, int)> res)
     {
         res = default;
         return true;
@@ -127,8 +143,6 @@ internal partial class _Design
     [Executor("implicit-conversion")]
     public TRtn ImplicitConversion(
         [Option(Parser = nameof(TryParseTuple))] A<(int A, int B)>? tuple,
-        [Option(Parser = nameof(TryParseSpanTuple))] A<(int A, int B)> spanTuple,
-        [Option(Parser = nameof(TryParseStringTuple))] A<(int A, int B)>? stringTuple,
         int? nullable,
         string? nullableString,
         [Option(ParserType = typeof(ParsableParser<int>))] A<int> intToA,
@@ -140,6 +154,7 @@ internal partial class _Design
         [MultiValue(1, ParserType = typeof(ParsableParser<int>))] long[] intToLongArr,
         [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A<int>?[] intToNullableAArr)
     {
+        Print(tuple);
         Print(nullable);
         Print(nullableString);
         Print(intToA);
@@ -216,6 +231,16 @@ internal partial class _Design
         output = input.ToString().Reverse().ToArray().AsSpan().ToString();
         return true;
     }
+    public bool ParseSpan(ReadOnlySpan<char> input, out string output)
+    {
+        output = input.ToString().Reverse().ToArray().AsSpan().ToString();
+        return true;
+    }
+    public static bool ParseString(string input, out string output)
+    {
+        output = input.Reverse().ToArray().AsSpan().ToString();
+        return true;
+    }
 
     #endregion
 
@@ -228,6 +253,9 @@ internal partial class _Design
         [Flag(ParserType = typeof(CustomParser))] int? flagTypeParser,
         // option value
         [Option(Parser = nameof(_customParser), Required = true)] string? customParser,
+        [Option(Parser = nameof(ParseMethod))] string? methodParser,
+        [Option(Parser = nameof(ParseSpan))] string? methodSpanParser,
+        [Option(Parser = nameof(ParseString))] string? methodStringParser,
         [Value(ParserType = typeof(CustomParser), Required = true)] string typeParser,
         // multivalue
         [MultiValue(Parser = nameof(_customParser))] string?[] multiValue)
@@ -236,6 +264,9 @@ internal partial class _Design
         Print(intFlag);
         Print(flagTypeParser);
         Print(customParser);
+        Print(methodParser);
+        Print(methodSpanParser);
+        Print(methodStringParser);
         Print(typeParser);
         PrintArr(multiValue);
         return default!;

@@ -52,14 +52,16 @@ public sealed class ParsingContext(
                 var (start, length) = index.SliceRange;
                 var arg = rest.Source.Slice(start, length);
 
-                string strArg;
+                string? strArg;
                 switch (arg) {
+                    case ['-', '-', '-', ..]:
+                        goto default;
                     case ['-', '-', .. var nameKey]:
                         strArg = nameKey.ToString();
                         break;
                     case ['-', .. var aliasKey]:
                         // Not defined option key, omit
-                        if (!_aliasDict.TryGetValue(aliasKey.ToString(), out strArg!))
+                        if (!_aliasDict.TryGetValue(aliasKey.ToString(), out strArg))
                             continue;
                         break;
                     // Value | MultiValue
@@ -112,6 +114,8 @@ public sealed class ParsingContext(
         for (int i = 0; i < args.Length; i++) {
             var arg = args[i];
             switch (arg) {
+                case ['-', '-', '-', ..]:
+                    goto default;
                 case ['-', '-', .. var nameKey]:
                     arg = nameKey;
                     break;
@@ -121,17 +125,23 @@ public sealed class ParsingContext(
                         continue;
                     break;
                 default:
-                    list.Add(ArgIndex.FromCached(1));
-                    break;
+                    list.Add(ArgIndex.FromCached(i));
+                    continue;
             }
 
             if (_name_ParamCountDict.TryGetValue(arg, out var isOption)) {
-                if (isOption == 0)
-                    dict.Add(arg, default);
-                else if (++i < args.Length)
+                // Flag
+                if (isOption == 0) {
+                    dict.Add(arg, ArgIndex.Flag);
+                    continue;
+                }
+
+                // Option
+                if (++i < args.Length) {
                     dict.Add(arg, ArgIndex.FromCached(i));
+                }
+
                 // else option key is the last arg of input
-                break;
             }
             // Not defined option key, omit
             else { }
@@ -140,52 +150,54 @@ public sealed class ParsingContext(
         return new ArgsProvider(default, args, dict, list.AsSpan());
     }
 
-    /* TODO: does input support other collections like IList<>?
-    
-    public ArrayArgsProvider Parse(IEnumerable<string> args)
+    /// <summary>
+    /// Parse string collection
+    /// </summary>
+    public ArgsProvider Parse<TEnumerable>(TEnumerable args) where TEnumerable : IEnumerable<string>
     {
-        Dictionary<string, string?> dict = [];
-        List<string> list = [];
+        Dictionary<string, ArgIndex> dict = [];
+        AllocOptList<ArgIndex> indexList = new();
 
-        using var enumerator = args.GetEnumerator();
-
-        while (enumerator.MoveNext()) {
-            var arg = enumerator.Current;
+        using var enumerator = EnumerableExtensions.GetIndexedEnumerator<TEnumerable, string>(args);
+        while (enumerator.TryMoveNext(out var index, out var arg)) {
             switch (arg) {
-                case ['-', '-', ..]:
-                    if (_optionOrFlagParameters.TryGetValue(arg, out var isOption)) {
-                        if (!isOption)
-                            dict.Add(arg, null);
-                        else if (enumerator.MoveNext())
-                            dict.Add(arg, enumerator.Current);
-                        // else option key is the last arg of input
-                        break;
-                    }
-                    if (ThrowIfOnRedundantArgument) {
-                        throw new Exception();
-                    }
+                case ['-', '-', '-', ..]:
+                    goto default;
+                case ['-', '-', .. var nameKey]:
+                    arg = nameKey;
                     break;
-                case ['-', ..]:
-                    if (_aliasDict.TryGetValue(arg, out arg) && _optionOrFlagParameters.TryGetValue(arg, out isOption)) {
-                        if (!isOption)
-                            dict.Add(arg, null);
-                        else if (enumerator.MoveNext())
-                            dict.Add(arg, enumerator.Current);
-                        // else option key is the last arg of input
-                        break;
-                    }
-                    else if (ThrowIfOnRedundantArgument) {
-                        throw new Exception();
-                    }
+                case ['-', .. var aliasKey]:
+                    // Not defined option key, omit
+                    if (!_aliasDict.TryGetValue(aliasKey, out arg))
+                        continue;
                     break;
+                // Value | MultiValue
                 default:
-                    list.Add(arg);
+                    indexList.Add(ArgIndex.FromCached(index));
                     break;
             }
+
+            if (_name_ParamCountDict.TryGetValue(arg, out var isOption)) {
+                // Flag
+                if (isOption == 0) {
+                    dict.Add(arg, ArgIndex.Flag);
+                    continue;
+                }
+
+                // Option
+                if (enumerator.TryMoveNext(out var nextIndex, out _)) {
+                    dict.Add(arg, ArgIndex.FromCached(nextIndex));
+                }
+                // else the option key is the last value in input, omit
+            }
+            // Not defined option key, omit
+            else { }
         }
 
-        return new ArrayArgsProvider(dict, CollectionsMarshal.AsSpan(list));
-    }
+        AllocOptList<string> inputArgs = new(enumerator.IteratedCount);
+        foreach (var arg in args)
+            inputArgs.Add(arg);
 
-    */
+        return new ArgsProvider(default, inputArgs.AsSpan(), dict, indexList.AsSpan());
+    }
 }

@@ -11,6 +11,11 @@ internal struct AllocOptList<T>
         _items = [];
     }
 
+    public AllocOptList(int capacity)
+    {
+        _items = new T[capacity];
+    }
+
     public readonly int Count => _size;
 
     #region Accessors

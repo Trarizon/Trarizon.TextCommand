@@ -220,4 +220,12 @@ internal static class DiagnosticDescriptors
         Literals.Namespace,
         DiagnosticSeverity.Warning,
         true);
+
+    public readonly static DiagnosticDescriptor ExecutionInputParameterInvalid = new(
+        "TCMD0027",
+        nameof(ExecutionInputParameterInvalid),
+        "Input type should be string or ReadOnlySpan<char>",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
 }

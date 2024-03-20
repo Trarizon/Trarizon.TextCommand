@@ -31,3 +31,4 @@ TCMD0023 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0024 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0025 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0026 | Trarizon.TextCommand | Warning | DiagnosticDescriptors
+TCMD0027 | Trarizon.TextCommand | Error | DiagnosticDescriptors

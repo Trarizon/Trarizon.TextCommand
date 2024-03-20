@@ -16,7 +16,7 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
     public CommandModel Command { get; } = command;
 
     private IReadOnlyList<ExecutorModel>? _executors;
-    public IReadOnlyList<ExecutorModel> Executors => _executors ??= Command.GetExecutorModels(this).ToList();
+    public IReadOnlyList<ExecutorModel> Executors => _executors ??= Command.GetExecutorModels().ToList();
 
     public required MethodDeclarationSyntax Syntax { get; init; }
     public required IMethodSymbol Symbol { get; init; }
@@ -49,6 +49,12 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
         }
 
         InputParameterType = EnumHelper.GetInputParameterType(parameterType);
+
+        if (InputParameterType is InputParameterType.Invalid) {
+            return DiagnosticFactory.Create(
+                DiagnosticDescriptors.ExecutionInputParameterInvalid,
+                Syntax.ParameterList.Parameters[0]);
+        }
 
         return null;
     }
