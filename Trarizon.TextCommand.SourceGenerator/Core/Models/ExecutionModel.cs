@@ -97,25 +97,33 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
         if (errorHandler is null)
             return null;
 
-        var errHandlerMethod = Command.Symbol.GetMembers(errorHandler)
-            .OfType<IMethodSymbol>()
-            .FirstOrDefault();
+        (_, var errHandlerMethod) = Command.Symbol.EnumerateByWhileNotNull(cur => cur.BaseType)
+            .Select(type => type.GetMembers(errorHandler)
+                .OfType<IMethodSymbol>()
+                .FirstByPriorityOrDefault(ErrorHandlerValidationResult.TwoParameter,
+                    method => ValidationHelper.IsValidErrorHandler(SemanticModel, method, Symbol.ReturnType)))
+            .FirstOrDefault(handler => handler.Value is not null);
 
         if (errHandlerMethod is null) {
             return DiagnosticFactory.Create(
-                DiagnosticDescriptors.CannotFindErrorHandlerMethod_0MethodName,
+                DiagnosticDescriptors.CannotFindErrorHandlerMethod_0RequiredMethodName,
                 Syntax.Identifier,
                 errorHandler);
         }
 
-        if (ValidationHelper.IsValidErrorHandler(SemanticModel, errHandlerMethod, Symbol.ReturnType)) {
-            ErrorHandler = errHandlerMethod;
-            return null;
+        ErrorHandler = errHandlerMethod;
+
+        // If the type is declared in base type, we need to check if it is accessible
+        if (!SymbolEqualityComparer.Default.Equals(Command.Symbol, errHandlerMethod.ContainingType) &&
+            errHandlerMethod.DeclaredAccessibility is Accessibility.Private or Accessibility.NotApplicable
+            ) {
+            return DiagnosticFactory.Create(
+                    DiagnosticDescriptors.CannotAccessMethod_0MethodName,
+                    Syntax.Identifier,
+                    errHandlerMethod.Name);
         }
 
-        return DiagnosticFactory.Create(
-            DiagnosticDescriptors.ErrorHandlerInvalid,
-            Syntax.Identifier);
+        return null;
     }
 
     public IEnumerable<Diagnostic> ValidateExecutorsCommandPrefixes()

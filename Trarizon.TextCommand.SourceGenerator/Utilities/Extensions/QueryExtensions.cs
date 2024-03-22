@@ -97,4 +97,33 @@ internal static class QueryExtensions
     {
         yield return value;
     }
+
+    public static IEnumerable<T> EnumerateByWhileNotNull<T>(this T? first, Func<T, T?> nextSelector)
+    {
+        while (true) {
+            if (first is null)
+                yield break;
+
+            yield return first;
+
+            first = nextSelector(first);
+        }
+    }
+
+    public static (TPriority Priority, T? Value) FirstByPriorityOrDefault<T, TPriority>(this IEnumerable<T> source, TPriority maxPriority, Func<T, TPriority> predicate) where TPriority : struct, Enum
+    {
+        TPriority priority = default;
+        T value = default!;
+
+        foreach (var item in source) {
+            var newPriority = predicate(item);
+            if (Comparer<TPriority>.Default.Compare(newPriority, priority) >= 0)
+                return (newPriority, item);
+
+            priority = newPriority;
+            value = item;
+        }
+
+        return (priority, value);
+    }
 }

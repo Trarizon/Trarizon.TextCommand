@@ -9,6 +9,7 @@
 - Optimize in `ConversionParser`
 - Support `ReadOnlySpan<char>` and `string` as method parser input
 - Make `[Execution]` and `[Executor]` inheritable
+- Allow error handler to be defined in base type
 
 ## 0.1.0
 

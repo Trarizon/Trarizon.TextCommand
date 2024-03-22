@@ -180,14 +180,19 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true);
 
-    public readonly static DiagnosticDescriptor CannotFindErrorHandlerMethod_0MethodName = new(
+    public readonly static DiagnosticDescriptor CannotFindErrorHandlerMethod_0RequiredMethodName = new(
         "TCMD0022",
-        nameof(CannotFindErrorHandlerMethod_0MethodName),
-        "Cannot find error handler method {0}",
+        nameof(CannotFindErrorHandlerMethod_0RequiredMethodName),
+        "Cannot find valid error handler method {0}",
         Literals.Namespace,
         DiagnosticSeverity.Error,
-        true);
+        true,
+        description:"""
+        An error hander should match the signature: void|TReturn Handler((in) ArgResultErrors, [string]).
+        TReturn is assignable to return type of execution method, 2nd parameter is optional.
+        """);
 
+    [Obsolete($"Check in {nameof(CannotFindErrorHandlerMethod_0RequiredMethodName)}.")]
     public readonly static DiagnosticDescriptor ErrorHandlerInvalid = new(
         "TCMD0023",
         nameof(ErrorHandlerInvalid),
@@ -250,6 +255,14 @@ internal static class DiagnosticDescriptors
         "TCMD0030",
         nameof(CannotPassContextParameterForRefKind),
         "Cannot pass due to ref kind incompatible",
+        Literals.Namespace,
+        DiagnosticSeverity.Error,
+        true);
+
+    public readonly static DiagnosticDescriptor CannotAccessMethod_0MethodName = new(
+        "TCMD0031",
+        nameof(CannotAccessMethod_0MethodName),
+        "The method {0} is not accessable from current block",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);

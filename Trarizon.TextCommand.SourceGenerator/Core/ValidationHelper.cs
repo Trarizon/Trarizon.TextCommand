@@ -116,21 +116,19 @@ internal static class ValidationHelper
         return false;
     }
 
-    public static bool IsValidErrorHandler(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol executionReturnType)
+    public static ErrorHandlerValidationResult IsValidErrorHandler(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol executionReturnType)
     {
         if (!(method.ReturnsVoid || semanticModel.Compilation.ClassifyCommonConversion(method.ReturnType, executionReturnType).IsImplicit))
-            return false;
+            return ErrorHandlerValidationResult.Invalid;
 
         switch (method.Parameters) {
             case [{ Type: var type, RefKind: RefKind.None or RefKind.In }] when type.MatchDisplayString(Literals.ArgParsingErrors_TypeName):
-                return true;
+                return ErrorHandlerValidationResult.SingleParameter;
             case [{ Type: var type, RefKind: RefKind.None or RefKind.In }, { Type.SpecialType: SpecialType.System_String }] when type.MatchDisplayString(Literals.ArgParsingErrors_TypeName):
-                return true;
+                return ErrorHandlerValidationResult.TwoParameter;
             default:
-                break;
+                return ErrorHandlerValidationResult.Invalid;
         }
-
-        return false;
     }
 
     public static bool IsTypeImplicitAssignable(SemanticModel semanticModel, ITypeSymbol type, ITypeSymbol targetType, out bool nullableClassTypeMayAssignToNotNullable)

@@ -18,10 +18,15 @@ static class PSet
     public static readonly ParsingContext Set = new(default, default);
 }
 
-internal partial class _Design
+class Base
 {
-    [Execution("/ghoti", ErrorHandler = nameof(ErrorHandler))]
-    public partial string? Run(string customInput, in string b = "114",in string  c="514");
+    protected static void ErrorHandlerBase(in ArgParsingErrors errors, string methodName) { }
+}
+
+internal partial class _Design : Base
+{
+    [Execution("/ghoti", ErrorHandler = nameof(ErrorHandlerBase))]
+    public partial string? Run(string customInput, in string b = "114", in string c = "514");
 
     //[Execution("/ghoti", ErrorHandler = "")]
     private TRtn MaunallyRun(string input)

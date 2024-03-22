@@ -26,6 +26,8 @@
 	- 可以为`in` `ref` `out` etc.，为`out`时所有executor必需包含这个context parameter
 - [ ] `Value.Order` (maybe?)
 - [ ] Error or support multiple execution
+- [ ] ErrorHandler selection
+	- 按顺序查找匹配方法：本地双参方法，本地单参数方法，直接基类双参方法，直接基类单参方法...
 
 ## Analyzer:
 
