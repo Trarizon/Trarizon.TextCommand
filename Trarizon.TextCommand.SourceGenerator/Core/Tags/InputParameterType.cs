@@ -2,5 +2,7 @@
 internal enum InputParameterType
 {
     Invalid = 0,
-    String
+    String = 1,
+    ReadOnlySpan_Char = String,
+    CustomMatcher,
 }

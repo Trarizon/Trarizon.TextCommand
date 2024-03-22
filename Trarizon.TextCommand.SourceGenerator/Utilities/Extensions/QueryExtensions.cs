@@ -93,10 +93,7 @@ internal static class QueryExtensions
         }
     }
 
-    public static IEnumerable<T> SingletonCollection<T>(this T value)
-    {
-        yield return value;
-    }
+    public static T[] SingletonCollection<T>(this T value) => [value];
 
     public static IEnumerable<T> EnumerateByWhileNotNull<T>(this T? first, Func<T, T?> nextSelector)
     {

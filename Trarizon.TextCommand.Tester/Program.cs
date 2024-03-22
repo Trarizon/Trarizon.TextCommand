@@ -4,6 +4,11 @@ using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Parsers;
 using Trarizon.TextCommand.Tester;
 
+_ = new Tu() switch {
+[1, 2, 3, .. var rest] => throw new Exception(),
+};
+
+
 Console.WriteLine("Hello, World!");
 
 var design = new _Design();
@@ -58,3 +63,15 @@ design.Run("""
     type
     v1 v2 v3 v4
     """);
+
+class B
+{
+    public int Length { get; }
+}
+
+class Tu : B
+{
+    public int this[int index] => index;
+
+    public ReadOnlySpan<char> Slice(int startIndex, int length) => default;
+}

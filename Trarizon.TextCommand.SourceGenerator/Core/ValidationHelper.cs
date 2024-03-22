@@ -10,6 +10,28 @@ using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal static class ValidationHelper
 {
+    public static InputParameterType ValidateInputParameterType(ITypeSymbol symbol)
+    {
+        return symbol switch {
+            ITypeSymbol { SpecialType: SpecialType.System_String } => InputParameterType.String,
+            ITypeSymbol when symbol.MatchDisplayString(Constants.ReadOnlySpan_Char_TypeName) => InputParameterType.ReadOnlySpan_Char,
+            _ => InputParameterType.Invalid,
+        };
+    }
+
+    public static bool IsValidMatcherSelector(SemanticModel semanticModel, IMethodSymbol method, ITypeSymbol requiredInputType, out InputParameterType returnTypeParameterType)
+    {
+        returnTypeParameterType = InputParameterType.Invalid;
+        if (method.Parameters is not [{ Type: var inputType }])
+            return false;
+
+        if (!IsTypeImplicitAssignable(requiredInputType.))
+            return false;
+
+        returnTypeParameterType = ValidateInputParameterType(method.ReturnType);
+        return returnTypeParameterType != InputParameterType.Invalid;
+    }
+
     /// <summary>
     /// Is struct or nullable class
     /// </summary>

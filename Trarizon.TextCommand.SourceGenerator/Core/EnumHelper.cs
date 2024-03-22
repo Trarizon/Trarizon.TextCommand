@@ -8,15 +8,6 @@ using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 namespace Trarizon.TextCommand.SourceGenerator.Core;
 internal static class EnumHelper
 {
-    public static InputParameterType GetInputParameterType(ITypeSymbol symbol)
-    {
-        return symbol switch {
-            ITypeSymbol { SpecialType: SpecialType.System_String } => InputParameterType.String,
-            ITypeSymbol when symbol.MatchDisplayString(Constants.ReadOnlySpan_Char_TypeName) => InputParameterType.String,
-            _ => InputParameterType.Invalid,
-        };
-    }
-
     public static ParameterKind GetParameterKind(AttributeData attributeData)
     {
         return attributeData.AttributeClass?.ToDisplayString() switch {

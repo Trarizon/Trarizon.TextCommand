@@ -192,13 +192,10 @@ internal static class DiagnosticDescriptors
         TReturn is assignable to return type of execution method, 2nd parameter is optional.
         """);
 
-    [Obsolete($"Check in {nameof(CannotFindErrorHandlerMethod_0RequiredMethodName)}.")]
-    public readonly static DiagnosticDescriptor ErrorHandlerInvalid = new(
+    public readonly static DiagnosticDescriptor CannotAccessMethod_0MethodName = new(
         "TCMD0023",
-        nameof(ErrorHandlerInvalid),
-        "The return type of ErrorHandler should be assignable to execution's return type, " +
-        "and the parameters of ErrorHandler should be ((in) ArgResultErrors, [string]), 2nd parameter is " +
-        "the name of method where error occurs",
+        nameof(CannotAccessMethod_0MethodName),
+        "The method {0} is not accessable from current block",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);
@@ -230,7 +227,7 @@ internal static class DiagnosticDescriptors
     public readonly static DiagnosticDescriptor ExecutionInputParameterInvalid = new(
         "TCMD0027",
         nameof(ExecutionInputParameterInvalid),
-        "Input type should be string or ReadOnlySpan<char>",
+        "Input type should be string or ReadOnlySpan<char> is no custom matcher",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);
@@ -255,14 +252,6 @@ internal static class DiagnosticDescriptors
         "TCMD0030",
         nameof(CannotPassContextParameterForRefKind),
         "Cannot pass due to ref kind incompatible",
-        Literals.Namespace,
-        DiagnosticSeverity.Error,
-        true);
-
-    public readonly static DiagnosticDescriptor CannotAccessMethod_0MethodName = new(
-        "TCMD0031",
-        nameof(CannotAccessMethod_0MethodName),
-        "The method {0} is not accessable from current block",
         Literals.Namespace,
         DiagnosticSeverity.Error,
         true);

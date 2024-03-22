@@ -19,6 +19,7 @@ internal static class Literals
 
     public const int ExecutionAttribute_CommandName_CtorParameterIndex = 0;
     public const string ExecutionAttribute_ErrorHandler_PropertyIdentifier = "ErrorHandler";
+    public const string ExecutionAttribute_MatcherSelector_PropertyIdentifier = "MatcherSelector";
     public const int ExecutorAttribute_CommandPrefixes_CtorParameterIndex = 0;
 
     public const string ContextParameterAttribute_ParameterName_PropertyIdentifier = "ParameterName";

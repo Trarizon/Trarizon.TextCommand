@@ -9,6 +9,10 @@ using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 
+using MatcherSelectorTuple = (
+    Trarizon.TextCommand.SourceGenerator.Core.Tags.InputParameterType ReturnParameterType,
+    Microsoft.CodeAnalysis.IMethodSymbol? MethodSymbol);
+
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models;
 internal sealed class ExecutionModel(CommandModel command, AttributeData attributeData)
 {
@@ -45,25 +49,58 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
     /// </summary>
     public IMethodSymbol? ErrorHandler { get; private set; }
 
+    /// <summary>
+    /// Set by <see cref="ValidateParameter"/>
+    /// </summary>
+    public MatcherSelectorTuple MatcherSelector { get; private set; }
+
     // Validations
 
     public Diagnostic? ValidateParameter()
     {
-        if (Symbol.Parameters is not [{ Type: var parameterType }, ..]) {
+        if (Symbol.Parameters is not [{ Type: var inputParameterType }, ..]) {
             return DiagnosticFactory.Create(
                 DiagnosticDescriptors.ExecutionMethodHasAtLeastOneParameter,
                 Syntax.Identifier);
         }
 
-        InputParameterType = EnumHelper.GetInputParameterType(parameterType);
-
-        if (InputParameterType is InputParameterType.Invalid) {
-            return DiagnosticFactory.Create(
-                DiagnosticDescriptors.ExecutionInputParameterInvalid,
-                Syntax.ParameterList.Parameters[0]);
+        var matcherSelectorName = attributeData.GetNamedArgument<string>(Literals.ExecutionAttribute_MatcherSelector_PropertyIdentifier);
+        if (matcherSelectorName is null) {
+            MatcherSelector = default;
+            return null; ;
         }
 
-        return null;
+        InputParameterType matcherReturnParameterType = default;
+        var matcherSelector = Command.Symbol.EnumerateByWhileNotNull(type => type.BaseType)
+            .SelectMany(type => type.GetMembers(matcherSelectorName))
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(method => ValidationHelper.IsValidMatcherSelector(SemanticModel, method, inputParameterType, out var returnTypeParameterType));
+
+        if (matcherSelector is null) {
+            InputParameterType = ValidationHelper.ValidateInputParameterType(inputParameterType);
+
+            if (InputParameterType is InputParameterType.Invalid) {
+                return DiagnosticFactory.Create(
+                    DiagnosticDescriptors.ExecutionInputParameterInvalid,
+                    Syntax.ParameterList.Parameters[0]);
+            }
+
+            return null;
+        }
+        else {
+            InputParameterType = InputParameterType.CustomMatcher;
+            MatcherSelector = (matcherReturnParameterType, matcherSelector);
+
+            if (matcherReturnParameterType is InputParameterType.Invalid) {
+                return DiagnosticFactory.Create(
+                    // TODO: new diagnostic
+                    // TODO: Next: Provider
+                    DiagnosticDescriptors.ExecutionInputParameterInvalid,
+                    Syntax.ParameterList.Parameters[0]);
+            }
+
+            return null;
+        }
     }
 
     public Diagnostic? ValidateReturnType()
@@ -97,7 +134,9 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
         if (errorHandler is null)
             return null;
 
-        (_, var errHandlerMethod) = Command.Symbol.EnumerateByWhileNotNull(cur => cur.BaseType)
+        var commandTypeSymbol = Command.Symbol;
+
+        (_, var errHandlerMethod) = commandTypeSymbol.EnumerateByWhileNotNull(cur => cur.BaseType)
             .Select(type => type.GetMembers(errorHandler)
                 .OfType<IMethodSymbol>()
                 .FirstByPriorityOrDefault(ErrorHandlerValidationResult.TwoParameter,
@@ -114,7 +153,7 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
         ErrorHandler = errHandlerMethod;
 
         // If the type is declared in base type, we need to check if it is accessible
-        if (!SymbolEqualityComparer.Default.Equals(Command.Symbol, errHandlerMethod.ContainingType) &&
+        if (!SymbolEqualityComparer.Default.Equals(commandTypeSymbol, errHandlerMethod.ContainingType) &&
             errHandlerMethod.DeclaredAccessibility is Accessibility.Private or Accessibility.NotApplicable
             ) {
             return DiagnosticFactory.Create(

@@ -13,7 +13,7 @@
 - CommandName不能带有空白字符或前缀`-`
 - 未指定ErrorHandler时使用ErrorBuilder内置的DefaultErrorHandler
 - Custom error handler满足以下要求
-	- 是类型内部的方法
+	- 是类型内部或基类内部的方法
 	- 返回值`void`或可隐式转换到Execution返回类型
 	- 第一个参数为`ArgResultErrors`，可标记为`in`
 	- 第二个参数可选，为`string`，表示发生错误时本应调用的Executor方法名
