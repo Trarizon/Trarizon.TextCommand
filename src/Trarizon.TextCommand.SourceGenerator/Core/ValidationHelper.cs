@@ -40,10 +40,13 @@ internal static class ValidationHelper
 
     public static ErrorHandlerKind ValidateErrorHandler(IMethodSymbol method, SemanticModel semanticModel, ITypeSymbol executionReturnType)
     {
-        if (!method.ReturnsVoid)
-            return ErrorHandlerKind.Invalid;
-        if (method.ReturnType.IsImplicitAssignableTo(executionReturnType, semanticModel, out _))
-            return ErrorHandlerKind.Invalid;
+        if (method.ReturnsVoid)
+            goto ReturnTypeValid;
+        else if (method.ReturnType.IsImplicitAssignableTo(executionReturnType, semanticModel, out _))
+            goto ReturnTypeValid;
+        return ErrorHandlerKind.Invalid;
+
+    ReturnTypeValid:
 
         switch (method.Parameters) {
             case [{ Type: var errType, RefKind: RefKind.None or RefKind.In }] when errType.MatchDisplayString(Literals.ArgParsingErrors_TypeName):

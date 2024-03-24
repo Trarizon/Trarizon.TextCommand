@@ -19,13 +19,31 @@ static class PSet
 partial class Base : IEnumerable<string>
 {
 
-    protected static void ErrorHandlerBase(in ArgParsingErrors errors, string methodName)
+    protected void ErrorHandler(in ArgParsingErrors errors, string methodName)
     {
+        Console.WriteLine($"Errors in {methodName}");
+        foreach (var err in errors) {
+            Print(err.ErrorKind);
+            Print(err.RawInput);
+            Print(err.RawInputSpan.ToString());
+            Print(err.ParameterName);
+            Print(err.ResultType);
+        }
     }
 
     public partial string? Act<T>([NotNullWhen(false)] in string[] strings) where T : List<T>;
     IEnumerator<string> System.Collections.Generic.IEnumerable<string>.GetEnumerator() => throw new NotImplementedException();
     IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+
+    protected static void Print<T>(T value, [CallerArgumentExpression(nameof(value))] string? arg = null)
+    {
+        Console.WriteLine($"{arg}: {value}");
+    }
+
+    protected static void PrintArr<T>(IEnumerable<T> values, [CallerArgumentExpression(nameof(values))] string? arg = null)
+    {
+        Console.WriteLine($"{arg}: [{string.Join(", ", values)}]");
+    }
 }
 
 partial class Base
@@ -35,7 +53,7 @@ partial class Base
 
 internal partial class _Design : Base
 {
-    [Execution("/ghoti", "fish", ErrorHandler = nameof(ErrorHandlerBase))]
+    [Execution("/ghoti", ErrorHandler = nameof(ErrorHandler))]
     public partial string? Run(string customInput, in string b = "114", in string c = "514");
 
     //[Execution("/ghoti", ErrorHandler = "")]
@@ -89,7 +107,7 @@ internal partial class _Design : Base
 
     enum MultiFlag { None, A, B }
 
-    private static TRtn ErrorHandler(in ArgParsingErrors errors, string methodName)
+    private new static TRtn ErrorHandler(in ArgParsingErrors errors, string methodName)
     {
         Console.WriteLine($"Errors in {methodName}");
         foreach (var err in errors) {
@@ -300,15 +318,5 @@ internal partial class _Design : Base
     {
         A,
         B,
-    }
-
-    private static void Print<T>(T value, [CallerArgumentExpression(nameof(value))] string? arg = null)
-    {
-        Console.WriteLine($"{arg}: {value}");
-    }
-
-    private static void PrintArr<T>(IEnumerable<T> values, [CallerArgumentExpression(nameof(values))] string? arg = null)
-    {
-        Console.WriteLine($"{arg}: [{string.Join(", ", values)}]");
     }
 }

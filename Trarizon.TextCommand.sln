@@ -3,21 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand", "Trarizon.TextCommand\Trarizon.TextCommand.csproj", "{AC31580D-42C1-48F7-85F7-27BB9C77DD85}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand", "src\Trarizon.TextCommand\Trarizon.TextCommand.csproj", "{00DB3401-8681-495F-9068-E5E489FD9816}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand.Tester", "Trarizon.TextCommand.Tester\Trarizon.TextCommand.Tester.csproj", "{EDDA1C69-FCCE-4221-9253-D37692996E3C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand.SourceGenerator", "src\Trarizon.TextCommand.SourceGenerator\Trarizon.TextCommand.SourceGenerator.csproj", "{F25F0FC4-98D0-4942-8087-82CA369D5EA2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand.SourceGenerator", "Trarizon.TextCommand.SourceGenerator\Trarizon.TextCommand.SourceGenerator.csproj", "{52B1521F-A8F6-4A79-AC4C-77CAA55FF806}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand.Tester", "tests\Trarizon.TextCommand.Tester\Trarizon.TextCommand.Tester.csproj", "{6BC239B8-C5BA-4C59-A6FE-77484B577D3E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{49E00CB2-E05A-4808-B2AA-1FF18B6DC004}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{8D391633-EF4C-4AE2-B92B-43A8BB44EBF0}"
 	ProjectSection(SolutionItems) = preProject
-		Design.md = Design.md
 		docs\Design.md = docs\Design.md
+		LICENSE.txt = LICENSE.txt
 		README.CN.md = README.CN.md
 		README.md = README.md
-		TodoList.md = TodoList.md
 		docs\TodoList.md = docs\TodoList.md
-		UpdateHistory.md = UpdateHistory.md
 		docs\UpdateHistory.md = docs\UpdateHistory.md
 	EndProjectSection
 EndProject
@@ -27,18 +25,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{AC31580D-42C1-48F7-85F7-27BB9C77DD85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AC31580D-42C1-48F7-85F7-27BB9C77DD85}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AC31580D-42C1-48F7-85F7-27BB9C77DD85}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AC31580D-42C1-48F7-85F7-27BB9C77DD85}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EDDA1C69-FCCE-4221-9253-D37692996E3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EDDA1C69-FCCE-4221-9253-D37692996E3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EDDA1C69-FCCE-4221-9253-D37692996E3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EDDA1C69-FCCE-4221-9253-D37692996E3C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{52B1521F-A8F6-4A79-AC4C-77CAA55FF806}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{52B1521F-A8F6-4A79-AC4C-77CAA55FF806}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{52B1521F-A8F6-4A79-AC4C-77CAA55FF806}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{52B1521F-A8F6-4A79-AC4C-77CAA55FF806}.Release|Any CPU.Build.0 = Release|Any CPU
+		{00DB3401-8681-495F-9068-E5E489FD9816}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00DB3401-8681-495F-9068-E5E489FD9816}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00DB3401-8681-495F-9068-E5E489FD9816}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00DB3401-8681-495F-9068-E5E489FD9816}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F25F0FC4-98D0-4942-8087-82CA369D5EA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F25F0FC4-98D0-4942-8087-82CA369D5EA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F25F0FC4-98D0-4942-8087-82CA369D5EA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F25F0FC4-98D0-4942-8087-82CA369D5EA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BC239B8-C5BA-4C59-A6FE-77484B577D3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BC239B8-C5BA-4C59-A6FE-77484B577D3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BC239B8-C5BA-4C59-A6FE-77484B577D3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BC239B8-C5BA-4C59-A6FE-77484B577D3E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -4,10 +4,6 @@ using System.Runtime.CompilerServices;
 using Trarizon.TextCommand.Parsers;
 using Trarizon.TextCommand.Tester;
 
-_ = new Tu() switch {
-[1, 2, 3, .. var rest] => throw new Exception(),
-};
-
 
 Console.WriteLine("Hello, World!");
 
