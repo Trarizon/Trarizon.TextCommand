@@ -2,9 +2,9 @@
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Tags;
 [Flags]
-internal enum ParserWrapperKind
+internal enum ParserWrapperKinds
 {
     None = 0,
-    Nullable,
-    ImplicitConversion,
+    Nullable = 1,
+    ImplicitConversion = 2,
 }

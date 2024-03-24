@@ -31,7 +31,7 @@ partial class Command
 
 The following code will be generated (simplified):
 
-The generated code split `input` into string array, match leading words with [list pattern](https://learn.microsoft.com/zh-cn/dotnet/csharp/fundamentals/functional/pattern-matching#list-patterns), 
+The generated code split `input` into string array, match leading words with [list pattern](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/functional/pattern-matching#list-patterns), 
 and the rest parts are using for argument parsing.
 ``` csharp
 partial class Command

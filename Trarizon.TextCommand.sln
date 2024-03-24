@@ -12,10 +12,13 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{49E00CB2-E05A-4808-B2AA-1FF18B6DC004}"
 	ProjectSection(SolutionItems) = preProject
 		Design.md = Design.md
+		docs\Design.md = docs\Design.md
 		README.CN.md = README.CN.md
 		README.md = README.md
 		TodoList.md = TodoList.md
+		docs\TodoList.md = docs\TodoList.md
 		UpdateHistory.md = UpdateHistory.md
+		docs\UpdateHistory.md = docs\UpdateHistory.md
 	EndProjectSection
 EndProject
 Global

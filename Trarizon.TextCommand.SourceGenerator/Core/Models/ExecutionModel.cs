@@ -3,112 +3,172 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Tags;
+using Trarizon.TextCommand.SourceGenerator.Utilities;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
-
+using ErrorHandlerTuple = (
+    Trarizon.TextCommand.SourceGenerator.Core.Tags.ErrorHandlerKind Kind,
+    Microsoft.CodeAnalysis.IMethodSymbol Symbol);
+using InputParameterTuple = (
+    Trarizon.TextCommand.SourceGenerator.Core.Tags.InputParameterKind Kind,
+    Microsoft.CodeAnalysis.IParameterSymbol Symbol);
 using MatcherSelectorTuple = (
-    Trarizon.TextCommand.SourceGenerator.Core.Tags.InputParameterType ReturnParameterType,
-    Microsoft.CodeAnalysis.IMethodSymbol? MethodSymbol);
+    Microsoft.CodeAnalysis.IMethodSymbol Symbol,
+    Trarizon.TextCommand.SourceGenerator.Core.Tags.InputParameterKind ReturnInputParameterKind);
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models;
-internal sealed class ExecutionModel(CommandModel command, AttributeData attributeData)
+internal sealed class ExecutionModel
 {
-    public SemanticModel SemanticModel => Command.SemanticModel;
+    public SemanticModel SemanticModel { get; }
 
-    public CommandModel Command { get; } = command;
+    public CommandModel Command { get; }
 
-    private IReadOnlyList<ExecutorModel>? _executors;
-    public IReadOnlyList<ExecutorModel> Executors => _executors ??= Command.GetExecutorModels().ToList();
+    public IReadOnlyList<ExecutorModel>? _executors;
+    public IReadOnlyList<ExecutorModel> Executors => _executors
+        ??= Command.Symbol.GetMembers()
+            .OfType<IMethodSymbol>()
+            .WhereSelect(method =>
+            {
+                if (SymbolEqualityComparer.Default.Equals(method, Symbol))
+                    return default;
+                var attrs = method.GetAttributes()
+                    .Where(attr => attr.AttributeClass.MatchDisplayString(Literals.ExecutorAttribute_TypeName));
+                if (!attrs.Any())
+                    return default;
 
-    public required MethodDeclarationSyntax Syntax { get; init; }
-    public required IMethodSymbol Symbol { get; init; }
+                return WrapperUtils.Optional(new ExecutorModel(this, attrs) {
+                    Symbol = method,
+                });
+            })
+            .ToList();
+
+    public MethodDeclarationSyntax Syntax { get; }
+    public IMethodSymbol Symbol { get; }
+
+    private readonly AttributeData _attribute;
+
+    public ExecutionModel(GeneratorAttributeSyntaxContext context)
+    {
+        SemanticModel = context.SemanticModel;
+        _attribute = context.Attributes[0];
+        Syntax = (MethodDeclarationSyntax)context.TargetNode;
+        Symbol = (IMethodSymbol)context.TargetSymbol;
+
+        Command = new CommandModel(this) {
+            Syntax = Syntax.Ancestors().OfType<TypeDeclarationSyntax>().First(),
+            Symbol = Symbol.ContainingType,
+        };
+    }
 
     // Data
 
-    /// <summary>
-    /// Set by <see cref="ValidateParameter"/>
-    /// </summary>
-    public InputParameterType InputParameterType { get; private set; }
+    public InputParameterTuple InputParameter { get; private set; }
 
-    private Optional<string?> _commandName;
-    public string? CommandName
+    /// <summary>
+    /// Invalid if <see cref="InputParameter"/> is not <see cref="InputParameterKind.CustomMatcher"/>
+    /// </summary>
+    public MatcherSelectorTuple CustomMatcherSelector { get; private set; }
+
+    /// <summary>
+    /// Not null
+    /// Set in <see cref="ValidateCommandNames"/>
+    /// </summary>
+    private ImmutableArray<string> _commandNames;
+    public ImmutableArray<string> CommandNames
     {
         get {
-            if (!_commandName.HasValue) {
-                _commandName = attributeData.GetConstructorArgument<string>(Literals.ExecutionAttribute_CommandName_CtorParameterIndex);
+            if (_commandNames.IsDefault) {
+                _commandNames = _attribute.GetConstructorArguments<string>(Literals.ExecutionAttribute_CommandNames_CtorParameterIndex);
+                if (_commandNames.IsDefault)
+                    _commandNames = ImmutableArray<string>.Empty;
             }
-            return _commandName.Value;
+            return _commandNames;
         }
     }
 
-    /// <summary>
-    /// Set by <see cref="ValidateErrorHandler"/>
-    /// </summary>
-    public IMethodSymbol? ErrorHandler { get; private set; }
+    public ErrorHandlerTuple CustomErrorHandler { get; private set; }
 
-    /// <summary>
-    /// Set by <see cref="ValidateParameter"/>
-    /// </summary>
-    public MatcherSelectorTuple MatcherSelector { get; private set; }
+    // Validate
 
-    // Validations
+    public IEnumerable<Diagnostic?> Validate() => [
+        ..ValidateInputParameter(),
+        ValidateReturnType(),
+        ValidateErrorHandler(),
+        ValidateErrorHandler(),
+        ..ValidateExecutorsCommandPredixes(),
+        ..Executors.SelectMany(exec => exec.Validate()),
+        ];
 
-    public Diagnostic? ValidateParameter()
+    /// <remarks>
+    /// 有一个以上参数
+    /// matcher不符合要求时，warning，并按默认情况生成
+    /// </remarks>
+    public IEnumerable<Diagnostic> ValidateInputParameter()
     {
-        if (Symbol.Parameters is not [{ Type: var inputParameterType }, ..]) {
-            return DiagnosticFactory.Create(
+        if (Symbol.Parameters is not [var inputParameter, ..]) {
+            yield return DiagnosticFactory.Create(
                 DiagnosticDescriptors.ExecutionMethodHasAtLeastOneParameter,
                 Syntax.Identifier);
+            yield break;
         }
 
-        var matcherSelectorName = attributeData.GetNamedArgument<string>(Literals.ExecutionAttribute_MatcherSelector_PropertyIdentifier);
+        var matcherSelectorName = _attribute.GetNamedArgument<string>(Literals.ExecutionAttribute_MatcherSelector_PropertyIdentifier);
         if (matcherSelectorName is null) {
-            MatcherSelector = default;
-            return null; ;
+            goto NoCustomMatcher;
         }
 
-        InputParameterType matcherReturnParameterType = default;
+        InputParameterKind matcherReturnParameterKind = default;
         var matcherSelector = Command.Symbol.EnumerateByWhileNotNull(type => type.BaseType)
             .SelectMany(type => type.GetMembers(matcherSelectorName))
             .OfType<IMethodSymbol>()
-            .FirstOrDefault(method => ValidationHelper.IsValidMatcherSelector(SemanticModel, method, inputParameterType, out var returnTypeParameterType));
+            .FirstOrDefault(method =>
+            {
+                matcherReturnParameterKind = ValidationHelper.ValidateCustomMatcherSelector(method, SemanticModel, inputParameter.Type);
+                return matcherReturnParameterKind is not InputParameterKind.Invalid;
+            });
 
         if (matcherSelector is null) {
-            InputParameterType = ValidationHelper.ValidateInputParameterType(inputParameterType);
+            yield return DiagnosticFactory.Create(
+                DiagnosticDescriptors.CannotFindValidCustomMatcherSelectorMethod_0RequiredMethodName,
+                Syntax.Identifier,
+                matcherSelectorName);
+            // When custom matcher invalid, we use default matcher
+            goto NoCustomMatcher;
+        }
 
-            if (InputParameterType is InputParameterType.Invalid) {
-                return DiagnosticFactory.Create(
-                    DiagnosticDescriptors.ExecutionInputParameterInvalid,
-                    Syntax.ParameterList.Parameters[0]);
-            }
+        // CustomMatcher:
 
-            return null;
+        InputParameter = (InputParameterKind.CustomMatcher, inputParameter);
+        CustomMatcherSelector = (matcherSelector, matcherReturnParameterKind);
+        yield break;
+
+    NoCustomMatcher:
+
+        var inputParamKind = ValidationHelper.ValidateNonCustomInputParameterKind(inputParameter.Type);
+        if (inputParamKind is InputParameterKind.Invalid) {
+            yield return DiagnosticFactory.Create(
+                     DiagnosticDescriptors.ExecutionInputParameterInvalid,
+                     Syntax.ParameterList.Parameters[0]);
+            yield break;
         }
         else {
-            InputParameterType = InputParameterType.CustomMatcher;
-            MatcherSelector = (matcherReturnParameterType, matcherSelector);
-
-            if (matcherReturnParameterType is InputParameterType.Invalid) {
-                return DiagnosticFactory.Create(
-                    // TODO: new diagnostic
-                    // TODO: Next: Provider
-                    DiagnosticDescriptors.ExecutionInputParameterInvalid,
-                    Syntax.ParameterList.Parameters[0]);
-            }
-
-            return null;
+            InputParameter = (inputParamKind, inputParameter);
         }
     }
 
+    /// <remarks>
+    /// 应当defaultable
+    /// </remarks>
     public Diagnostic? ValidateReturnType()
     {
         if (Symbol.ReturnsVoid)
             return null;
 
-        if (Symbol.ReturnType.IsCanBeDefault())
+        if (Symbol.ReturnType.IsMayBeDefault())
             return null;
 
         return DiagnosticFactory.Create(
@@ -116,11 +176,12 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
             Syntax.ReturnType);
     }
 
-    public Diagnostic? ValidateCommandName()
+    public Diagnostic? ValidateCommandNames()
     {
-        var name = CommandName;
+        if (CommandNames.IsEmpty)
+            return null;
 
-        if (name is null || ValidationHelper.IsValidCommandPrefix(name))
+        if (CommandNames.All(ValidationHelper.IsValidCommandPrefix))
             return null;
 
         return DiagnosticFactory.Create(
@@ -130,64 +191,58 @@ internal sealed class ExecutionModel(CommandModel command, AttributeData attribu
 
     public Diagnostic? ValidateErrorHandler()
     {
-        var errorHandler = attributeData.GetNamedArgument<string>(Literals.ExecutionAttribute_ErrorHandler_PropertyIdentifier);
-        if (errorHandler is null)
+        var errHandlerName = _attribute.GetNamedArgument<string>(Literals.ExecutionAttribute_ErrorHandler_PropertyIdentifier);
+        if (errHandlerName is null)
             return null;
 
-        var commandTypeSymbol = Command.Symbol;
-
-        (_, var errHandlerMethod) = commandTypeSymbol.EnumerateByWhileNotNull(cur => cur.BaseType)
-            .Select(type => type.GetMembers(errorHandler)
+        var (errHandlerKind, errHandlerMethod) = Command.Symbol.EnumerateByWhileNotNull(type => type.BaseType)
+            .Select(type => type.GetMembers(errHandlerName)
                 .OfType<IMethodSymbol>()
-                .FirstByPriorityOrDefault(ErrorHandlerValidationResult.TwoParameter,
-                    method => ValidationHelper.IsValidErrorHandler(SemanticModel, method, Symbol.ReturnType)))
+                .FirstByMaxPriorityOrDefault(ErrorHandlerKind.WithExecutorName,
+                    method => ValidationHelper.ValidateErrorHandler(method, SemanticModel, Symbol.ReturnType)))
             .FirstOrDefault(handler => handler.Value is not null);
+
+        Debug.Assert(errHandlerKind is ErrorHandlerKind.Invalid == errHandlerMethod is null);
 
         if (errHandlerMethod is null) {
             return DiagnosticFactory.Create(
-                DiagnosticDescriptors.CannotFindErrorHandlerMethod_0RequiredMethodName,
-                Syntax.Identifier,
-                errorHandler);
+               DiagnosticDescriptors.CannotFindValidErrorHandlerMethod_0RequiredMethodName,
+               Syntax.Identifier,
+               errHandlerName);
         }
 
-        ErrorHandler = errHandlerMethod;
-
-        // If the type is declared in base type, we need to check if it is accessible
-        if (!SymbolEqualityComparer.Default.Equals(commandTypeSymbol, errHandlerMethod.ContainingType) &&
-            errHandlerMethod.DeclaredAccessibility is Accessibility.Private or Accessibility.NotApplicable
-            ) {
-            return DiagnosticFactory.Create(
-                    DiagnosticDescriptors.CannotAccessMethod_0MethodName,
-                    Syntax.Identifier,
-                    errHandlerMethod.Name);
-        }
-
+        CustomErrorHandler = (errHandlerKind, errHandlerMethod);
+        // Is method not accessible, compiler will warns.
         return null;
     }
 
-    public IEnumerable<Diagnostic> ValidateExecutorsCommandPrefixes()
+    public IEnumerable<Diagnostic> ValidateExecutorsCommandPredixes()
     {
-        var tmp = Executors.SelectMany(e => e.CommandPrefixes, (executor, cmd) => (executor, cmd)).ToList();
+        return CrossSelf(Executors
+            .SelectMany(e => e.CommandPrefixes, (exec, cmd) => (exec, cmd))
+            .ToList())
+            .Where(tuple =>
+            {
+                var (former, latter) = (tuple.Former.cmd, tuple.Latter.cmd);
+                if (former.Length > latter.Length)
+                    return false;
+                return former.AsSpan().SequenceEqual(latter.AsSpan(0, former.Length));
+            })
+            .Select(tuple =>
+            {
+                return DiagnosticFactory.Create(
+                    DiagnosticDescriptors.ExecutorCommandPrefixRepeatOrTruncate_0PrevExecutorName,
+                    tuple.Latter.exec.DefinitionSyntax.Identifier,
+                    tuple.Former.exec.Symbol.Name);
+            });
 
-        for (int i = 0; i < tmp.Count; i++) {
-            var (formerExecutor, formerCmdPrefixes) = tmp[i];
-            for (int j = i + 1; j < tmp.Count; j++) {
-                var (latterExecutor, latterCmdPrefixes) = tmp[j];
-                if (RepeatOfTruncate(formerCmdPrefixes, latterCmdPrefixes)) {
-                    yield return DiagnosticFactory.Create(
-                        DiagnosticDescriptors.ExecutorCommandPrefixRepeatOrTruncate_0PrevExecutorName,
-                        latterExecutor.Syntax.Identifier,
-                        formerExecutor.Symbol.Name);
+        static IEnumerable<(T Former, T Latter)> CrossSelf<T>(IList<T> list)
+        {
+            for (int i = 0; i < list.Count; i++) {
+                for (int j = i + 1; j < list.Count; j++) {
+                    yield return (list[i], list[j]);
                 }
             }
-        }
-
-        static bool RepeatOfTruncate(ImmutableArray<string> former, ImmutableArray<string> latter)
-        {
-            if (former.Length > latter.Length)
-                return false;
-
-            return former.AsSpan().SequenceEqual(latter.AsSpan(0, former.Length));
         }
     }
 }

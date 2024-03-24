@@ -1,4 +1,5 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,6 @@ using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
-using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders;
 internal sealed class ExecutionProvider
@@ -18,17 +18,26 @@ internal sealed class ExecutionProvider
 
     public IReadOnlyList<ExecutorProvider> Executors { get; }
 
-    public ExecutionProvider(ExecutionModel model, CommandProvider command)
+    public ExecutionProvider(ExecutionModel model)
     {
         Model = model;
-        Command = command;
-        Executors = model.Executors.SelectNonException(exec => new ExecutorProvider(exec, this)).ToList();
+        Command = new(Model.Command, this);
+        Executors = Model.Executors
+            .Select(executor => new ExecutorProvider(executor, this))
+            .ToList();
     }
 
     // Literals
+    private string? __input_ParameterIdentifier;
+    public string L_Input_ParameterIdentifier() => __input_ParameterIdentifier ??= Model.Symbol.Parameters[0].Name;
 
-    private string? _input_ParameterIdentifier;
-    public string Input_ParameterIdentifier() => _input_ParameterIdentifier ??= Model.Syntax.ParameterList.Parameters[0].Identifier.Text;
+    private string LocalVarIdentifier(string identifier)
+    {
+        while (Model.Symbol.Parameters.Any(p => p.Name == identifier)) {
+            identifier += '_';
+        }
+        return identifier;
+    }
 
     // Decls
 
@@ -38,16 +47,27 @@ internal sealed class ExecutionProvider
             SyntaxFactory.SingletonList(
                 SyntaxProvider.GeneratedCodeAttributeSyntax),
             Model.Syntax.Modifiers,
-            Model.Syntax.ReturnType,
-            Model.Syntax.ExplicitInterfaceSpecifier,
-            Model.Syntax.Identifier,
+            SyntaxProvider.FullQualifiedIdentifierName(Model.Symbol.ReturnType),
+            explicitInterfaceSpecifier: null, // partial method
+            SyntaxFactory.Identifier(Model.Symbol.Name),
             Model.Syntax.TypeParameterList,
-            Model.Syntax.ParameterList,
-            Model.Syntax.ConstraintClauses,
+            SyntaxFactory.ParameterList(
+                SyntaxFactory.SeparatedList(
+                    Model.Symbol.Parameters.Select(parameter =>
+                    {
+                        var syntax = (ParameterSyntax)parameter.DeclaringSyntaxReferences[0].GetSyntax();
+                        return SyntaxFactory.Parameter(
+                            attributeLists: default,
+                            syntax.Modifiers,
+                            SyntaxProvider.FullQualifiedIdentifierName(parameter.Type),
+                            SyntaxFactory.Identifier(parameter.Name),
+                            @default: null);
+                    }))),
+            Model.Syntax.ConstraintClauses, // TODO:
             SyntaxFactory.Block(
                 SyntaxFactory.List(
                     MethodBodyStatements())),
-            default,
+            expressionBody: null,
             semicolonToken: default);
     }
 
@@ -55,38 +75,53 @@ internal sealed class ExecutionProvider
     {
         ExpressionSyntax? governing;
 
-        // if string:
-        // var __matcher = new();
-        switch (Model.InputParameterType) {
-            case InputParameterType.String:
-                yield return SyntaxProvider.LocalVarSingleVariableDeclaration(
-                    Literals.StringInputMatcher_VarIdentifier,
-                    SyntaxFactory.ObjectCreationExpression(
-                        SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.StringInputMatcher_TypeName}"),
-                        SyntaxProvider.ArgumentList(
-                            SyntaxFactory.IdentifierName(Input_ParameterIdentifier())),
-                        default));
-                governing = SyntaxFactory.IdentifierName(Literals.StringInputMatcher_VarIdentifier);
-                break;
-            default:
-                throw new InvalidOperationException();
+        // var customMatcher = CustomMatcher(input);
+        // var stringMatcher = new StringInputMatcher(input);
+        {
+            var ipk = Model.InputParameter.Kind;
+            string argName = Model.InputParameter.Symbol.Name;
+
+        MatcherGenerating:
+            switch (ipk) {
+                case InputParameterKind.CustomMatcher: {
+                    var customMatcherVarIdentifier = LocalVarIdentifier(Literals.G_CustomMatcher_VarIdentifier);
+                    yield return SyntaxProvider.LocalVarSingleVariableDeclaration(
+                        customMatcherVarIdentifier,
+                        SyntaxFactory.InvocationExpression(
+                            SyntaxProvider.SiblingMemberAccessExpression(Model.CustomMatcherSelector.Symbol),
+                            SyntaxProvider.ArgumentList(
+                                SyntaxFactory.IdentifierName(argName))));
+                    ipk = Model.CustomMatcherSelector.ReturnInputParameterKind;
+                    argName = customMatcherVarIdentifier;
+                    goto MatcherGenerating;
+                }
+                case InputParameterKind.String:
+                    var stringMatcherVarIdentifier = LocalVarIdentifier(Literals.G_StringInputMatcher_VarIdentifier);
+                    yield return SyntaxProvider.LocalVarSingleVariableDeclaration(
+                        stringMatcherVarIdentifier,
+                        SyntaxFactory.ObjectCreationExpression(
+                            SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.StringInputMatcher_TypeName}"),
+                            SyntaxProvider.ArgumentList(
+                                SyntaxFactory.IdentifierName(L_Input_ParameterIdentifier())),
+                            initializer: default));
+                    governing = SyntaxFactory.IdentifierName(stringMatcherVarIdentifier);
+                    break;
+                default:
+                    throw new InvalidOperationException();
+            }
         }
 
-        // switch() { }
+        // switch (input) { }
         yield return SyntaxFactory.SwitchStatement(
             governing,
             SyntaxFactory.List(
-                Executors.SelectMany(e => e.MatchingSwitchSections())));
+                Executors.SelectMany(e => e.GenerateMatchingSwitchSections())));
 
-        yield return ReturnStatement();
-    }
-
-    private ReturnStatementSyntax ReturnStatement()
-    {
+        // return default;
         if (Model.Symbol.ReturnsVoid)
-            return SyntaxFactory.ReturnStatement();
-
-        return SyntaxFactory.ReturnStatement(
-            SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+            yield return SyntaxFactory.ReturnStatement();
+        else
+            yield return SyntaxFactory.ReturnStatement(
+                SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
     }
 }

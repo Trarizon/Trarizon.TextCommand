@@ -1,43 +1,62 @@
 ﻿using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
+using Trarizon.TextCommand.SourceGenerator.ConstantValues;
+using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas.Markers;
 using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
+using Trarizon.TextCommand.SourceGenerator.Utilities.Factories;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
-internal sealed class MultiValueParameterData(ParameterModel model) : IInputParameterData, IRequiredParameterData, IValueParameterData
+internal sealed class MultiValueParameterData(ParameterModel model) : InputParameterData(model), IMultipleParameterData, IRequiredParameterData, IPositionalParameterDataMutable
 {
-    public ParameterModel Model { get; } = model;
+    public override bool IsValid => CollectionKind is not MultiParameterCollectionKind.Invalid && base.IsValid;
 
-    public required ParserInfoProvider ParserInfo { get; init; }
+    private ITypeSymbol _parserTargetTypeSymbol = default!;
+    public override ITypeSymbol TargetElementTypeSymbol => _parserTargetTypeSymbol;
 
-    private ITypeSymbol? _resultTypeSymbol;
-    public required ITypeSymbol ResultTypeSymbol
+    public MultiParameterCollectionKind CollectionKind { get; private set; }
+
+    private bool? _isRequired;
+    public bool IsRequired
     {
-        get => _resultTypeSymbol ?? Model.Symbol.Type;
-        init => _resultTypeSymbol = value;
+        get {
+            _isRequired ??=
+                (Model.Attribute?.GetNamedArgument<bool>(Literals.IRequiredParameterAttribute_Required_PropertyIdentifier) ?? false);
+            return _isRequired.GetValueOrDefault();
+        }
     }
 
-    private ITypeSymbol? _parsedTypeSymbol;
-    public ITypeSymbol ParsedTypeSymbol
-    {
-        // For implicit parser, ParsedType will not has nullable annotation
-        get => _parsedTypeSymbol ??= ResultTypeSymbol.RemoveNullableAnnotation();
-        init => _parsedTypeSymbol = value;
-    }
-
-    public bool Required { get; init; }
-
-    private int _maxCount;
+    private int? _maxCount;
     public int MaxCount
     {
-        get => IsRest ? int.MaxValue - Index : _maxCount;
-        init => _maxCount = value;
+        get {
+            if (!_maxCount.HasValue) {
+                _maxCount ??=
+                    (Model.Attribute?.GetConstructorArgument<int>(Literals.MultiValueAttribute_MaxCount_CtorParameterIndex)
+                    ?? 0); // If not set, to the rest
+            }
+            var maxCount = _maxCount.GetValueOrDefault();
+            return maxCount > 0 ? maxCount : int.MaxValue - StartIndex;
+        }
     }
+
+    public int StartIndex { get; set; }
 
     public bool IsRest => _maxCount <= 0;
 
-    public required MultiValueCollectionType CollectionType { get; init; }
+    public bool IsUnreachable => StartIndex < 0;
 
-    public int Index { get; set; }
+    public override IEnumerable<Diagnostic?> Validate()
+    {
+        CollectionKind = ValidationHelper.ValidateMultiParameterCollectionKind(Model.Symbol.Type, out var elementType);
+        if (CollectionKind is MultiParameterCollectionKind.Invalid) {
+            return DiagnosticFactory.Create(
+                 DiagnosticDescriptors.InvalidMultiValueCollectionType,
+                 Model.Syntax).Collect();
+        }
 
-    public bool IsUnreachable => Index < 0;
+        _parserTargetTypeSymbol = elementType;
+
+        return base.Validate();
+    }
 }

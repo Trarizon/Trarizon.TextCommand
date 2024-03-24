@@ -1,39 +1,22 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Trarizon.TextCommand.SourceGenerator.Core.Models;
 using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
-using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
+using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas.Markers;
+using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters.Markers;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters;
-internal class ContextParameterProvider : IParameterProvider, IParameterDataProvider
+internal sealed class ContextParameterProvider(ContextParameterData data, ExecutorProvider executor) : IParameterProvider
 {
-    public ParameterModel Model { get; }
+    public ContextParameterData Data { get; } = data;
 
-    public ExecutorProvider Executor { get; }
+    public ExecutorProvider Executor { get; } = executor;
 
-    public ContextParameterData Data { get; }
+    IParameterData IParameterProvider.Data => Data;
 
-    public IParameterDataProvider ParameterData => this;
-
-    public IParameterProvider Parameter => this;
-
-    IParameterData IParameterDataProvider.Data => Data;
-
-    public ContextParameterProvider(ParameterModel model, ExecutorProvider executor)
-    {
-        Model = model;
-        Data = (ContextParameterData)model.ParameterData!;
-        Executor = executor;
-    }
-
-    public ArgumentSyntax ResultValueArgumentExpression()
-    {
-        return SyntaxFactory.Argument(
+    public ArgumentSyntax ExecutorArgAccess_ArgumentSyntax()
+        => SyntaxFactory.Argument(
             null,
-            SyntaxProvider.RefKindToken(Model.Symbol.RefKind),
-            ResultValueAccessExpression());
-    }
-
-    public ExpressionSyntax ResultValueAccessExpression() =>SyntaxFactory.IdentifierName(Data.ParameterName);
+            SyntaxProvider.RefKindToken(Data.Model.Symbol.RefKind),
+            SyntaxFactory.IdentifierName(Data.ParameterName));
 }

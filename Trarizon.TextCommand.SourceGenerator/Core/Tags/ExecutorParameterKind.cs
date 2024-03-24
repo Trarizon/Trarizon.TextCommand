@@ -1,7 +1,8 @@
 ﻿namespace Trarizon.TextCommand.SourceGenerator.Core.Tags;
-internal enum ParameterKind
+internal enum ExecutorParameterKind
 {
     Invalid = 0,
+    Implicit = Invalid,
     Flag,
     Option,
     Value,

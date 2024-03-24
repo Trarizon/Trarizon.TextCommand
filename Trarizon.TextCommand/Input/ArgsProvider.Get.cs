@@ -57,7 +57,7 @@ partial struct ArgsProvider
     /// </param>
     /// <returns>A <see cref="ArgResultsUnmanaged{T}"/> contains result</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public ArgResultsUnmanaged<T> GetValuesUnmanaged<T, TParser>(int startIndex, TParser parser, Span<ArgResult<T>> allocatedSpace) where T : unmanaged where TParser : IArgParser<T>
+    public ArgResultsUnmanaged<T> GetValuesUnmanaged<T, TParser>(int startIndex, TParser parser, Span<ArgResult<T>> allocatedSpace) where TParser : IArgParser<T>
     {
         if (allocatedSpace.Length == 0)
             return ArgResultsUnmanaged<T>.Empty;

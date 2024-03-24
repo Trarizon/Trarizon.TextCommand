@@ -24,6 +24,11 @@ internal static class SyntaxProvider
 
     #region SyntaxFactory Sugar
 
+    public static IdentifierNameSyntax FullQualifiedIdentifierName(ISymbol symbol)
+    {
+        return SyntaxFactory.IdentifierName(symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+    }
+
     public static SyntaxToken RefKindToken(RefKind parameterRefKind)
     {
         return SyntaxFactory.Token(
@@ -56,6 +61,10 @@ internal static class SyntaxProvider
                         SyntaxFactory.Identifier(variableName),
                         default,
                         SyntaxFactory.EqualsValueClause(initializer)))));
+
+    public static LiteralExpressionSyntax LiteralDefaultExpression()
+        => SyntaxFactory.LiteralExpression(
+            SyntaxKind.DefaultLiteralExpression);
 
     public static LiteralExpressionSyntax LiteralStringExpression(string str)
         => SyntaxFactory.LiteralExpression(

@@ -60,14 +60,19 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
-    public readonly static DiagnosticDescriptor CannotFindExplicitParser_0MemberName = new(
+    public readonly static DiagnosticDescriptor CannotFindValidMemberParser_0MemberName = new(
         "TCMD0008",
-        nameof(CannotFindExplicitParser_0MemberName),
-        @"Cannot find explicit parser field, property, or method named ""{0}"" in command type",
+        nameof(CannotFindValidMemberParser_0MemberName),
+        @"Cannot find valid member parser field, property, or method named ""{0}"" in command type",
         Literals.Namespace,
         DiagnosticSeverity.Error,
-        true);
+        true,
+        $"""
+        For field or property, the type of member should implement {Literals.IArgParser_TypeName} or {Literals.IArgFlagParser_TypeName},
+        For method, the signature should match bool M(InputArg|strubg|ReadOnlySpab<char>, out TReturn) or TReturn M(bool).
+        """);
 
+    [Obsolete]
     public readonly static DiagnosticDescriptor CustomParserShouldImplsIArgParser = new(
         "TCMD0009",
         nameof(CustomParserShouldImplsIArgParser),
@@ -76,6 +81,7 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
+    [Obsolete]
     public readonly static DiagnosticDescriptor CustomFlagParserShouldImplsIArgsFlagParser = new(
         "TCMD0010",
         nameof(CustomFlagParserShouldImplsIArgsFlagParser),
@@ -108,6 +114,7 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
+    [Obsolete]
     public readonly static DiagnosticDescriptor CustomFlagParsingMethodMatchArgFlagParsingDelegate = new(
         "TCMD0013",
         nameof(CustomFlagParsingMethodMatchArgFlagParsingDelegate),
@@ -116,6 +123,7 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Error,
         true);
 
+    [Obsolete]
     public readonly static DiagnosticDescriptor CustomParsingMethodMatchArgParsingDelegate = new(
         "TCMD0014",
         nameof(CustomParsingMethodMatchArgParsingDelegate),
@@ -180,33 +188,37 @@ internal static class DiagnosticDescriptors
         DiagnosticSeverity.Warning,
         true);
 
-    public readonly static DiagnosticDescriptor CannotFindErrorHandlerMethod_0RequiredMethodName = new(
+    public readonly static DiagnosticDescriptor CannotFindValidErrorHandlerMethod_0RequiredMethodName = new(
         "TCMD0022",
-        nameof(CannotFindErrorHandlerMethod_0RequiredMethodName),
-        "Cannot find valid error handler method {0}",
+        nameof(CannotFindValidErrorHandlerMethod_0RequiredMethodName),
+        "Cannot find valid error handler method {0}, custom error handler will be ignored",
         Literals.Namespace,
-        DiagnosticSeverity.Error,
+        DiagnosticSeverity.Warning,
         true,
-        description:"""
+        description: """
         An error hander should match the signature: void|TReturn Handler((in) ArgResultErrors, [string]).
         TReturn is assignable to return type of execution method, 2nd parameter is optional.
         """);
 
-    public readonly static DiagnosticDescriptor CannotAccessMethod_0MethodName = new(
+    public readonly static DiagnosticDescriptor CannotFindValidCustomMatcherSelectorMethod_0RequiredMethodName = new(
         "TCMD0023",
-        nameof(CannotAccessMethod_0MethodName),
-        "The method {0} is not accessable from current block",
+        nameof(CannotFindValidCustomMatcherSelectorMethod_0RequiredMethodName),
+        "Cannot find valid custom matcher selector method {0}, custom matcher will be ignored",
         Literals.Namespace,
-        DiagnosticSeverity.Error,
+        DiagnosticSeverity.Warning,
         true);
 
-    public readonly static DiagnosticDescriptor CustomTypeParserShouldBeValueType = new(
+    public readonly static DiagnosticDescriptor CustomTypeParserInvalid = new(
         "TCMD0024",
-        nameof(CustomTypeParserShouldBeValueType),
-        "Custom type parser should be value type, because we use default(Parser) as parser",
+        nameof(CustomTypeParserInvalid),
+        $"Custom type parser should be value type, and implement IArgParser interface",
         Literals.Namespace,
         DiagnosticSeverity.Error,
-        true);
+        true,
+        $"""
+        For flag, type implements {Literals.IArgFlagParser_TypeName};
+        For others, type impements {Literals.IArgParser_TypeName}.
+        """);
 
     public readonly static DiagnosticDescriptor DoNotSpecifyBothParserAndParserType = new(
         "TCMD0025",

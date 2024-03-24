@@ -223,7 +223,7 @@ public readonly ref struct ArgParsingErrors
         /// if <paramref name="results"/> contains error that has same or higher error level,
         /// the error is added.
         /// </param>
-        public void AddWhenError<T>(scoped ArgResultsUnmanaged<T> results, string parameterName, ArgResultKind minErrorLevel) where T : unmanaged
+        public void AddWhenError<T>(scoped ArgResultsUnmanaged<T> results, string parameterName, ArgResultKind minErrorLevel)
         {
             foreach (var info in results.RawInfos) {
                 AddWhenErrorInternal(info, typeof(T), parameterName, minErrorLevel);

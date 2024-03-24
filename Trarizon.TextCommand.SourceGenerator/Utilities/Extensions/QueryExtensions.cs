@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.CodeAnalysis;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -93,7 +95,7 @@ internal static class QueryExtensions
         }
     }
 
-    public static T[] SingletonCollection<T>(this T value) => [value];
+    public static T[] Collect<T>(this T value) => [value];
 
     public static IEnumerable<T> EnumerateByWhileNotNull<T>(this T? first, Func<T, T?> nextSelector)
     {
@@ -107,20 +109,45 @@ internal static class QueryExtensions
         }
     }
 
-    public static (TPriority Priority, T? Value) FirstByPriorityOrDefault<T, TPriority>(this IEnumerable<T> source, TPriority maxPriority, Func<T, TPriority> predicate) where TPriority : struct, Enum
+    public static (TPriority Priority, T? Value) FirstByMaxPriorityOrDefault<T, TPriority>(this IEnumerable<T> source, TPriority maxPriority, Func<T, TPriority> predicate) where TPriority : struct, Enum
     {
         TPriority priority = default;
         T value = default!;
 
         foreach (var item in source) {
             var newPriority = predicate(item);
-            if (Comparer<TPriority>.Default.Compare(newPriority, priority) >= 0)
+            if (Comparer<TPriority>.Default.Compare(newPriority, maxPriority) >= 0)
                 return (newPriority, item);
-
-            priority = newPriority;
-            value = item;
+            if (Comparer<TPriority>.Default.Compare(newPriority, priority) > 0) {
+                priority = newPriority;
+                value = item;
+            }
         }
 
         return (priority, value);
+    }
+
+    public static IEnumerable<TResult> WhereSelect<T, TResult>(this IEnumerable<T> source, Func<T, Optional<TResult>> whereSelector)
+    {
+        foreach (var item in source) {
+            if (whereSelector(item).TryGetValue(out var val))
+                yield return val;
+        }
+    }
+
+    public static bool CountsMoreThan<T>(this IEnumerable<T> source, int count)
+    {
+        if (count < 0)
+            return true;
+
+        if (source is ICollection<T> collection && collection.Count > count)
+            return true;
+
+        int curCount = 0;
+        foreach (var _ in source) {
+            if (++curCount > count)
+                return true;
+        }
+        return false;
     }
 }

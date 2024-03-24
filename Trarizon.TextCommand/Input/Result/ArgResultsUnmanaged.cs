@@ -10,7 +10,7 @@ namespace Trarizon.TextCommand.Input.Result;
 /// do not use default to create this struct
 /// </remarks>
 /// <typeparam name="T">Type of collection item</typeparam>
-public readonly ref struct ArgResultsUnmanaged<T> where T : unmanaged
+public readonly ref struct ArgResultsUnmanaged<T>
 {
     internal static ArgResultsUnmanaged<T> Empty => new(ref Unsafe.NullRef<T>(), 0);
 

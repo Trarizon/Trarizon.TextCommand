@@ -26,8 +26,8 @@ TCMD0018 | Trarizon.TextCommand | Warning | DiagnosticDescriptors
 TCMD0019 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0020 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0021 | Trarizon.TextCommand | Warning | DiagnosticDescriptors
-TCMD0022 | Trarizon.TextCommand | Error | DiagnosticDescriptors
-TCMD0023 | Trarizon.TextCommand | Error | DiagnosticDescriptors
+TCMD0022 | Trarizon.TextCommand | Warning | DiagnosticDescriptors
+TCMD0023 | Trarizon.TextCommand | Warning | DiagnosticDescriptors
 TCMD0024 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0025 | Trarizon.TextCommand | Error | DiagnosticDescriptors
 TCMD0026 | Trarizon.TextCommand | Warning | DiagnosticDescriptors

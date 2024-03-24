@@ -1,8 +1,6 @@
-﻿using System.Collections.Frozen;
-using System.Collections.Specialized;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 using Trarizon.TextCommand.Attributes;
 using Trarizon.TextCommand.Attributes.Parameters;
 using Trarizon.TextCommand.Input;
@@ -18,14 +16,26 @@ static class PSet
     public static readonly ParsingContext Set = new(default, default);
 }
 
-class Base
+partial class Base : IEnumerable<string>
 {
-    protected static void ErrorHandlerBase(in ArgParsingErrors errors, string methodName) { }
+
+    protected static void ErrorHandlerBase(in ArgParsingErrors errors, string methodName)
+    {
+    }
+
+    public partial string? Act<T>([NotNullWhen(false)] in string[] strings) where T : List<T>;
+    IEnumerator<string> System.Collections.Generic.IEnumerable<string>.GetEnumerator() => throw new NotImplementedException();
+    IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
+}
+
+partial class Base
+{
+    public partial string? Act<T>(in string[] strings) where T : List<T> => throw new NotImplementedException();
 }
 
 internal partial class _Design : Base
 {
-    [Execution("/ghoti", ErrorHandler = nameof(ErrorHandlerBase))]
+    [Execution("/ghoti", "fish", ErrorHandler = nameof(ErrorHandlerBase))]
     public partial string? Run(string customInput, in string b = "114", in string c = "514");
 
     //[Execution("/ghoti", ErrorHandler = "")]
@@ -93,15 +103,6 @@ internal partial class _Design : Base
     }
 
 
-    [Executor("multi", "mark", "no", "param")]
-    [Executor("no-param")]
-    public TRtn NoParam()
-    {
-        Console.WriteLine("NoParam");
-        return default!;
-
-    }
-
     [Executor("context-param")]
     [Executor("value-only")]
     public TRtn ValueOnly(
@@ -141,6 +142,7 @@ internal partial class _Design : Base
 
     static bool TryParseTuple(InputArg input, out A<(int, int)> res)
     {
+        A<int>? nua = 1;
         res = default;
         return true;
     }
@@ -164,6 +166,7 @@ internal partial class _Design : Base
         [Option(Parser = nameof(TryParseTuple))] A<(int A, int B)>? tuple,
         int? nullable,
         string? nullableString,
+        [Flag(Parser = nameof(ParseIntFlag))] A<int> intToAFlag,
         [Option(ParserType = typeof(ParsableParser<int>))] A<int> intToA,
         [Option(ParserType = typeof(ParsableParser<int>))] long intToLong,
         [Option(ParserType = typeof(ParsableParser<int>))] A<int>? intToNullableA,
@@ -171,11 +174,13 @@ internal partial class _Design : Base
         [MultiValue(1)] string?[] nullableStringArr,
         [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A<int>[] intToAArr,
         [MultiValue(1, ParserType = typeof(ParsableParser<int>))] long[] intToLongArr,
-        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A<int>?[] intToNullableAArr)
+        [MultiValue(1, ParserType = typeof(ParsableParser<int>))] A<int>?[] intToNullableAArr,
+        [Option(ParserType = typeof(ParsableParser<int>))] ValueType? upCast)
     {
         Print(tuple);
         Print(nullable);
         Print(nullableString);
+        Print(intToAFlag);
         Print(intToA);
         Print(intToLong);
         Print(intToNullableA);

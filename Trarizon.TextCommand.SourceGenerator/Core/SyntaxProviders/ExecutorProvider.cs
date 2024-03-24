@@ -3,13 +3,14 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
 using Trarizon.TextCommand.SourceGenerator.Core.Models;
-using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.ParameterDatas;
-using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters;
+using Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders.Parameters.Markers;
+using Trarizon.TextCommand.SourceGenerator.Core.Tags;
 using Trarizon.TextCommand.SourceGenerator.Utilities;
+using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.SyntaxProviders;
 internal class ExecutorProvider
@@ -18,191 +19,183 @@ internal class ExecutorProvider
 
     public ExecutionProvider Execution { get; }
 
-    public ImmutableArray<IParameterProvider> Parameters { get; }
+    public IReadOnlyList<IParameterProvider?> Parameters { get; }
 
-    /// <remarks>
-    /// May throw
-    /// </remarks>
     public ExecutorProvider(ExecutorModel model, ExecutionProvider execution)
     {
         Model = model;
         Execution = execution;
-
         Parameters = model.Parameters
             .Select(parameter => ParameterProvider.Create(parameter, this))
-            .ToImmutableArray();
+            .ToList();
+        Debug.Assert(Model.Symbol.Parameters.Length == Parameters.Count);
     }
 
     // Literals
 
-    public string RestArgs_VarIdentifier(int? suffix) => $"__rest_{Model.Symbol.Name}{suffix}";
-    public string ParameterSet_FieldIdentifier() => Model.Symbol.Name;
-    public string ArgsProvider_VarIdentifier() => $"__provider_{Model.Symbol.Name}";
-    public string ErrorsBuilder_VarIdentifier() => $"__builder_{Model.Symbol.Name}";
-    public string MainExecutor_LabelIdentifier() => $"__MAIN_EXECUTOR_{Model.Symbol.Name}";
+    private string LocalIdentifier(string prefix) => $"{prefix}_{Model.Symbol.Name}";
+
+    public string L_RestArgs_VarIdentifier(int executorIndex) => $"{Literals.G_RestArg_VarIdentifier}_{Model.Symbol.Name}{executorIndex}";
+    public string L_ParsingContext_FieldIdentifier() => Model.Symbol.Name;
+    public string L_ArgsProvider_VarIdentifier() => LocalIdentifier(Literals.G_ArgsProvider_VarIdentifier);
+    public string L_LabelIdentifier() => LocalIdentifier(Literals.G_Executor_GotoLabelIdentifier);
+    public string L_ErrorsBuilder_VarIdentifier() => LocalIdentifier(Literals.G_ErrorsBuilder_VarIdentifier);
 
     // Decls
 
-    public IEnumerable<SwitchSectionSyntax> MatchingSwitchSections()
+    /// <summary>
+    /// [
+    /// case [..]: statements;
+    /// ]
+    /// </summary>
+    public IEnumerable<SwitchSectionSyntax> GenerateMatchingSwitchSections()
     {
-        if (Model.CommandPrefixes.Count > 1 && Parameters.Length > 0)
-            return MultiMatchingSwitchSections();
-        else
-            return [SingleMatchingSwitchSection()];
-
-        // More than 1 [Executor], we use goto to jump
-        IEnumerable<SwitchSectionSyntax> MultiMatchingSwitchSections()
-        {
+        if (Parameters.Count > 0) {
             // case [..]:
-            // __Label:
-            //     return Executor();
-            yield return SyntaxFactory.SwitchSection(
-                SyntaxFactory.SingletonList<SwitchLabelSyntax>(
-                    SyntaxFactory.CasePatternSwitchLabel(
-                        SyntaxFactory.ListPattern(
-                            SyntaxFactory.SeparatedList(
-                                ListPatternSubPatterns(Model.CommandPrefixes[0]))),
-                        SyntaxFactory.Token(SyntaxKind.ColonToken))),
-                SyntaxFactory.List(
-                    MainCaseStatements()));
-
+            //     statements;
             // case [..]:
-            //     goto __Label;
-            for (int i = 1; i < Model.CommandPrefixes.Count; i++) {
-                yield return SyntaxFactory.SwitchSection(
-                    SyntaxFactory.SingletonList<SwitchLabelSyntax>(
-                        SyntaxFactory.CasePatternSwitchLabel(
-                            SyntaxFactory.ListPattern(
-                                SyntaxFactory.SeparatedList(
-                                    ListPatternSubPatterns(Model.CommandPrefixes[i], i))),
-                            SyntaxFactory.Token(SyntaxKind.ColonToken))),
+            //     goto;
+            return Model.CommandPrefixes.Select((_, i) =>
+            {
+                return SyntaxFactory.SwitchSection(
+                    SyntaxFactory.SingletonList(
+                        GenerateCaseLabel(i)),
                     SyntaxFactory.List(
-                        SubCaseStatements(i)));
-            }
+                        GenerateCaseStatments(i)));
+            });
         }
-
-        SwitchSectionSyntax SingleMatchingSwitchSection()
-        {
+        else {
+            // case [..]:
+            // case [..]:
+            //     statements;
             return SyntaxFactory.SwitchSection(
-                SyntaxFactory.List<SwitchLabelSyntax>(
-                    Model.CommandPrefixes.Select(prefixes =>
-                    {
-                        return SyntaxFactory.CasePatternSwitchLabel(
-                            SyntaxFactory.ListPattern(
-                                    SyntaxFactory.SeparatedList(
-                                        ListPatternSubPatterns(prefixes))),
-                            SyntaxFactory.Token(SyntaxKind.ColonToken));
-                    })),
                 SyntaxFactory.List(
-                    MainCaseStatements()));
+                    Model.CommandPrefixes.Select((_, i) => GenerateCaseLabel(i))),
+                SyntaxFactory.List(
+                    GenerateCaseStatments(0)))
+                .Collect();
         }
     }
 
-    private IEnumerable<PatternSyntax> ListPatternSubPatterns(ImmutableArray<string> executorCommandPrefixes, int? restIdentifierSuffix = default)
+    /// <summary>
+    /// case [..]:
+    /// </summary>
+    private SwitchLabelSyntax GenerateCaseLabel(int executorIndex)
     {
-        // Execution part
-        if (Execution.Model.CommandName is not null) {
+        return SyntaxFactory.CasePatternSwitchLabel(
+            SyntaxFactory.ListPattern(
+                SyntaxFactory.SeparatedList(
+                    ListPatternSubPattern(executorIndex))),
+            SyntaxFactory.Token(SyntaxKind.ColonToken));
+    }
+
+    /// <summary>
+    /// "cmd", "cmd", .. var rest
+    /// </summary>
+    private IEnumerable<PatternSyntax> ListPatternSubPattern(int executorIndex)
+    {
+        foreach (var cmdPrefix in Execution.Model.CommandNames.Concat(Model.CommandPrefixes[executorIndex])) {
             yield return SyntaxFactory.ConstantPattern(
-                SyntaxProvider.LiteralStringExpression(Execution.Model.CommandName));
+                SyntaxProvider.LiteralStringExpression(cmdPrefix));
         }
 
-        // Executor part
-        foreach (var prefix in executorCommandPrefixes) {
-            yield return SyntaxFactory.ConstantPattern(
-                SyntaxProvider.LiteralStringExpression(prefix));
-        }
-
-        if (Parameters.Length == 0) {
-            // ..
+        if (Parameters.Count == 0) {
             yield return SyntaxFactory.SlicePattern();
         }
         else {
-            // .. var __rest
             yield return SyntaxFactory.SlicePattern(
                 SyntaxFactory.VarPattern(
                     SyntaxFactory.SingleVariableDesignation(
-                        SyntaxFactory.Identifier(RestArgs_VarIdentifier(restIdentifierSuffix)))));
+                        SyntaxFactory.Identifier(L_RestArgs_VarIdentifier(executorIndex)))));
         }
     }
-
-    private IEnumerable<StatementSyntax> MainCaseStatements()
-    {
-        if (Parameters.Length > 0) {
-            // _provider = ParamSet.Exec.Parse(__rest)
-            yield return ArgsProviderLocalVarStatement(true);
-
-            // _builder = new();
-            yield return SyntaxFactory.LabeledStatement(
-                MainExecutor_LabelIdentifier(),
-                ErrorsBuilderLocalVarStatement());
-
-            foreach (var parameter in Parameters.OfType<InputParameterProvider>()) {
-                // var args = provider.Get<>();
-                yield return parameter.ArgumentLocalDeclaration();
-
-                foreach (var stat in parameter.ArgumentLocalExtraStatments()) {
-                    yield return stat;
-                }
-            }
-
-            // if (builder.HasError)
-            //     return ErrorHandler();
-            yield return SyntaxFactory.IfStatement(
-               SyntaxFactory.MemberAccessExpression(
-                   SyntaxKind.SimpleMemberAccessExpression,
-                   SyntaxFactory.IdentifierName(ErrorsBuilder_VarIdentifier()),
-                   SyntaxFactory.IdentifierName(Literals.ArgParsingErrorsBuilder_HasError_PropertyIdentifier)),
-               SyntaxFactory.Block(
-                   SyntaxFactory.List(
-                       ErrorHandlingStatements())));
-        }
-
-        var invocation = SyntaxFactory.InvocationExpression(
-            SyntaxProvider.SiblingMemberAccessExpression(Model.Symbol),
-            SyntaxFactory.ArgumentList(
-                SyntaxFactory.SeparatedList(Parameters.Select(p => p.ResultValueArgumentExpression()))));
-
-        // return statements
-        if (Execution.Model.Symbol.ReturnsVoid) {
-            // Method(...);
-            // return;
-            yield return SyntaxFactory.ExpressionStatement(invocation);
-            yield return SyntaxFactory.ReturnStatement();
-        }
-        else {
-            // return Method(...);
-            yield return SyntaxFactory.ReturnStatement(invocation);
-        }
-    }
-
-    private StatementSyntax[] SubCaseStatements(int? restIdentifierSuffix) => [
-        ArgsProviderLocalVarStatement(false,restIdentifierSuffix),
-        SyntaxFactory.GotoStatement(
-            SyntaxKind.GotoStatement,
-            SyntaxFactory.IdentifierName(MainExecutor_LabelIdentifier())),
-    ];
 
     /// <summary>
-    /// var __provider = Parse()
-    /// __provider = Parse()
+    /// Statements in case
     /// </summary>
-    private StatementSyntax ArgsProviderLocalVarStatement(bool declartion, int? restIdentifiersuffix = null)
+    private IEnumerable<StatementSyntax> GenerateCaseStatments(int executorIndex)
+    {
+        if (Parameters.Count > 0) {
+            // (var) provider = ParsingContext.Executor.Parse(restArgs)
+            yield return ArgsProviderLocalVarStatement(executorIndex);
+        }
+
+        if (executorIndex == 0) {
+            foreach (var s in MainCaseStatements())
+                yield return s;
+        }
+        else {
+            yield return SyntaxFactory.GotoStatement(
+                SyntaxKind.GotoStatement,
+                SyntaxFactory.IdentifierName(L_LabelIdentifier()));
+        }
+
+        IEnumerable<StatementSyntax> MainCaseStatements()
+        {
+            if (Parameters.Count > 0) {
+                // errorBuilder = new();
+                yield return SyntaxFactory.LabeledStatement(
+                    L_LabelIdentifier(),
+                    ErrorsBuilderLocalVarStatement());
+
+                // var args = provider.Get<>()
+                // ...
+                foreach (var statement in Parameters
+                    .OfType<IInputParameterProvider>()
+                    .SelectMany(parameter => parameter.CaseBodyLocalStatements()))
+                    yield return statement;
+
+                // if (builder.HasError)
+                //     return ErrorHandler();
+                yield return SyntaxFactory.IfStatement(
+                    SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactory.IdentifierName(L_ErrorsBuilder_VarIdentifier()),
+                        SyntaxFactory.IdentifierName(Literals.ArgParsingErrorsBuilder_HasError_PropertyIdentifier)),
+                    SyntaxFactory.Block(
+                        SyntaxFactory.List(
+                            ErrorHandlingStatements())));
+            }
+
+            var invocation = SyntaxFactory.InvocationExpression(
+                SyntaxProvider.SiblingMemberAccessExpression(Model.Symbol),
+                SyntaxFactory.ArgumentList(
+                    SyntaxFactory.SeparatedList(Parameters.Select(p =>
+                    {
+                        if (p is not null) {
+                            return p.ExecutorArgAccess_ArgumentSyntax();
+                        }
+                        return SyntaxFactory.Argument(
+                            SyntaxProvider.LiteralDefaultExpression());
+                    }))));
+
+            if (Model.Symbol.ReturnsVoid) {
+                yield return SyntaxFactory.ExpressionStatement(invocation);
+                yield return SyntaxFactory.ReturnStatement();
+            }
+            else {
+                yield return SyntaxFactory.ReturnStatement(invocation);
+            }
+        }
+    }
+
+    private StatementSyntax ArgsProviderLocalVarStatement(int executorIndex)
     {
         var invocation = SyntaxProvider.SimpleMethodInvocation(
-            SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParsingContextProvider_TypeIdentifier}.{ParameterSet_FieldIdentifier()}"),
+            SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.G_ParsingContextProvider_TypeIdentifier}.{L_ParsingContext_FieldIdentifier()}"),
             SyntaxFactory.IdentifierName(Literals.ParsingContext_Parse_MethodIdentifier),
-            SyntaxFactory.IdentifierName(RestArgs_VarIdentifier(restIdentifiersuffix)));
+            SyntaxFactory.IdentifierName(L_RestArgs_VarIdentifier(executorIndex)));
 
-        if (declartion) {
+        if (executorIndex == 0) {
             return SyntaxProvider.LocalVarSingleVariableDeclaration(
-                ArgsProvider_VarIdentifier(),
+                L_ArgsProvider_VarIdentifier(),
                 invocation);
         }
         else {
             return SyntaxFactory.ExpressionStatement(
                 SyntaxFactory.AssignmentExpression(
                     SyntaxKind.SimpleAssignmentExpression,
-                    SyntaxFactory.IdentifierName(ArgsProvider_VarIdentifier()),
+                    SyntaxFactory.IdentifierName(L_ArgsProvider_VarIdentifier()),
                     invocation));
         }
     }
@@ -210,7 +203,7 @@ internal class ExecutorProvider
     private StatementSyntax ErrorsBuilderLocalVarStatement()
     {
         return SyntaxProvider.LocalVarSingleVariableDeclaration(
-            ErrorsBuilder_VarIdentifier(),
+            L_ErrorsBuilder_VarIdentifier(),
             SyntaxFactory.ObjectCreationExpression(
                 SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ArgParsingErrorsBuilder_TypeName}"),
                 SyntaxFactory.ArgumentList(),
@@ -219,55 +212,60 @@ internal class ExecutorProvider
 
     private IEnumerable<StatementSyntax> ErrorHandlingStatements()
     {
-        var errorHandler = Execution.Model.ErrorHandler;
-        if (errorHandler is null) {
-            // builder.DefaultErrorHandler()
-            // break;
-            yield return SyntaxFactory.ExpressionStatement(
-                SyntaxFactory.InvocationExpression(
-                    SyntaxFactory.MemberAccessExpression(
-                        SyntaxKind.SimpleMemberAccessExpression,
-                        SyntaxFactory.IdentifierName(ErrorsBuilder_VarIdentifier()),
-                        SyntaxFactory.IdentifierName(Literals.ArgParsingErrorsBuilder_DefaultErrorHandler_MethodIdentifier))));
+        var (errorHandlerKind, errorHandler) = Execution.Model.CustomErrorHandler;
+
+        InvocationExpressionSyntax invocation;
+        switch (errorHandlerKind) {
+            case ErrorHandlerKind.Invalid: {
+                // builder.DefaultErrorHandler()
+                // break;
+                yield return SyntaxFactory.ExpressionStatement(
+                    SyntaxProvider.SimpleMethodInvocation(
+                        SyntaxFactory.IdentifierName(L_ErrorsBuilder_VarIdentifier()),
+                        SyntaxFactory.IdentifierName(Literals.ArgParsingErrorsBuilder_DefaultErrorHandler_MethodIdentifier)));
+                yield return SyntaxFactory.BreakStatement();
+                yield break;
+            }
+            case ErrorHandlerKind.Minimal: {
+                invocation = SyntaxFactory.InvocationExpression(
+                    SyntaxProvider.SiblingMemberAccessExpression(errorHandler),
+                    SyntaxProvider.ArgumentList(ErrorsArgExpr()));
+                break;
+            }
+            case ErrorHandlerKind.WithExecutorName: {
+                invocation = SyntaxFactory.InvocationExpression(
+                    SyntaxProvider.SiblingMemberAccessExpression(errorHandler),
+                    SyntaxProvider.ArgumentList(
+                        ErrorsArgExpr(),
+                        SyntaxProvider.LiteralStringExpression(Model.Symbol.Name)));
+                break;
+            }
+            default:
+                throw new InvalidOperationException();
+        }
+
+        if (errorHandler.ReturnsVoid) {
+            yield return SyntaxFactory.ExpressionStatement(invocation);
             yield return SyntaxFactory.BreakStatement();
         }
         else {
-            var firstArgExpr = SyntaxProvider.SimpleMethodInvocation(
-                SyntaxFactory.IdentifierName(ErrorsBuilder_VarIdentifier()),
+            yield return SyntaxFactory.ReturnStatement(invocation);
+        }
+
+        ExpressionSyntax ErrorsArgExpr()
+        {
+            return SyntaxProvider.SimpleMethodInvocation(
+                SyntaxFactory.IdentifierName(L_ErrorsBuilder_VarIdentifier()),
                 SyntaxFactory.IdentifierName(Literals.ArgParsingErrorsBuilder_Build_MethodIdentifier),
-                SyntaxFactory.IdentifierName(ArgsProvider_VarIdentifier()));
-
-            var invocation = SyntaxFactory.InvocationExpression(
-                SyntaxProvider.SiblingMemberAccessExpression(errorHandler),
-                SyntaxProvider.ArgumentList(
-                    errorHandler.Parameters.Length switch {
-                        1 => [firstArgExpr],
-                        2 => [firstArgExpr, SyntaxProvider.LiteralStringExpression(Model.Symbol.Name)],
-                        _ => throw new InvalidOperationException(),
-                    }));
-
-            if (errorHandler.ReturnsVoid) {
-                // ErrorHandler();
-                // break;
-                yield return SyntaxFactory.ExpressionStatement(invocation);
-                yield return SyntaxFactory.BreakStatement();
-            }
-            else {
-                // return ErrorHandler();
-                yield return SyntaxFactory.ReturnStatement(invocation);
-            }
+                SyntaxFactory.IdentifierName(L_ArgsProvider_VarIdentifier()));
         }
     }
 
-    public FieldDeclarationSyntax? ParameterSetFieldDeclaration()
+    public FieldDeclarationSyntax? ParsingContextFieldDeclaration()
     {
-        if (Parameters.Length == 0)
+        if (Parameters.Count == 0)
             return null;
 
-        var namedParameters = Parameters
-            .Select(p => p.ParameterData)
-            .OfType<INamedParameterDataProvider>()
-            .ToList();
 
         return SyntaxFactory.FieldDeclaration(
             SyntaxFactory.SingletonList(
@@ -280,56 +278,70 @@ internal class ExecutorProvider
                 SyntaxFactory.IdentifierName($"{Constants.Global}::{Literals.ParsingContext_TypeName}"),
                 SyntaxFactory.SingletonSeparatedList(
                     SyntaxFactory.VariableDeclarator(
-                        SyntaxFactory.Identifier(ParameterSet_FieldIdentifier()),
+                        SyntaxFactory.Identifier(L_ParsingContext_FieldIdentifier()),
                         default,
                         SyntaxFactory.EqualsValueClause(
-                            SyntaxFactory.ImplicitObjectCreationExpression(
-                                SyntaxProvider.ArgumentList(
-                                    DictParameterArgExpression(
-                                        namedParameters,
-                                        ImmutableArray.Create<TypeSyntax>(
-                                            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
-                                            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntKeyword))),
-                                        p => (SyntaxProvider.LiteralStringExpression(p.Data.Name),
-                                            p.GetParameterSetDictValue())),
-                                    DictParameterArgExpression(
-                                        namedParameters.Where(p => p.Data.Alias is not null).ToList(),
-                                        ImmutableArray.Create<TypeSyntax>(
-                                            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
-                                            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))),
-                                        p => (SyntaxProvider.LiteralStringExpression(p.Data.Alias!),
-                                            SyntaxProvider.LiteralStringExpression(p.Data.Name)))),
-                                default))))));
+                            ParsingContextObjectCreationExpr())))));
+    }
 
-        static ExpressionSyntax DictParameterArgExpression(IReadOnlyCollection<INamedParameterDataProvider> providers, ImmutableArray<TypeSyntax> dictTypeArguments, Func<INamedParameterDataProvider, (ExpressionSyntax Key, ExpressionSyntax Value)> initializerExpressionKeyValueSelector)
+    private ImplicitObjectCreationExpressionSyntax ParsingContextObjectCreationExpr()
+    {
+        var namedParameter = Parameters
+            .OfType<INamedParameterProvider>()
+            .ToList();
+
+        return SyntaxFactory.ImplicitObjectCreationExpression(
+            SyntaxProvider.ArgumentList(
+                DictParameterArgExpression(
+                    Parameters.OfType<INamedParameterProvider>(),
+                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
+                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntKeyword)),
+                    p => SyntaxProvider.LiteralStringExpression(p.Data.Name),
+                    p => p.ParsingContextArgDictValueExpr()),
+                DictParameterArgExpression(
+                    Parameters.OfType<INamedParameterProvider>().Where(p => p.Data.Alias is not null),
+                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
+                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
+                    p => SyntaxProvider.LiteralStringExpression(p.Data.Alias!),
+                    p => SyntaxProvider.LiteralStringExpression(p.Data.Name))),
+            default);
+
+        static ExpressionSyntax DictParameterArgExpression(
+            IEnumerable<INamedParameterProvider> providers,
+            TypeSyntax dictKeyType,
+            TypeSyntax dictValueType,
+            Func<INamedParameterProvider, ExpressionSyntax> initializerKeySelector,
+            Func<INamedParameterProvider, ExpressionSyntax> initializerValueSelector)
         {
             var dictType = SyntaxFactory.GenericName(
                 SyntaxFactory.Identifier($"{Constants.Global}::{Constants.Dictionary_TypeName}"),
                 SyntaxFactory.TypeArgumentList(
-                    SyntaxFactory.SeparatedList(dictTypeArguments)));
+                    SyntaxFactory.SeparatedList(new[] {
+                        dictKeyType,
+                        dictValueType,
+                    })));
 
-            if (providers.Count == 0) {
+            var items = providers.Select(p =>
+            {
+                return SyntaxFactory.AssignmentExpression(
+                    SyntaxKind.SimpleAssignmentExpression,
+                    SyntaxFactory.ImplicitElementAccess(
+                        SyntaxFactory.BracketedArgumentList(
+                            SyntaxFactory.SingletonSeparatedList(
+                                SyntaxFactory.Argument(initializerKeySelector(p))))),
+                    initializerValueSelector(p));
+            }).ToList();
+
+            if (items.Count == 0)
                 return SyntaxFactory.DefaultExpression(dictType);
-            }
 
             return SyntaxFactory.ObjectCreationExpression(
                 dictType,
                 SyntaxProvider.ArgumentList(
-                    SyntaxProvider.LiteralInt32Expression(providers.Count)),
+                    SyntaxProvider.LiteralInt32Expression(items.Count)),
                 SyntaxFactory.InitializerExpression(
                     SyntaxKind.ObjectInitializerExpression,
-                    SyntaxFactory.SeparatedList<ExpressionSyntax>(
-                        providers.Select(p =>
-                        {
-                            var (key, value) = initializerExpressionKeyValueSelector(p);
-                            return SyntaxFactory.AssignmentExpression(
-                                SyntaxKind.SimpleAssignmentExpression,
-                                SyntaxFactory.ImplicitElementAccess(
-                                    SyntaxFactory.BracketedArgumentList(
-                                        SyntaxFactory.SingletonSeparatedList(
-                                            SyntaxFactory.Argument(key)))),
-                                value);
-                        }))));
+                    SyntaxFactory.SeparatedList<ExpressionSyntax>(items)));
         }
     }
 }

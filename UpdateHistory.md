@@ -10,6 +10,8 @@
 - Support `ReadOnlySpan<char>` and `string` as method parser input
 - Make `[Execution]` and `[Executor]` inheritable
 - Allow error handler to be defined in base type
+- Allow multiple Execution.CommandName
+- [Bug] Fix many wrong errors while member has overloading
 
 ## 0.1.0
 

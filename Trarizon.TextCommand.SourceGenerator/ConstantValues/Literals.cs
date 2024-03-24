@@ -17,7 +17,7 @@ internal static class Literals
     public const string MultiValueAttribute_TypeName = $"{Namespace}.Attributes.Parameters.MultiValueAttribute";
 
 
-    public const int ExecutionAttribute_CommandName_CtorParameterIndex = 0;
+    public const int ExecutionAttribute_CommandNames_CtorParameterIndex = 0;
     public const string ExecutionAttribute_ErrorHandler_PropertyIdentifier = "ErrorHandler";
     public const string ExecutionAttribute_MatcherSelector_PropertyIdentifier = "MatcherSelector";
     public const int ExecutorAttribute_CommandPrefixes_CtorParameterIndex = 0;
@@ -85,10 +85,15 @@ internal static class Literals
 
     // Vars
 
-    public const string StringInputMatcher_VarIdentifier = "__matcher";
-    public const string ParsingContextProvider_TypeIdentifier = "__ParsingContextProvider";
-    public const string Input_ParameterIdentifier = "input";
-    public const int StackAllocThreshold = 128; // As this lib is mainly design for parsing manually input, we don't need a large threshold
+    public const string G_CustomMatcher_VarIdentifier = "__customMatcher";
+    public const string G_StringInputMatcher_VarIdentifier = "__stringMatcher";
+    public const string G_RestArg_VarIdentifier = "__rest";
+    public const string G_ParsingContextProvider_TypeIdentifier = "__ParsingContextProvider";
+    public const string G_ArgsProvider_VarIdentifier = "__provider";
+    public const string G_Executor_GotoLabelIdentifier = "__MAIN_EXECUTOR";
+    public const string G_ErrorsBuilder_VarIdentifier = "__errorBuilder";
+    public const string G_ExecutorArgument_VarIdentifier = "__executorArg";
+    public const int G_StackAllocThreshold = 128; // As this lib is mainly design for parsing manually input, we don't need a large threshold
 
     public const string Prefix_Alias = "-";
     public const string Prefix = "--";

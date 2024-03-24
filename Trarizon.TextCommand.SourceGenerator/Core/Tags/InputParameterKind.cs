@@ -1,8 +1,8 @@
 ﻿namespace Trarizon.TextCommand.SourceGenerator.Core.Tags;
-internal enum InputParameterType
+internal enum InputParameterKind
 {
     Invalid = 0,
-    String = 1,
+    String,
     ReadOnlySpan_Char = String,
     CustomMatcher,
 }

@@ -1,37 +1,25 @@
-﻿using Microsoft.CodeAnalysis;
-using System.Diagnostics.CodeAnalysis;
+﻿using Trarizon.TextCommand.SourceGenerator.ConstantValues;
+using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas.Markers;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
-internal sealed class ValueParameterData(ParameterModel model) : IInputParameterData, IRequiredParameterData, IValueParameterData
+internal sealed class ValueParameterData(ParameterModel model) : InputParameterData(model), IRequiredParameterData, IPositionalParameterDataMutable
 {
-    public ParameterModel Model { get; } = model;
+    public int StartIndex { get; set; }
 
-    public required ParserInfoProvider ParserInfo { get; init; }
+    public bool IsUnreachable => StartIndex < 0;
 
-    private ITypeSymbol? _resultTypeSymbol;
-    public ITypeSymbol ResultTypeSymbol
+    private bool? _isRequired;
+    public bool IsRequired
     {
-        get => _resultTypeSymbol ?? Model.Symbol.Type;
-        init => _resultTypeSymbol = value;
+        get {
+            _isRequired ??=
+                (Model.Attribute?.GetNamedArgument<bool>(Literals.IRequiredParameterAttribute_Required_PropertyIdentifier) ?? false);
+            return _isRequired.GetValueOrDefault();
+        }
     }
 
+    int IPositionalParameterData.MaxCount => 1;
 
-    private ITypeSymbol? _parsedTypeSymbol;
-    public ITypeSymbol ParsedTypeSymbol
-    {
-        // For implicit parser, ParsedType will not has nullable annotation
-        get => _parsedTypeSymbol ??= ResultTypeSymbol.RemoveNullableAnnotation();
-        init => _parsedTypeSymbol = value;
-    }
-
-    public bool Required { get; init; }
-
-    public int Index { get; set; }
-
-    public bool IsUnreachable => Index < 0;
-
-    int IValueParameterData.MaxCount => 1;
-
-    bool IValueParameterData.IsRest => false;
+    bool IPositionalParameterData.IsRest => false;
 }

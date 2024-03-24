@@ -2,14 +2,14 @@
 /// <summary>
 /// Execution entrance of the command
 /// </summary>
-/// <param name="commandName">Command prefix</param>
+/// <param name="commandNames">Command prefix</param>
 [AttributeUsage(AttributeTargets.Method, Inherited = true)]
-public sealed class ExecutionAttribute(string? commandName = null) : Attribute
+public sealed class ExecutionAttribute(params string[] commandNames) : Attribute
 {
     /// <summary>
     /// Command prefix
     /// </summary>
-    public string? CommandName => commandName;
+    public string[] CommandName => commandNames;
 
     /// <summary>
     /// Member method name of custom error handler

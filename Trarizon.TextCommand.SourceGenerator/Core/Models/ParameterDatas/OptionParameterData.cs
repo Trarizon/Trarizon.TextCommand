@@ -1,40 +1,33 @@
 ﻿using Microsoft.CodeAnalysis;
-using System.Diagnostics.CodeAnalysis;
+using Trarizon.TextCommand.SourceGenerator.ConstantValues;
+using Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas.Markers;
 using Trarizon.TextCommand.SourceGenerator.Utilities.Extensions;
 
 namespace Trarizon.TextCommand.SourceGenerator.Core.Models.ParameterDatas;
-internal sealed class OptionParameterData(ParameterModel model) : IInputParameterData, INamedParameterData, IRequiredParameterData
+internal sealed class OptionParameterData(ParameterModel model) : InputParameterData(model), INamedParameterData, IRequiredParameterData
 {
-    public ParameterModel Model { get; } = model;
-
-    public required ParserInfoProvider ParserInfo { get; init; }
-
-    private ITypeSymbol? _resultTypeSymbol;
-    public ITypeSymbol ResultTypeSymbol
+    private Optional<string?> _alias;
+    public string? Alias
     {
-        get => _resultTypeSymbol ?? Model.Symbol.Type;
-        init => _resultTypeSymbol = value;
+        get {
+            if (!_alias.HasValue) {
+                _alias = Model.Attribute?.GetConstructorArgument<string>(Literals.OptionAttribute_Alias_CtorParameterIndex);
+            }
+            return _alias.Value;
+        }
     }
-
-    private ITypeSymbol? _parsedTypeSymbol;
-    public ITypeSymbol ParsedTypeSymbol
-    {
-        // For implicit parser, ParsedType will not has nullable annotation
-        get => _parsedTypeSymbol ??= ResultTypeSymbol.RemoveNullableAnnotation();
-        init => _parsedTypeSymbol = value;
-    }
-
-    // Attribute data
-
-    public string? Alias { get; init; }
 
     private string? _name;
-    public string Name
-    {
-        get => _name ??= Model.Symbol.Name;
-        [param: AllowNull]
-        init => _name = value;
-    }
+    public string Name => _name ??=
+        (Model.Attribute?.GetNamedArgument<string>(Literals.OptionAttribute_Name_PropertyIdentifier) ?? Model.Symbol.Name);
 
-    public bool Required { get; init; }
+    private bool? _isRequired;
+    public bool IsRequired
+    {
+        get {
+            _isRequired ??=
+                (Model.Attribute?.GetNamedArgument<bool>(Literals.IRequiredParameterAttribute_Required_PropertyIdentifier) ?? false);
+            return _isRequired.GetValueOrDefault();
+        }
+    }
 }
