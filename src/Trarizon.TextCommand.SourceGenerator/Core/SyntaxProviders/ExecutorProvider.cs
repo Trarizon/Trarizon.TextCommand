@@ -169,7 +169,7 @@ internal class ExecutorProvider
                             SyntaxProvider.LiteralDefaultExpression());
                     }))));
 
-            if (Model.Symbol.ReturnsVoid) {
+            if (Execution.Model.Symbol.ReturnsVoid) {
                 yield return SyntaxFactory.ExpressionStatement(invocation);
                 yield return SyntaxFactory.ReturnStatement();
             }

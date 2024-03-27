@@ -53,8 +53,8 @@ partial class Base
 
 internal partial class _Design : Base
 {
-    [Execution("/ghoti", ErrorHandler = nameof(ErrorHandler))]
-    public partial string? Run(string customInput, in string b = "114", in string c = "514");
+    [Execution("/ghoti", ErrorHandler = nameof(ErrorHandler), MatcherSelector = nameof(Matcher))]
+    public partial string? Run(string input, in string? b = "114", in string c = "514");
 
     //[Execution("/ghoti", ErrorHandler = "")]
     private TRtn MaunallyRun(string input)
@@ -105,9 +105,21 @@ internal partial class _Design : Base
         }
     }
 
+
+    /// <summary>
+    /// Docmax
+    /// mut
+    /// </summary>
+    /// <param name="input"></param>
+    /// <returns></returns>
+    string Matcher(string input)
+    {
+        return input;
+    }
+
     enum MultiFlag { None, A, B }
 
-    private new static TRtn ErrorHandler(in ArgParsingErrors errors, string methodName)
+    private new static string ErrorHandler(in ArgParsingErrors errors, string methodName)
     {
         Console.WriteLine($"Errors in {methodName}");
         foreach (var err in errors) {

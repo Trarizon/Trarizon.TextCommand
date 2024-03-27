@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System;
 using System.Linq;
 using System.Text;
 using Trarizon.TextCommand.SourceGenerator.ConstantValues;
@@ -58,7 +59,7 @@ public class ExecutionGenerator : IIncrementalGenerator
                         .WithLeadingTrivia(
                             SyntaxFactory.Trivia(
                                 SyntaxFactory.NullableDirectiveTrivia(
-                                    SyntaxFactory.Token(SyntaxKind.EnableKeyword), true)),
+                                    SyntaxFactory.Token(SyntaxKind.DisableKeyword), true)),
                             SyntaxFactory.Trivia(
                                 SyntaxFactory.PragmaWarningDirectiveTrivia(
                                     SyntaxFactory.Token(SyntaxKind.DisableKeyword),
@@ -72,6 +73,8 @@ public class ExecutionGenerator : IIncrementalGenerator
                     provider.ParsingContextTypeDeclaration(),
                 }));
 
+            Console.WriteLine(provider.Execution.MethodDeclaration().NormalizeWhitespace().GetText(Encoding.UTF8));
+            
             context.AddSource(
                 provider.GenerateFileName(),
                 compilation.NormalizeWhitespace().GetText(Encoding.UTF8));

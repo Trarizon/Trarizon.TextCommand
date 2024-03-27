@@ -2,7 +2,7 @@
   "profiles": {
     "Run Tester": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "..\\Trarizon.TextCommand.Tester\\Trarizon.TextCommand.Tester.csproj"
+      "targetProject": "..\\..\\tests\\Trarizon.TextCommand.Tester\\Trarizon.TextCommand.Tester.csproj"
     }
   }
 }

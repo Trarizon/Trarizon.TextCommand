@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand.Source
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trarizon.TextCommand.Tester", "tests\Trarizon.TextCommand.Tester\Trarizon.TextCommand.Tester.csproj", "{6BC239B8-C5BA-4C59-A6FE-77484B577D3E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{8D391633-EF4C-4AE2-B92B-43A8BB44EBF0}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{8D391633-EF4C-4AE2-B92B-43A8BB44EBF0}"
 	ProjectSection(SolutionItems) = preProject
 		docs\Design.md = docs\Design.md
 		LICENSE.txt = LICENSE.txt
@@ -18,6 +18,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决�
 		docs\TodoList.md = docs\TodoList.md
 		docs\UpdateHistory.md = docs\UpdateHistory.md
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E2AC2260-94C4-4D46-AB54-26DF8AF63135}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,6 +42,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{00DB3401-8681-495F-9068-E5E489FD9816} = {E2AC2260-94C4-4D46-AB54-26DF8AF63135}
+		{F25F0FC4-98D0-4942-8087-82CA369D5EA2} = {E2AC2260-94C4-4D46-AB54-26DF8AF63135}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1213AF3D-1F60-4F84-8D8A-E619D62B310D}

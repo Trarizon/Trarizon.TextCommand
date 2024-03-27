@@ -8,7 +8,7 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Trarizon.TextCommand.SourceGenerator\Trarizon.TextCommand.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-		<ProjectReference Include="..\Trarizon.TextCommand\Trarizon.TextCommand.csproj" />
+		<ProjectReference Include="..\..\src\Trarizon.TextCommand.SourceGenerator\Trarizon.TextCommand.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\..\src\Trarizon.TextCommand\Trarizon.TextCommand.csproj" />
 	</ItemGroup>
 </Project>
